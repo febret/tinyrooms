@@ -1,6 +1,5 @@
 export const FILES = "abcdefgh";
 export const PROMOTIONS = ["q", "r", "b", "n"];
-export const PIECE_VALUES = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0 };
 const PIECE_LABELS = { K: "king", Q: "queen", R: "rook", B: "bishop", N: "knight", P: "pawn" };
 
 const SHAPES = {
@@ -118,10 +117,6 @@ export function needsPromotion(piece, target) {
   return pieceColor(piece.code) === "w" ? rank === 8 : rank === 1;
 }
 
-export function promotionMoves(state, source, target) {
-  return movesFrom(state, source).includes(target) ? PROMOTIONS.map(promotion => `${source}${target}${promotion}`) : [];
-}
-
 export function capturedPieces(pieces) {
   const remaining = new Set((Array.isArray(pieces) ? pieces : []).map(piece => String(piece?.id || "")));
   const captured = { white: [], black: [] };
@@ -135,13 +130,4 @@ export function capturedPieces(pieces) {
     }
   }
   return captured;
-}
-
-export function moveValue(state, source, target) {
-  const board = piecesBySquare(state);
-  const victim = board.get(target);
-  if (!victim) return 0;
-  const mover = board.get(source);
-  if (!mover || pieceColor(mover.code) === pieceColor(victim.code)) return 0;
-  return PIECE_VALUES[pieceKind(victim.code)] || 0;
 }

@@ -104,14 +104,18 @@ export function createGridMapView({ container, onSelect, onMove, onCreateGrid })
     applyTransform();
   }
 
+  function lineMarkup(fromPosition, toPosition, cls, title = "") {
+    const start = tileCenter(layout.bounds, fromPosition);
+    const end = tileCenter(layout.bounds, toPosition);
+    return `<line class="${cls}" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}">${title}</line>`;
+  }
+
   function linkMarkup(links, byId) {
     return links.map(link => {
       const from = byId.get(link.from);
       const to = byId.get(link.to);
       if (!from || !to) return "";
-      const start = tileCenter(layout.bounds, from.position);
-      const end = tileCenter(layout.bounds, to.position);
-      return `<line class="grid-map-link" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" />`;
+      return lineMarkup(from.position, to.position, "grid-map-link");
     }).join("");
   }
 
@@ -122,9 +126,8 @@ export function createGridMapView({ container, onSelect, onMove, onCreateGrid })
       .map(link => {
         const target = byId.get(link.to);
         if (!target || target.position[2] !== floor) return "";
-        const start = tileCenter(layout.bounds, active.position);
-        const end = tileCenter(layout.bounds, target.position);
-        return `<line class="grid-map-portal" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}"><title>${escapeHtml(link.label)} to ${escapeHtml(target.label)}</title></line>`;
+        const title = `<title>${escapeHtml(link.label)} to ${escapeHtml(target.label)}</title>`;
+        return lineMarkup(active.position, target.position, "grid-map-portal", title);
       })
       .join("");
   }

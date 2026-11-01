@@ -66,16 +66,14 @@ class ActivityTicker:
             return 0.0
         return min(60.0, max(0.0, value))
 
-    async def _has_watchers(self, room_id: str, kind: str) -> bool:
-        if self._activities is not None and hasattr(self._activities, "has_sessions"):
-            return bool(self._activities.has_sessions(room_id, kind))
-        return True
-
-    async def _room_occupied(self, room_id: str) -> bool:
+    async def _should_tick(self, room_id: str, kind: str) -> bool:
         if self._connections is None:
             return False
-        occupants = await self._connections.list_room(room_id)
-        return bool(occupants)
+        if not await self._connections.list_room(room_id):
+            return False
+        if self._activities is not None:
+            return bool(self._activities.has_sessions(room_id, kind))
+        return True
 
     async def run_once(self, room_id: str, kind: str) -> None:
         """Dispatch one activity tick to a room activity's controller prop."""
@@ -86,9 +84,7 @@ class ActivityTicker:
         activity = room.activities.get(kind)
         if activity is None:
             return
-        if not await self._room_occupied(room_id):
-            return
-        if not await self._has_watchers(room_id, kind):
+        if not await self._should_tick(room_id, kind):
             return
         instance = room.props.get(activity.controller)
         if instance is None:
@@ -110,15 +106,19 @@ class ActivityTicker:
             while True:
                 await asyncio.sleep(self._default_interval)
                 now = time.monotonic()
+                seen: set[tuple[str, str]] = set()
                 for room in tuple(self._world.rooms.values()):
                     for kind, activity in room.activities.items():
                         hertz = self._tick_hz(activity.config)
                         if hertz <= 0:
                             continue
                         key = (room.id, kind)
+                        seen.add(key)
                         if now < self._next_due.get(key, 0.0):
                             continue
                         self._next_due[key] = now + 1.0 / hertz
                         await self.run_once(room.id, kind)
+                for stale in set(self._next_due) - seen:
+                    del self._next_due[stale]
         except asyncio.CancelledError:
             raise

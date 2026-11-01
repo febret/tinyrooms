@@ -248,6 +248,20 @@ class RuntimeState:
             if callable(stop):
                 stop()
 
+    def start_tickers(self) -> None:
+        """Start room + activity tickers; activity ticker is optional in tests."""
+
+        self.ticker.start()
+        if self.activity_ticker is not None:
+            self.activity_ticker.start()
+
+    def stop_tickers(self) -> None:
+        """Stop room + activity tickers."""
+
+        if self.activity_ticker is not None:
+            self.activity_ticker.stop()
+        self.ticker.stop()
+
     def editor_service(self) -> WorldEditorService:
         """Return a World Editor service bound to this runtime."""
 
@@ -323,9 +337,7 @@ class RuntimeState:
         old_world = self.world
         bundle = load_world_bundle(self.config, self.loaded_mods, self.config.world_path)
         self.stop_mod_runtimes()
-        self.ticker.stop()
-        if self.activity_ticker is not None:
-            self.activity_ticker.stop()
+        self.stop_tickers()
         rebuilt = _build_runtime(
             self.config,
             hub=self.hub,
@@ -346,9 +358,7 @@ class RuntimeState:
             }:
                 continue
             setattr(self, runtime_field.name, getattr(rebuilt, runtime_field.name))
-        self.ticker.start()
-        if self.activity_ticker is not None:
-            self.activity_ticker.start()
+        self.start_tickers()
         self.start_mod_runtimes()
         await self._broadcast_world_reloaded(old_world)
 
@@ -782,17 +792,13 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             app.state.log_ring = install_log_ring()
             mc_client = McClient(runtime)
             mc_client.start()
-        runtime.ticker.start()
-        if runtime.activity_ticker is not None:
-            runtime.activity_ticker.start()
+        runtime.start_tickers()
         runtime.start_mod_runtimes()
         try:
             yield
         finally:
             runtime.stop_mod_runtimes()
-            if runtime.activity_ticker is not None:
-                runtime.activity_ticker.stop()
-            runtime.ticker.stop()
+            runtime.stop_tickers()
             if mc_client is not None:
                 await mc_client.stop()
             if app.state.log_ring is not None:

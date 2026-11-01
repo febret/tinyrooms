@@ -184,11 +184,7 @@ class ActivityService:
     def has_sessions(self, room_id: str, kind: str = "") -> bool:
         """Return whether any open session matches a room and activity kind."""
 
-        with self._lock:
-            return any(
-                session.room_id == room_id and (not kind or session.kind == kind)
-                for session in self._sessions.values()
-            )
+        return bool(self.sessions_in_room(room_id, kind))
 
     def behavior_state(self, namespace: str, instance_id: str) -> dict[str, object]:
         """Return the live behavior state dict for an activity controller."""
@@ -202,7 +198,7 @@ class ActivityService:
 
         key = f"{namespace}:{instance_id}"
         with self._lock:
-            self._behavior_states[key] = dict(state) if not isinstance(state, dict) else state
+            self._behavior_states[key] = dict(state) if isinstance(state, dict) else {}
 
     def room_state(self, room_id: str, kind: str) -> dict[str, object] | None:
         """Return the latest public activity state for a room and kind."""

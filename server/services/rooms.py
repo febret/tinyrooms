@@ -871,10 +871,9 @@ class RoomService:
         """
 
         states: dict[str, dict[str, object]] = {}
-        if self._activities is None or not hasattr(self._activities, "room_state"):
+        if self._activities is None:
             return states
-        for kind, activity in room.activities.items():
-            del activity
+        for kind in room.activities:
             state = self._activities.room_state(room.id, kind)
             if isinstance(state, dict):
                 states[kind] = state

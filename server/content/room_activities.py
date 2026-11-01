@@ -59,7 +59,8 @@ def load_room_activities(
         return {}
     if not isinstance(raw_activities, dict):
         raise ContentError(f"Room '{room_id}' activities must be a mapping.")
-    if "kind" in raw_activities or "controller" in raw_activities:
+    single_keys = {"kind", "controller", "config", "reset_powers"}
+    if set(raw_activities) <= single_keys and ("kind" in raw_activities or "controller" in raw_activities):
         activity = load_room_activity(
             raw_activities,
             room_id=room_id,

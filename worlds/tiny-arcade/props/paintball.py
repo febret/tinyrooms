@@ -112,18 +112,19 @@ def _config(context) -> dict[str, Any]:
     return config if isinstance(config, dict) else {}
 
 
-def _config_int(config: dict[str, Any], key: str, default: int) -> int:
+def _config_num(config: dict[str, Any], key: str, default: float, minimum: float = 0.01) -> float:
     try:
-        return max(1, int(config.get(key, default)))
+        return max(minimum, float(config.get(key, default)))
     except (TypeError, ValueError):
         return default
+
+
+def _config_int(config: dict[str, Any], key: str, default: int) -> int:
+    return int(_config_num(config, key, float(default), minimum=1.0))
 
 
 def _config_float(config: dict[str, Any], key: str, default: float) -> float:
-    try:
-        return max(0.01, float(config.get(key, default)))
-    except (TypeError, ValueError):
-        return default
+    return float(_config_num(config, key, default))
 
 
 def _config_float_pair(config: dict[str, Any], key: str, default: tuple[float, float]) -> tuple[float, float]:

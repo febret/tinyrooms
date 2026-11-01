@@ -325,9 +325,6 @@ async def activity_input_command(context: CommandContext, command: ParsedCommand
     )
     outcome = CommandOutcome(message="Activity input received.", toast=False, log=False)
     merge_behavior_result(context, outcome, behavior)
-    outcome.message = "Activity input received."
-    outcome.toast = False
-    outcome.log = False
     return outcome
 
 

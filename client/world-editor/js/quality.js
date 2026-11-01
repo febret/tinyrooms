@@ -1,8 +1,6 @@
-const ROOM_CHECKS = [];
-
-/** List the quality issues for one room; more checks can be added to ROOM_CHECKS. */
+/** List the quality issues for one room; grid exits are authoritative, so no prop-coverage check. */
 export function roomQualityIssues(room, catalog) {
-  return ROOM_CHECKS.flatMap(check => check(room, catalog));
+  return [];
 }
 
 /** Map every room id to its quality result, derived live from the draft. */

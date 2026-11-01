@@ -232,6 +232,27 @@ function applyDialogPayload(state, rawDialog) {
   return present ? { ...next, selection: { kind: "peep", id: dialog.peepId } } : next;
 }
 
+function mergeActivitySnapshot(state, kind, nextState, dynamicDescription) {
+  const activities = kind
+    ? {
+        ...(state.room.activities || {}),
+        ...(state.room.activities?.[kind]
+          ? { [kind]: { ...state.room.activities[kind], state: nextState } }
+          : {}),
+      }
+    : state.room.activities;
+  return {
+    ...state,
+    room: {
+      ...state.room,
+      description: typeof dynamicDescription === "string" && dynamicDescription.trim()
+        ? dynamicDescription
+        : state.room.baseDescription,
+      activities,
+    },
+  };
+}
+
 function applyServerEvent(state, event) {
   if (!event || !state.room) return state;
   if (event.room_id && event.room_id !== state.room.id) return state;
@@ -438,19 +459,7 @@ function applyServerEvent(state, event) {
             : {}),
         }
       : state.room.activities;
-    return {
-      ...state,
-      room: {
-        ...state.room,
-        description: typeof dynamicDescription === "string" && dynamicDescription.trim()
-          ? dynamicDescription
-          : state.room.baseDescription,
-        activity: kind && state.room.activity?.kind === kind
-          ? { ...state.room.activity, state: nextState }
-          : state.room.activity,
-        activities,
-      },
-    };
+    return mergeActivitySnapshot(state, kind, nextState, dynamicDescription);
   }
   if (event.type === "room.activity.delta" && state.room) {
     const delta = normalizeActivityDelta(event.delta);
@@ -458,20 +467,7 @@ function applyServerEvent(state, event) {
     if (!delta || !kind || !state.room.activities?.[kind]?.state) return state;
     const nextActivityState = applyActivityDelta(state.room.activities[kind].state, delta);
     if (nextActivityState === state.room.activities[kind].state) return state;
-    const activities = {
-      ...state.room.activities,
-      [kind]: { ...state.room.activities[kind], state: nextActivityState },
-    };
-    return {
-      ...state,
-      room: {
-        ...state.room,
-        activity: kind && state.room.activity?.kind === kind
-          ? { ...state.room.activity, state: nextActivityState }
-          : state.room.activity,
-        activities,
-      },
-    };
+    return mergeActivitySnapshot(state, kind, nextActivityState, nextActivityState?.room_description);
   }
   if (event.type === "room.prop.updated" && event.prop && state.room) {
     const targetId = String(event.prop.id || "");

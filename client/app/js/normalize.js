@@ -631,26 +631,19 @@ export function mergePhoneMessages(previous, raw) {
   };
 }
 
-export function normalizeRoomActivityCapabilities(capabilities) {
-  if (!capabilities || typeof capabilities !== "object") return { reset: false };
-  return { reset: Boolean(capabilities.reset) };
-}
-
-export function normalizeRoomActivity(activity) {
-  if (!activity || typeof activity !== "object") return null;
-  return {
-    kind: String(activity.kind || ""),
-    controller: String(activity.controller || ""),
-    capabilities: normalizeRoomActivityCapabilities(activity.capabilities),
-    state: normalizeActivityState(activity.state),
-  };
-}
-
 export function normalizeRoomActivities(activities) {
   if (!activities || typeof activities !== "object") return {};
   return Object.fromEntries(
     Object.entries(activities)
-      .map(([kind, activity]) => [String(kind), normalizeRoomActivity(activity)])
+      .map(([kind, activity]) => {
+        if (!activity || typeof activity !== "object") return [String(kind), null];
+        return [String(kind), {
+          kind: String(activity.kind || ""),
+          controller: String(activity.controller || ""),
+          capabilities: { reset: Boolean(activity.capabilities?.reset) },
+          state: normalizeActivityState(activity.state),
+        }];
+      })
       .filter(([, activity]) => Boolean(activity)),
   );
 }
@@ -667,10 +660,14 @@ export function normalizeActivityDelta(delta) {
   return { ...delta, from, seq };
 }
 
+export const MAX_ACTIVITY_SPLATS = 80;
+
+const ACTIVITY_DELTA_KEYS = ["phase", "round", "phase_ends_at", "seconds_left", "status", "scoreboard"];
+
 function mergeDeltaList(current, updates, removed) {
   const next = new Map();
   for (const entry of current || []) {
-    if (entry && typeof entry === "object" && entry.id !== undefined) next.set(String(entry.id), entry);
+    if (entry && typeof entry === "object" && entry.id !== undefined) next.set(String(entry.id), { ...entry });
   }
   for (const id of removed || []) next.delete(String(id));
   for (const update of updates || []) {
@@ -682,6 +679,19 @@ function mergeDeltaList(current, updates, removed) {
   return [...next.values()];
 }
 
+function mergeDeltaAddRemove(current, added, removed) {
+  const gone = new Set((removed || []).map(value => String(value)));
+  const next = [];
+  for (const entry of current || []) {
+    if (entry && typeof entry === "object" && !gone.has(String(entry.id))) next.push({ ...entry });
+  }
+  for (const entry of added || []) {
+    if (!entry || typeof entry !== "object") continue;
+    next.push({ ...entry });
+  }
+  return next;
+}
+
 /** Merge a revisioned `room.activity.delta` into cached activity state. */
 
 export function applyActivityDelta(state, delta) {
@@ -689,17 +699,19 @@ export function applyActivityDelta(state, delta) {
   if (Number(state.seq ?? NaN) !== Number(delta.from)) return state;
   const next = { ...state, seq: Number(delta.seq) };
   if (delta.t !== undefined) next.t = delta.t;
-  for (const key of ["phase", "round", "phase_ends_at", "seconds_left", "status", "bot_count", "scoreboard"]) {
+  for (const key of ACTIVITY_DELTA_KEYS) {
     if (delta[key] !== undefined) next[key] = delta[key];
   }
   if (delta.participants || delta.participants_remove) {
     next.participants = mergeDeltaList(state.participants, delta.participants, delta.participants_remove);
   }
   if (delta.projectiles_add || delta.projectiles_remove) {
-    next.projectiles = mergeDeltaList(state.projectiles, delta.projectiles_add, delta.projectiles_remove);
+    // Projectiles are append-only with TTL expiry; the server only sends
+    // spawns + removals, never positional updates (clients extrapolate).
+    next.projectiles = mergeDeltaAddRemove(state.projectiles, delta.projectiles_add, delta.projectiles_remove);
   }
   if (delta.splats_add) {
-    next.splats = [...(Array.isArray(state.splats) ? state.splats : []), ...delta.splats_add].slice(-80);
+    next.splats = [...(Array.isArray(state.splats) ? state.splats : []), ...delta.splats_add].slice(-MAX_ACTIVITY_SPLATS);
   }
   return next;
 }
@@ -765,7 +777,6 @@ export function normalizeRoom(room, previousRoom = null) {
       spritesEnabled: Boolean(room.board?.sprites_enabled),
       spriteScale: Number(room.board?.sprite_scale) > 0 ? Number(room.board?.sprite_scale) : 1,
     },
-    activity: normalizeRoomActivity(room.activity),
     activities: normalizeRoomActivities(room.activities),
     note: String(room.metadata?.note || ""),
     environment: normalizeEnvironment(room.environment),

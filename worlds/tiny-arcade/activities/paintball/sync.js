@@ -1,4 +1,6 @@
 export const INTERP_DELAY_MS = 90;
+// Keep in sync with server MAX_SPLATS (paintball.py) and
+// MAX_ACTIVITY_SPLATS (client/app/js/normalize.js).
 export const MAX_SPLATS = 80;
 
 export function isDeltaApplicable(state, delta) {

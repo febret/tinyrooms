@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+from contextlib import nullcontext
 import copy
 import inspect
 import json
@@ -638,21 +639,12 @@ class BehaviorDispatcher(BehaviorIntentMixin):
         result: BehaviorResult,
     ) -> None:
         deferred: list[object] = []
-        if self._activity_only(contexts):
-            # Activity controllers with only transient/broadcast intents must
-            # not touch SQLite. Commit memory state and queue public state
-            # updates only after success.
-            for attachment, context in contexts:
-                for intent in context.intents:
-                    self._apply_intent(None, intent, context, event, result, deferred)
-                self._save_state_for(None, attachment, context.state)
-            self._commit_activity_states(result)
-            for operation in deferred:
-                outcome = operation()
-                if inspect.isawaitable(outcome):
-                    await outcome
-            return
-        with self._hub.transaction() as connection:
+        # Activity controllers with only transient/broadcast intents must not
+        # touch SQLite. Commit memory state and queue public state updates
+        # only after success.
+        memory_only = self._activity_only(contexts)
+        manager = nullcontext(None) if memory_only else self._hub.transaction()
+        with manager as connection:
             for attachment, context in contexts:
                 for intent in context.intents:
                     self._apply_intent(connection, intent, context, event, result, deferred)

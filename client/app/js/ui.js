@@ -1,6 +1,6 @@
 import { createApiClient } from "./api.js";
 import { withBase } from "./base-path.js";
-import { createActivityManager } from "./activities.js";
+import { createActivityManager, isSilentEnvelope } from "./activities.js";
 import { activityResultPayload } from "./activity-result-payload.js";
 import { createChatAutocomplete } from "./autocomplete.js";
 import { createChatHistory } from "./chat-history.js";
@@ -410,9 +410,7 @@ function connectSocket() {
         beginMultiverseNavigation(String(travelUrl));
         return;
       }
-      if (envelope.toast === false && envelope.log === false
-        && (!envelope.payload || Object.keys(envelope.payload).length === 0)
-        && !(Array.isArray(envelope.events) && envelope.events.length)) {
+      if (isSilentEnvelope(envelope)) {
         // Silent no-op commands (for example, steady paintball movement input)
         // must not wake the full UI render pipeline.
         return;
@@ -1099,6 +1097,7 @@ const board = createBoard({
   stackProps: true,
   dragHandles: true,
 });
+// Test hook for browser smoke (WebGL context-loss recovery inspects diagnostics).
 globalThis.__tinyroomsBoard = board;
 targeting = createTargetingController({
   board, boardFrame: $(".board-frame"), getState: () => store.getState(), store, sendCommand,

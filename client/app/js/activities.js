@@ -8,6 +8,19 @@ function mobileLayout() {
   return typeof window.matchMedia === "function" && window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
 }
 
+// High-frequency paintball movement input must not round-trip full state.
+const SILENT_ACTIVITY_PREFIX = ".activity_input ";
+
+function isSilentActivityCommand(command) {
+  return String(command || "").startsWith(SILENT_ACTIVITY_PREFIX);
+}
+
+export function isSilentEnvelope(envelope) {
+  return envelope?.toast === false && envelope?.log === false
+    && (!envelope?.payload || Object.keys(envelope.payload).length === 0)
+    && !(Array.isArray(envelope?.events) && envelope.events.length);
+}
+
 function hostPayload(state, activity) {
   return {
     user: state.user,
@@ -358,9 +371,9 @@ export function createActivityManager({
       return;
     }
     if (event.data.type === "tinyrooms.activity.command") {
-      const silent = String(event.data.command || "").startsWith(".activity_input ");
       try {
         const result = await onCommand(String(event.data.command || ""));
+        const silent = isSilentEnvelope(result) || isSilentActivityCommand(event.data.command);
         entry.iframe.contentWindow?.postMessage({
           type: "tinyrooms.host.result",
           activityId: entry.activity.id,
@@ -371,6 +384,7 @@ export function createActivityManager({
           state: silent ? null : hostPayload(getState(), entry.activity),
         }, window.location.origin);
       } catch (error) {
+        const silent = isSilentActivityCommand(event.data.command);
         entry.iframe.contentWindow?.postMessage({
           type: "tinyrooms.host.result",
           activityId: entry.activity.id,

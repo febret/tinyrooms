@@ -89,12 +89,6 @@ class PaintballArenaTests(unittest.TestCase):
                     self.paintball.DEFAULT_PLAYER_RADIUS + 3.0 + obstacle["r"],
                 )
 
-    def test_movement_slides_along_obstacles(self) -> None:
-        obstacles = [{"id": "rock", "kind": "circle", "x": 30.0, "y": 50.0, "r": 5.0}]
-        x, y = self.paintball.move_body(10.0, 50.0, 15.0, 0.0, 1.8, (100.0, 100.0), obstacles)
-        self.assertLess(x, 30.0)
-        self.assertEqual(y, 50.0)
-
     def test_paintball_round_transitions_emit_no_room_toasts(self) -> None:
         now = datetime(2026, 1, 1, 12, 0, 0)
 

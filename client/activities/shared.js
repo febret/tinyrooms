@@ -196,6 +196,16 @@
     window.parent.postMessage({ type: "tinyrooms.activity.close", activityId, reason }, origin);
   }
 
+  function emitDelta(kind, delta) {
+    for (const listener of [...deltaListeners]) {
+      try {
+        listener(kind, delta);
+      } catch (error) {
+        console.warn("[Tinyrooms activity] Delta listener failed.", error);
+      }
+    }
+  }
+
   function subscribe(listener) {
     listeners.add(listener);
     if (state) listener(state);
@@ -239,13 +249,7 @@
       return;
     }
     if (event.data.type === "tinyrooms.host.activity.delta") {
-      for (const listener of [...deltaListeners]) {
-        try {
-          listener(event.data.kind, event.data.delta);
-        } catch (error) {
-          console.warn("[Tinyrooms activity] Delta listener failed.", error);
-        }
-      }
+      emitDelta(event.data.kind, event.data.delta);
       return;
     }
     if (event.data.type === "tinyrooms.host.before-close") {

@@ -60,10 +60,6 @@ export function missingGridRooms(draft) {
     .map(({ id }) => id);
 }
 
-export function hasGridPositions(draft) {
-  return gridRooms(draft).length > 0;
-}
-
 export function cellKey(point) {
   return `${point[0]},${point[1]},${point[2]}`;
 }
@@ -227,14 +223,20 @@ function firstFreeNeighbor(seed, occupancy, allowedId = null, strict = true) {
   return null;
 }
 
-function findFreeCellNear(occupancy, seed, limit = SEARCH_LIMIT) {
+function findFreeCell(occupancy, seed, { isolated = false, limit = SEARCH_LIMIT } = {}) {
   for (let radius = 0; radius <= limit; radius += 1) {
     for (let dx = -radius; dx <= radius; dx += 1) {
       for (let dy = -radius; dy <= radius; dy += 1) {
-        for (let dz = -radius; dz <= radius; dz += 1) {
-          if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== radius) continue;
+        for (let dz = isolated ? 0 : -radius; dz <= (isolated ? 0 : radius); dz += 1) {
+          const distance = isolated
+            ? Math.max(Math.abs(dx), Math.abs(dy))
+            : Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
+          if (distance !== radius) continue;
           const candidate = [seed[0] + dx, seed[1] + dy, seed[2] + dz];
-          if (inGridRange(candidate) && !occupancy.has(cellKey(candidate))) return candidate;
+          if (!inGridRange(candidate) || occupancy.has(cellKey(candidate))) continue;
+          if (!isolated) return candidate;
+          const touches = Object.values(GRID_DIRECTIONS).some(vector => occupancy.has(cellKey(addPoints(candidate, vector))));
+          if (!touches) return candidate;
         }
       }
     }
@@ -242,19 +244,12 @@ function findFreeCellNear(occupancy, seed, limit = SEARCH_LIMIT) {
   return null;
 }
 
+function findFreeCellNear(occupancy, seed, limit = SEARCH_LIMIT) {
+  return findFreeCell(occupancy, seed, { limit });
+}
+
 function findIsolatedFreeCell(occupancy, origin = [0, 0, 0], limit = SEARCH_LIMIT) {
-  for (let radius = 0; radius <= limit; radius += 1) {
-    for (let dy = -radius; dy <= radius; dy += 1) {
-      for (let dx = -radius; dx <= radius; dx += 1) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
-        const candidate = [origin[0] + dx, origin[1] + dy, origin[2]];
-        if (!inGridRange(candidate) || occupancy.has(cellKey(candidate))) continue;
-        const touches = Object.values(GRID_DIRECTIONS).some(vector => occupancy.has(cellKey(addPoints(candidate, vector))));
-        if (!touches) return candidate;
-      }
-    }
-  }
-  return null;
+  return findFreeCell(occupancy, origin, { isolated: true, limit });
 }
 
 function legacyMapPoint(room) {
