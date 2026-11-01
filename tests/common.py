@@ -227,6 +227,7 @@ class RuntimeTestCase(unittest.TestCase):
     """Provide an isolated app, profile directory, and world-state database."""
 
     features = "dev_sample_activity"
+    legacy_features = ""
     mods = "classrooms"
     world_path: Path | None = None
 
@@ -240,6 +241,7 @@ class RuntimeTestCase(unittest.TestCase):
                 "TRSERVER_WORLD_PATH": str(self.world_path or (REPO_ROOT / "worlds" / "tutorial")),
                 "TRSERVER_WORLDSTATE_PATH": str(self.runtime_path / "worldstate.sqlite3"),
                 "TRSERVER_FEATURES": self.features,
+                "TRSERVER_LEGACY_FEATURES": self.legacy_features,
                 "TRSERVER_MODS": self.mods,
                 "TRSERVER_TIMEZONE": "UTC",
                 "TRSERVER_HOST": "testserver",

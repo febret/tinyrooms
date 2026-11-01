@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 import logging
 import sqlite3
@@ -45,7 +46,7 @@ from server.services.prop_lights import PropLightService
 from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.services.sprite_rooms import SpriteService
 from server.services.stats import StatsService
-from server.state.migrations import DatabaseHub, read_behavior_state
+from server.state.migrations import DatabaseHub
 from server.state.npc_peep_states import NpcPeepStateRepository
 from server.state.world_state import WorldStateRepository
 
@@ -860,55 +861,43 @@ class RoomService:
         tiles.sort(key=lambda tile: (tile["position"][1], tile["position"][0]))
         return {"position": list(room.grid), "radius": radius, "rooms": tiles}
 
-    def _read_game_state(
+    def _read_activity_states(
         self,
-        connection: sqlite3.Connection,
         room: RoomDefinition,
-    ) -> dict[str, object] | None:
-        """Read a room game's public state from its controller behavior row."""
+    ) -> dict[str, dict[str, object]]:
+        """Read each room activity's public state from the in-memory store.
 
-        if room.game is None:
-            return None
-        raw = read_behavior_state(connection, "prop", room.game.controller)
-        state = raw.get("game_state") if isinstance(raw, dict) else None
-        return state if isinstance(state, dict) else None
+        Activity state never touches SQLite; it resets on server restart.
+        """
 
-    def _serialize_game(self, account: AccountRecord, room: RoomDefinition) -> dict[str, object] | None:
-        game = room.game
-        if game is None:
-            return None
-        assets = {
-            name: f"/assets/world/{self._world.id}/{relative}"
-            for name, relative in game.assets.items()
-        }
-        models: dict[str, dict[str, object]] = {}
-        for name, model in game.models.items():
-            definition = self._world.props[model.prop_id]
-            models[name] = {
-                "model_url": prop_model_url(self._world.id, definition),
-                "scale": definition.scale,
+        states: dict[str, dict[str, object]] = {}
+        if self._activities is None or not hasattr(self._activities, "room_state"):
+            return states
+        for kind, activity in room.activities.items():
+            del activity
+            state = self._activities.room_state(room.id, kind)
+            if isinstance(state, dict):
+                states[kind] = state
+        return states
+
+    def _serialize_activities(
+        self,
+        account: AccountRecord,
+        room: RoomDefinition,
+        states: Mapping[str, Mapping[str, object]],
+    ) -> dict[str, dict[str, object]]:
+        payload: dict[str, dict[str, object]] = {}
+        for kind, activity in room.activities.items():
+            can_reset = False
+            if self._powers is not None and activity.reset_powers:
+                can_reset = any(self._powers.has_power(account.id, power) for power in activity.reset_powers)
+            payload[kind] = {
+                "kind": activity.kind,
+                "controller": activity.controller,
+                "capabilities": {"reset": can_reset},
+                "state": dict(states[kind]) if kind in states else None,
             }
-        effects = {
-            set_name: [
-                self._world.effects[effect_id].serialize()
-                for effect_id in effect_ids
-                if effect_id in self._world.effects
-            ]
-            for set_name, effect_ids in game.effect_sets.items()
-        }
-        can_reset = False
-        if self._powers is not None and game.reset_powers:
-            can_reset = any(self._powers.has_power(account.id, power) for power in game.reset_powers)
-        return {
-            "kind": game.kind,
-            "controller": game.controller,
-            "renderer": game.renderer,
-            "config": dict(game.config),
-            "assets": assets,
-            "models": models,
-            "effects": effects,
-            "capabilities": {"reset": can_reset},
-        }
+        return payload
 
     def _serialize_prop(
         self,
@@ -1040,7 +1029,7 @@ class RoomService:
             room_cards, chat_history = self._world_state.read_room_view(room_id)
             inventory = self._profiles.list_inventory(account.id, self._world.id)
             occupant_views = self._stats.views(occupant_ids)
-            game_state = self._read_game_state(connection, room)
+            activity_states = self._read_activity_states(room)
         vibes_by_id: dict[str, dict[str, object]] = {}
         if self._vibes is not None:
             vibe_targets = [*occupant_ids, *[peep.id for peep in self._npc_peeps_in(room_id)]]
@@ -1112,20 +1101,24 @@ class RoomService:
             board_image = str(effective_board.get("board_image") or room.board_image_name)
             layout_revision = self._layout.revision(room_id)
             can_edit_room = self._layout.can_edit(account, room_id)
-        game = self._serialize_game(account, room)
+        activities = self._serialize_activities(account, room, activity_states)
         description = room.description
-        if isinstance(game_state, dict):
-            dynamic_description = game_state.get("room_description")
+        for activity_state in activity_states.values():
+            dynamic_description = activity_state.get("room_description")
             if isinstance(dynamic_description, str) and dynamic_description.strip():
                 description = dynamic_description
+                break
         # Room-level exits stay reachable via the minimap, door props, and
         # direct `.go` commands, so they are not duplicated as room actions.
         quick_actions = [
             *self._mod_room_actions(account, room),
         ]
-        if game is not None and game.get("capabilities", {}).get("reset"):
+        for kind, activity in activities.items():
+            if not activity.get("capabilities", {}).get("reset"):
+                continue
+            label = kind.replace("-", " ").title()
             quick_actions.append(
-                {"label": "Reset game", "command": f".act reset @prop:{game['controller']}"}
+                {"label": f"Reset {label}", "command": f".act reset @prop:{activity['controller']}"}
             )
         layout_unchanged = (
             known_layout_revision is not None
@@ -1146,9 +1139,8 @@ class RoomService:
                 "base_dark": room.dark,
                 "sprites_enabled": room.sprites_enabled,
                 "sprite_scale": room.sprite_scale,
-                "game": game,
-                "state": game_state,
             },
+            "activities": activities,
             "metadata": {"note": note},
             "environment": environment,
             "environment_revision": environment_revision,

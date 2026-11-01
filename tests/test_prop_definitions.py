@@ -102,13 +102,18 @@ class PropGameplayMigrationTests(unittest.TestCase):
         self.assertFalse(hasattr(instance, "behavior"))
         self.assertFalse(hasattr(instance, "content"))
 
-    def test_chess_controller_is_a_dedicated_text_prop(self) -> None:
+    def test_chess_controller_is_an_arcade_cabinet(self) -> None:
         world = load_test_world(REPO_ROOT / "worlds" / "tiny-arcade", allow_legacy_whiteboards=True)
-        definition = world.props["chess-controller"]
-        self.assertEqual(definition.render_kind, "text")
+        definition = world.props["chess-cabinet"]
+        self.assertEqual(definition.render_kind, "model")
         self.assertEqual(definition.behavior, "chess")
-        instance = world.rooms["chess"].props["chess-controller"]
-        self.assertEqual(instance.text, {"content": "CHESS", "font_id": "serif", "color": "#ffd166"})
+        self.assertEqual(definition.activity, "chess")
+        self.assertIn(
+            ("Play chess", ".play chess", True),
+            [(action.label, action.command, action.default) for action in definition.default_actions],
+        )
+        instance = world.rooms["lobby"].props["chess-cabinet"]
+        self.assertEqual(instance.prop_id, "chess-cabinet")
 
     def test_whiteboard_keeps_its_default_activity(self) -> None:
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial")

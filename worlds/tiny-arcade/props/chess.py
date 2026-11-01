@@ -423,13 +423,25 @@ def _public_state(state: dict[str, Any]) -> dict[str, Any]:
 
 def _publish(context, state: dict[str, Any]) -> None:
     context.state["chess"] = state
-    context.set_game_state(_public_state(state))
+    context.set_room_activity_state(_public_state(state), kind="chess")
+
+
+def _activity(context) -> dict[str, Any]:
+    room = getattr(context, "room", None)
+    if not isinstance(room, dict):
+        return {}
+    activities = room.get("activities")
+    if isinstance(activities, dict):
+        activity = activities.get("chess")
+        if isinstance(activity, dict):
+            return activity
+    activity = room.get("activity")
+    return activity if isinstance(activity, dict) else {}
 
 
 def _reset_powers(context) -> tuple[str, ...]:
-    room = getattr(context, "room", None)
-    game = room.get("game") if isinstance(room, dict) else None
-    values = game.get("reset_powers") if isinstance(game, dict) else None
+    activity = _activity(context)
+    values = activity.get("reset_powers")
     if isinstance(values, list):
         return tuple(str(value) for value in values)
     return RESET_POWERS

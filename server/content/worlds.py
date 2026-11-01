@@ -26,7 +26,7 @@ from server.content.cutscenes import (
     merge_cutscene_definitions,
 )
 from server.content.fx import load_effect_catalog
-from server.content.game_boards import RoomGameDefinition, load_room_game
+from server.content.room_activities import RoomActivityDefinition, load_room_activities
 from server.content.lighting import DEFAULT_LIGHTING_ENVIRONMENT, validate_lighting_name
 from server.content.prop_definitions import (
     DEFAULT_PROP_PRICE,
@@ -142,8 +142,14 @@ class RoomDefinition:
     # room so worlds with large character art (or tiny critters) can tune the
     # shared sprite height without touching other worlds.
     sprite_scale: float = 1.0
-    game: RoomGameDefinition | None = None
+    activities: dict[str, RoomActivityDefinition] = field(default_factory=dict)
     environment: str | None = None
+
+    @property
+    def activity(self) -> RoomActivityDefinition | None:
+        """Return the first authored activity, for single-activity callers."""
+
+        return next(iter(self.activities.values()), None)
 
 
 @dataclass(frozen=True, slots=True)
@@ -883,13 +889,12 @@ def load_world_definition(
                     initial_key=f"{room_id}:{index}:{card_id}",
                 )
             )
-        game = load_room_game(
-            raw_room.get("game"),
-            world_root=world_path,
+        raw_activities = raw_room.get("activities", raw_room.get("activity"))
+        activities = load_room_activities(
+            raw_activities,
             room_id=room_id,
             room_props=room_props,
             props=props,
-            effects=effects,
             power_names=POWER_NAMES,
         )
         rooms[room_id] = RoomDefinition(
@@ -910,7 +915,7 @@ def load_world_definition(
             template=bool(raw_room.get("template", False)),
             sprites_enabled=bool(raw_room.get("sprites_enabled", False)),
             sprite_scale=_load_sprite_scale(raw_room.get("sprite_scale"), room_id),
-            game=game,
+            activities=activities,
             environment=validate_lighting_name(
                 raw_room.get("environment"), f"Room '{room_id}' environment"
             ),

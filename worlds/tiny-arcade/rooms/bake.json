@@ -11,42 +11,6 @@
         "seed": 95201,
         "steps": 32
       }
-    },
-    {
-      "label": "chess-nook-floor",
-      "tool": "image",
-      "prompt": "flat top-down dark purple arcade carpet texture with subtle geometric diamonds, seamless, evenly lit, no walls, no furniture, no chessboard, no text, no logos",
-      "output": "worlds/tiny-arcade/rooms/chess-floor.png",
-      "args": {
-        "width": 768,
-        "height": 768,
-        "seed": 95202,
-        "steps": 32
-      }
-    },
-    {
-      "label": "chess-wood-grain",
-      "tool": "image",
-      "prompt": "seamless dark walnut wood grain texture, flat even lighting, fine warm brown grain, no squares, no chessboard, no border, no text, no perspective",
-      "output": "worlds/tiny-arcade/rooms/wood-grain.png",
-      "args": {
-        "width": 1024,
-        "height": 1024,
-        "seed": 95203,
-        "steps": 32
-      }
-    },
-    {
-      "label": "paintball-arena-floor",
-      "tool": "image",
-      "prompt": "flat top-down paintball arena floor texture, dark violet rubber mat with a glowing magenta and cyan boundary line frame, a faint cyan center circle, a few faded multicolored paint splats, seamless, evenly lit, no walls, no furniture, no text, no logos, no perspective",
-      "output": "worlds/tiny-arcade/rooms/paintball-arena.png",
-      "args": {
-        "width": 1024,
-        "height": 1024,
-        "seed": 95204,
-        "steps": 32
-      }
     }
   ]
 }

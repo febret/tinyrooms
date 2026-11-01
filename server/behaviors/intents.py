@@ -36,6 +36,7 @@ class BehaviorResult:
     messages: list[str] = field(default_factory=list)
     private_events: list[dict[str, object]] = field(default_factory=list)
     room_broadcasts: list[PendingRoomBroadcast] = field(default_factory=list)
+    room_activity_updates: list[tuple[str, str, dict[str, object]]] = field(default_factory=list)
     rejected: bool = False
     inventory_changed_for: str | None = None
     acted: bool = False
@@ -46,7 +47,7 @@ class BehaviorIntentMixin:
 
     def _apply_intent(
         self,
-        connection: sqlite3.Connection,
+        connection: sqlite3.Connection | None,
         intent: Intent,
         context: BehaviorContext,
         event: BehaviorEvent,
@@ -106,8 +107,6 @@ class BehaviorIntentMixin:
             self._apply_move_sprite(payload, context, event, result, random_position=False)
         elif kind == "move_sprite_random":
             self._apply_move_sprite(payload, context, event, result, random_position=True)
-        elif kind == "move_peep_sprite":
-            self._apply_move_peep_sprite(payload, event, result)
         elif kind == "move_peep":
             self._apply_move_peep(connection, payload, context, result, deferred)
         elif kind == "set_environment":
@@ -118,8 +117,10 @@ class BehaviorIntentMixin:
             self._apply_set_prop_state(payload, context, event, result)
         elif kind == "clear_source":
             self._apply_clear_source(payload, event, deferred)
-        elif kind == "set_game_state":
-            self._apply_game_state(payload, event, result)
+        elif kind == "set_room_activity_state":
+            self._apply_room_activity_state(payload, event, result)
+        elif kind == "set_room_activity_delta":
+            self._apply_room_activity_delta(payload, event, result)
         else:
             self._log("behavior.intent.unknown", kind=kind)
 
@@ -256,7 +257,7 @@ class BehaviorIntentMixin:
             )
         )
 
-    def _apply_game_state(
+    def _apply_room_activity_state(
         self,
         payload: Mapping[str, object],
         event: BehaviorEvent,
@@ -266,12 +267,46 @@ class BehaviorIntentMixin:
             return
         state = payload.get("state")
         if not isinstance(state, dict):
-            self._log("behavior.intent.skipped", kind="set_game_state", reason="invalid_state")
+            self._log("behavior.intent.skipped", kind="set_room_activity_state", reason="invalid_state")
             return
+        kind = str(payload.get("kind", "") or "")
+        result.room_activity_updates.append((event.room_id, kind, dict(state)))
         result.room_broadcasts.append(
             PendingRoomBroadcast(
                 room_id=event.room_id,
-                event={"type": "room.board.state", "room_id": event.room_id, "state": state},
+                event={
+                    "type": "room.activity.state",
+                    "room_id": event.room_id,
+                    "kind": kind,
+                    "state": dict(state),
+                },
+            )
+        )
+
+    def _apply_room_activity_delta(
+        self,
+        payload: Mapping[str, object],
+        event: BehaviorEvent,
+        result: BehaviorResult,
+    ) -> None:
+        if event.room_id is None:
+            return
+        state = payload.get("state")
+        delta = payload.get("delta")
+        if not isinstance(state, dict) or not isinstance(delta, dict):
+            self._log("behavior.intent.skipped", kind="set_room_activity_delta", reason="invalid_state")
+            return
+        kind = str(payload.get("kind", "") or "")
+        result.room_activity_updates.append((event.room_id, kind, dict(state)))
+        result.room_broadcasts.append(
+            PendingRoomBroadcast(
+                room_id=event.room_id,
+                event={
+                    "type": "room.activity.delta",
+                    "room_id": event.room_id,
+                    "kind": kind,
+                    "delta": dict(delta),
+                },
             )
         )
 
@@ -805,9 +840,10 @@ class BehaviorIntentMixin:
             session, _replaced = self._activities.start(
                 account_id=account_id,
                 kind=kind,
-                title=str(title) if isinstance(title, str) and title else kind.replace("-", " ").title(),
+                title=str(payload.get("title")) if isinstance(payload.get("title"), str) and payload.get("title") else kind.replace("-", " ").title(),
                 room_id=event.room_id,
                 replace_existing=True,
+                username=str(context.actor_username or account_id or ""),
             )
         except ValueError as exc:
             self._log("behavior.intent.skipped", kind="start_activity", error=str(exc))
@@ -970,44 +1006,6 @@ class BehaviorIntentMixin:
             result=result,
             random_position=random_position,
             log=self._log,
-        )
-
-    def _apply_move_peep_sprite(
-        self,
-        payload: Mapping[str, object],
-        event: BehaviorEvent,
-        result: BehaviorResult,
-    ) -> None:
-        """Move one NPC sprite by id, used by room-game controllers for bots."""
-
-        if self._sprites is None or event.room_id is None:
-            return
-        peep_id = str(payload.get("peep_id", ""))
-        if not peep_id or peep_id not in self._world.peeps:
-            return
-        try:
-            if bool(payload.get("random")):
-                position = self._sprites.random_npc_position(peep_id, event.room_id)
-            else:
-                raw = payload.get("position")
-                if not isinstance(raw, list) or len(raw) != 2:
-                    return
-                position = self._sprites.set_npc_position(
-                    peep_id, event.room_id, float(raw[0]), float(raw[1])
-                )
-        except (TypeError, ValueError) as exc:
-            self._log("behavior.intent.skipped", kind="move_peep_sprite", error=str(exc))
-            return
-        result.room_broadcasts.append(
-            PendingRoomBroadcast(
-                room_id=event.room_id,
-                event={
-                    "type": "peep.sprite",
-                    "room_id": event.room_id,
-                    "peep_id": peep_id,
-                    "position": list(position),
-                },
-            )
         )
 
     def _apply_move_peep(

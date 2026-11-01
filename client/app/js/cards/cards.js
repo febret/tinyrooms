@@ -239,8 +239,10 @@ export function describeSelection(state) {
   if (!state.room) return { tag: "Tinyrooms", title: "Sign in", description: "Create an account or log in to enter the world.", imageUrl: "" };
   const selected = findSelectedEntity(state);
   if (!selected || state.selection.kind === "room") {
-    const gameStatus = typeof state.room.board?.state?.status === "string" ? state.room.board.state.status : "";
-    const description = [gameStatus, state.room.description || state.room.note || "Current room."].filter(Boolean).join("\n\n");
+    const activityStatus = Object.values(state.room.activities || {})
+      .map(activity => activity?.state?.status)
+      .find(status => typeof status === "string" && status) || "";
+    const description = [activityStatus, state.room.description || state.room.note || "Current room."].filter(Boolean).join("\n\n");
     return { tag: "Room", title: state.room.label, description, imageUrl: state.room.board.imageUrl };
   }
   if (state.selection.kind === "core") {

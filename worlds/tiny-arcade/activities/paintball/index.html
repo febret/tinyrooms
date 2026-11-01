@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" class="full-height">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Tinyrooms Paintball Arena</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="./paintball.css">
+  </head>
+  <body>
+    <main class="shell viewport-column paint-shell">
+      <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
+      <section class="paint-hud" aria-label="Arena status">
+        <div class="paint-score"><strong id="status">Paintball Arena</strong><span id="scoreboard" class="muted"></span></div>
+        <div class="paint-meta">
+          <span class="badge">Health <strong id="health">—</strong></span>
+          <span class="badge">Paint <strong id="ammo">—</strong></span>
+          <span class="badge">Blaster <strong id="gun">—</strong></span>
+          <button type="button" class="quiet small" id="shop-toggle">Vending</button>
+        </div>
+      </section>
+      <section class="paint-stage">
+        <canvas id="arena" aria-label="Paintball arena"></canvas>
+        <div class="paint-overlay" id="overlay" hidden>
+          <div class="paint-card">
+            <p class="paint-title" id="overlay-title">Next round</p>
+            <p class="paint-message" id="overlay-message">Waiting for the next round.</p>
+          </div>
+        </div>
+        <div class="paint-shop" id="shop" hidden>
+          <h2>Arena vending</h2>
+          <div id="shop-items" class="paint-shop-items"></div>
+          <button type="button" class="quiet small" id="shop-close">Close</button>
+        </div>
+      </section>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="./paintball.js"></script>
+  </body>
+</html>

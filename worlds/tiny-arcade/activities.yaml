@@ -1,1 +1,8 @@
-{}
+chess:
+  title: Chess
+  aliases: [chess]
+  rooms: [lobby]
+paintball:
+  title: Paintball Arena
+  aliases: [arena]
+  rooms: [lobby]

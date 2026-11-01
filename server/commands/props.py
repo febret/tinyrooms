@@ -245,6 +245,7 @@ async def craft_command(context: CommandContext, command: ParsedCommand) -> Comm
             title="Crafting",
             room_id=room_id,
             replace_existing=False,
+            username=context.account.username_display,
             config={"prop_instance_id": prop_instance_id, "recipes": recipes},
         )
     except ValueError as exc:

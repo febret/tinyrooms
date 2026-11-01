@@ -46,7 +46,6 @@ import { createBoardSprites } from "./board-sprites.js";
 import { createBoardCards } from "./board-cards.js";
 import { createBoardScheduler } from "./board-scheduler.js";
 import { createBoardRecovery } from "./board-recovery.js";
-import { createBoardGames } from "./board-games.js";
 import { playPropAnimation } from "./board-animations.js";
 import { DIORAMA_BOARD_TYPE, createDioramaBoard } from "./board-diorama.js";
 import { applyFade, collectFadeMaterials, restoreFade } from "./board-fade.js";
@@ -80,7 +79,7 @@ function boardPositionFromWorld(point) {
 }
 
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
-export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoint, onGameAction, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
+export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoint, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
@@ -183,16 +182,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       if (selectionObject === group) selectionObject = null;
     },
   });
-  const gameLayer = createBoardGames({
-    loader,
-    textureLoader,
-    screenToBoardPosition: (clientX, clientY) => screenToBoardPosition(clientX, clientY),
-    pixelScale: effectPixelScale,
-    invalidate,
-    invalidateShadows: invalidateScene,
-    reactSprite: (id, options) => (current ? spriteLayer.react(current, id, options) : false),
-  });
-  gameLayer.setActionHandler(action => onGameAction?.(action));
 
   function applySpriteLighting(entry, lighting) {
     const spritesChanged = spriteLayer.applyLighting(entry, lighting);
@@ -230,7 +219,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   let roomDark = false;
   let roomScared = false;
   let spriteLighting = { color: "#ffffff", opacity: 1 };
-  let gameInputEnabled = true;
   let dropArmed = false;
   let userAdjusted = false;
   let width = 0;
@@ -897,12 +885,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     });
   }
 
-  function disposeEntry(entry, { clearGame = false } = {}) {
+  function disposeEntry(entry) {
     if (!entry) return;
     for (const record of entry.props.values()) disposePropRecord(record);
     for (const record of entry.cards.values()) record.spriteMaterial?.dispose();
     spriteLayer.clear(entry);
-    if (clearGame) gameLayer.clear();
     scene.remove(entry.root);
     // Shared shadow/face geometry and textures are page-lifetime caches, so
     // each entry releases only what it created before the graph is unlinked.
@@ -995,7 +982,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function clear() {
     abortTransition();
     if (!current) return;
-    disposeEntry(current, { clearGame: true });
+    disposeEntry(current);
     canvas.dataset.fxCount = "0";
     current = null;
     selectionObject = null;
@@ -1028,7 +1015,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     syncProps(entry, room);
     syncCards(entry, room);
     syncSprites(entry, room);
-    syncGame(entry, room);
     status(entry);
     return entry;
   }
@@ -1061,12 +1047,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     syncProps(entry, room);
     syncCards(entry, room);
     syncSprites(entry, room);
-    syncGame(entry, room);
     status(entry);
-  }
-
-  function syncGame(entry, room) {
-    gameLayer.sync(entry.root, room, { dark: roomDark, reducedMotion });
   }
 
   function resize() {
@@ -1289,7 +1270,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       if (point) onDropPoint?.(resolveCardPosition(point.position), point.screen);
       return;
     }
-    if (gameInputEnabled && gameLayer.pointerUp(event.clientX, event.clientY)) return;
     const owner = pickGameplayOwner();
     if (owner) {
       onSelect({ kind: owner.userData.kind, id: owner.userData.id }, { x: event.clientX, y: event.clientY });
@@ -1358,7 +1338,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     for (const record of current.cards.values()) {
       if (record.target && !record.group.position.equals(record.target)) return true;
     }
-    if (gameLayer.isAnimating()) return true;
     return spriteLayer.isAnimating(current);
   }
 
@@ -1387,7 +1366,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       advanceRecords(current.props.values(), delta, reducedMotion);
       advanceRecords(current.cards.values(), delta, reducedMotion);
       spriteLayer.advance(current, delta, reducedMotion);
-      gameLayer.advance(delta);
     }
     advanceRoomTransition(delta);
     if (selectionRing.visible && selectionObject) {
@@ -1443,7 +1421,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         props: current ? current.props.size : 0,
         cards: current ? current.cards.size : 0,
         sprites: current ? current.sprites.size : 0,
-        gamePieces: gameLayer.pieceCount(),
         pickables: current ? current.pickables.length : 0,
         editEnabled,
         blocked,
@@ -1472,7 +1449,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       if (blocked !== wasBlocked) invalidate();
       const wasDropArmed = dropArmed;
       dropArmed = Boolean(state.ui?.dropTargeting) && !current?.diorama;
-      gameInputEnabled = !blocked && !state.ui?.targeting && !state.ui?.dropTargeting && !state.room?.dialog;
       if (wasDropArmed && !dropArmed) setDropHint(null);
       controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed && !roomTransition;
       if (blocked) {
@@ -1568,7 +1544,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       canvas.removeEventListener("pointercancel", pointerCancel);
       recovery.dispose();
       editModifier.dispose();
-      gameLayer.dispose();
       clear();
       gizmo.dispose();
       outlines.dispose();

@@ -93,7 +93,6 @@ let previousView = null;
 let previousDialogKey = "";
 let renderRevision = 0;
 let refreshPromise = null;
-let pendingGameStateRoom = "";
 let targeting = null;
 let dropTargeting = null;
 let multiverseView = null;
@@ -345,21 +344,6 @@ function connectSocket() {
       const room = envelope.room;
       store.dispatch({ type: "snapshot", room });
       if (room?.metadata?.note) toast(room.metadata.note);
-      if (room?.board?.game && !room.board.state) {
-        if (pendingGameStateRoom !== room.id) {
-          pendingGameStateRoom = room.id;
-          setTimeout(() => {
-            if (pendingGameStateRoom === room.id) {
-              const current = store.getState().room;
-              socket?.requestSnapshot(current
-                ? { layoutRevision: current.layoutRevision, environmentRevision: current.environmentRevision }
-                : undefined);
-            }
-          }, 250);
-        }
-      } else if (pendingGameStateRoom === room?.id) {
-        pendingGameStateRoom = "";
-      }
     },
     onRoomEvent(envelope) {
       if (envelope.event?.type === "cutscene.play") {
@@ -424,6 +408,13 @@ function connectSocket() {
       const travelUrl = envelope.payload?.travel?.url;
       if (travelUrl) {
         beginMultiverseNavigation(String(travelUrl));
+        return;
+      }
+      if (envelope.toast === false && envelope.log === false
+        && (!envelope.payload || Object.keys(envelope.payload).length === 0)
+        && !(Array.isArray(envelope.events) && envelope.events.length)) {
+        // Silent no-op commands (for example, steady paintball movement input)
+        // must not wake the full UI render pipeline.
         return;
       }
       const signEditor = envelope.payload?.sign_editor;
@@ -1074,12 +1065,6 @@ const statusButton = createStatusButton({
 });
 const board = createBoard({
   canvas: $("#board-canvas"), overlay: $("#board-overlay"),
-  onGameAction(action) {
-    const state = store.getState();
-    const controller = state.room?.board?.game?.controller;
-    if (!controller || !action) return;
-    void sendCommand(`.act ${action} @prop:${controller}`).catch(showError);
-  },
   onSelect(selection, point) {
     const state = store.getState();
     if (state.views.main || dialogs.active || !state.user?.initialStickerComplete) return;
@@ -1114,6 +1099,7 @@ const board = createBoard({
   stackProps: true,
   dragHandles: true,
 });
+globalThis.__tinyroomsBoard = board;
 targeting = createTargetingController({
   board, boardFrame: $(".board-frame"), getState: () => store.getState(), store, sendCommand,
   onToast: toast, onError: showError,
@@ -1443,6 +1429,12 @@ window.addEventListener("pagehide", markLeavingPage);
 window.addEventListener("pageshow", () => { leavingPage = false; });
 store.subscribe((state, action) => {
   if (isTransientEditorAction(action)) { renderEditorTransient(state); return; }
+  if (action?.type === "room-event" && action.event?.type === "room.activity.delta") {
+    // Realtime activity deltas must not trigger a full app render; the store
+    // already merged them, so only stream the small payload to the activity.
+    activities.streamActivityDelta(action.event.kind, action.event.delta);
+    return;
+  }
   void render(state).catch(showError);
 });
 restoreFullscreenIntent();

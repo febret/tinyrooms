@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 
 BEHAVIOR_EVENT_TYPES = frozenset(
-    {"tick", "enter", "leave", "quick_action", "card_play", "dialog_action", "activity_result"}
+    {"tick", "activity_tick", "enter", "leave", "quick_action", "card_play", "dialog_action", "activity_result"}
 )
 PEEP_KINDS = frozenset({"user", "npc"})
 

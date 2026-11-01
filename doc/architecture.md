@@ -175,6 +175,19 @@ Snapshots replace room state, while events update it incrementally. Clients
 request a fresh snapshot after reconnect or presence changes, including NPC
 movement. Session validation remains authoritative throughout the connection.
 
+Room activity controller state (chess and paintball) is memory-only and
+resets on server restart: no behavior-state rows are read or written for
+activity controllers, and stream ticks skip SQLite unless a persistent
+gameplay effect (Energy, health, ammo, Bops, cutscenes) fires. Paintball
+runs a dedicated 15 Hz `activity_tick` loop (configurable per activity via
+`tick_hz`) that only targets rooms with an open activity session. Full
+`room.activity.state` events carry keyframes; `room.activity.delta` events
+carry revisioned (`from`/`seq`/`t`) participant spikes, projectile
+spawn/expire lists, splat additions, and changed scalars. The host merges
+deltas without a full app render and forwards only the small payload to
+the activity iframe, which interpolates remote players and extrapolates
+projectiles.
+
 Activity guests are same-origin iframes. The host validates origin, activity ID,
 and source window before accepting bridge messages. Guest commands use the
 normal server command pipeline; iframe isolation must not bypass authority.

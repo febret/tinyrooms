@@ -631,34 +631,77 @@ export function mergePhoneMessages(previous, raw) {
   };
 }
 
-export function normalizeGameAssets(assets) {
-  if (!assets || typeof assets !== "object") return {};
-  return Object.fromEntries(Object.entries(assets).map(([name, url]) => [String(name), assetOrEmpty(url)]));
+export function normalizeRoomActivityCapabilities(capabilities) {
+  if (!capabilities || typeof capabilities !== "object") return { reset: false };
+  return { reset: Boolean(capabilities.reset) };
 }
 
-export function normalizeGameModels(models) {
-  if (!models || typeof models !== "object") return {};
-  return Object.fromEntries(Object.entries(models).map(([name, model]) => [String(name), {
-    modelUrl: assetOrEmpty(model?.model_url),
-    scale: Number(model?.scale || 1),
-  }]));
-}
-
-export function normalizeRoomGame(game) {
-  if (!game || typeof game !== "object") return null;
+export function normalizeRoomActivity(activity) {
+  if (!activity || typeof activity !== "object") return null;
   return {
-    kind: String(game.kind || ""),
-    controller: String(game.controller || ""),
-    renderer: String(game.renderer || ""),
-    config: game.config && typeof game.config === "object" ? clone(game.config) : {},
-    assets: normalizeGameAssets(game.assets),
-    models: normalizeGameModels(game.models),
-    effects: game.effects && typeof game.effects === "object" ? clone(game.effects) : {},
+    kind: String(activity.kind || ""),
+    controller: String(activity.controller || ""),
+    capabilities: normalizeRoomActivityCapabilities(activity.capabilities),
+    state: normalizeActivityState(activity.state),
   };
 }
 
-export function normalizeGameState(boardState) {
-  return boardState && typeof boardState === "object" ? clone(boardState) : null;
+export function normalizeRoomActivities(activities) {
+  if (!activities || typeof activities !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(activities)
+      .map(([kind, activity]) => [String(kind), normalizeRoomActivity(activity)])
+      .filter(([, activity]) => Boolean(activity)),
+  );
+}
+
+export function normalizeActivityState(activityState) {
+  return activityState && typeof activityState === "object" ? clone(activityState) : null;
+}
+
+export function normalizeActivityDelta(delta) {
+  if (!delta || typeof delta !== "object") return null;
+  const from = Number(delta.from);
+  const seq = Number(delta.seq);
+  if (!Number.isFinite(from) || !Number.isFinite(seq)) return null;
+  return { ...delta, from, seq };
+}
+
+function mergeDeltaList(current, updates, removed) {
+  const next = new Map();
+  for (const entry of current || []) {
+    if (entry && typeof entry === "object" && entry.id !== undefined) next.set(String(entry.id), entry);
+  }
+  for (const id of removed || []) next.delete(String(id));
+  for (const update of updates || []) {
+    if (!update || typeof update !== "object" || update.id === undefined) continue;
+    const id = String(update.id);
+    const before = next.get(id);
+    next.set(id, before && typeof before === "object" ? { ...before, ...update } : { ...update });
+  }
+  return [...next.values()];
+}
+
+/** Merge a revisioned `room.activity.delta` into cached activity state. */
+
+export function applyActivityDelta(state, delta) {
+  if (!state || typeof state !== "object" || !delta || typeof delta !== "object") return state;
+  if (Number(state.seq ?? NaN) !== Number(delta.from)) return state;
+  const next = { ...state, seq: Number(delta.seq) };
+  if (delta.t !== undefined) next.t = delta.t;
+  for (const key of ["phase", "round", "phase_ends_at", "seconds_left", "status", "bot_count", "scoreboard"]) {
+    if (delta[key] !== undefined) next[key] = delta[key];
+  }
+  if (delta.participants || delta.participants_remove) {
+    next.participants = mergeDeltaList(state.participants, delta.participants, delta.participants_remove);
+  }
+  if (delta.projectiles_add || delta.projectiles_remove) {
+    next.projectiles = mergeDeltaList(state.projectiles, delta.projectiles_add, delta.projectiles_remove);
+  }
+  if (delta.splats_add) {
+    next.splats = [...(Array.isArray(state.splats) ? state.splats : []), ...delta.splats_add].slice(-80);
+  }
+  return next;
 }
 
 export function normalizeGridPosition(value) {
@@ -721,9 +764,9 @@ export function normalizeRoom(room, previousRoom = null) {
       baseDark: Boolean(room.board?.base_dark ?? room.board?.dark),
       spritesEnabled: Boolean(room.board?.sprites_enabled),
       spriteScale: Number(room.board?.sprite_scale) > 0 ? Number(room.board?.sprite_scale) : 1,
-      game: normalizeRoomGame(room.board?.game),
-      state: normalizeGameState(room.board?.state),
     },
+    activity: normalizeRoomActivity(room.activity),
+    activities: normalizeRoomActivities(room.activities),
     note: String(room.metadata?.note || ""),
     environment: normalizeEnvironment(room.environment),
     environmentRevision: Number(room.environment_revision || 0),

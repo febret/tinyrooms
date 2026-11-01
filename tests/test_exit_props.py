@@ -125,8 +125,16 @@ class ExitStyleLoaderTests(unittest.TestCase):
         self.assertEqual(world.rooms["hub"].props["door0"].exit_style, recipe)
 
     def test_exit_style_serializes_with_defaults_when_absent(self) -> None:
-        world = load_test_world(REPO_ROOT / "worlds" / "tiny-arcade", allow_legacy_whiteboards=True)
-        room = world.rooms["chess"]
+        with tempfile.TemporaryDirectory() as tmp:
+            world_path = _minimal_world(Path(tmp), {
+                "hub": {
+                    "label": "Hub",
+                    "board_image": "hub.png",
+                    "props": {"door0": {"prop": "builtin:door"}},
+                },
+            })
+            world = _load_probe(world_path)
+        room = world.rooms["hub"]
         service = RoomService(
             hub=Mock(),
             profiles=Mock(),
@@ -138,7 +146,7 @@ class ExitStyleLoaderTests(unittest.TestCase):
             stats=Mock(),
             command_verbs=frozenset({".go", ".look"}),
         )
-        payload = service._serialize_prop(Mock(), room, room.props["lobby-door0"])
+        payload = service._serialize_prop(Mock(), room, room.props["door0"])
         self.assertEqual(
             payload["exit_style"],
             {"style": "panel", "main": "#b07a4a", "accent": "#6b4a2f", "texture": "plain"},

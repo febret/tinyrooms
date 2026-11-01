@@ -1,118 +1,11 @@
-chess-pawn-white:
-  label: White Pawn
-  description: An ivory pawn with a chipped base and an undefeated posture problem.
-  model: chess-pawn-white.glb
-  decorative: true
-  scale: 0.62
-  tags:
-  - chess
-  - piece
-chess-knight-white:
-  label: White Knight
-  description: An ivory knight caught mid-rear.
-  model: chess-knight-white.glb
-  decorative: true
-  scale: 0.84
-  tags:
-  - chess
-  - piece
-chess-bishop-white:
-  label: White Bishop
-  description: A tall ivory bishop with a dueling scar in its mitre.
-  model: chess-bishop-white.glb
-  decorative: true
-  scale: 0.9
-  tags:
-  - chess
-  - piece
-chess-rook-white:
-  label: White Rook
-  description: An ivory rook with a sturdy crenellated top.
-  model: chess-rook-white.glb
-  decorative: true
-  scale: 0.82
-  tags:
-  - chess
-  - piece
-chess-queen-white:
-  label: White Queen
-  description: An ivory queen with a crown sharp enough to win arguments.
-  model: chess-queen-white.glb
-  decorative: true
-  scale: 1
-  tags:
-  - chess
-  - piece
-chess-king-white:
-  label: White King
-  description: An ivory king with a cross worn smooth by years of play.
-  model: chess-king-white.glb
-  decorative: true
-  scale: 1.04
-  tags:
-  - chess
-  - piece
-chess-pawn-black:
-  label: Black Pawn
-  description: A dark pawn polished to a soft shine.
-  model: chess-pawn-black.glb
-  decorative: true
-  scale: 0.62
-  tags:
-  - chess
-  - piece
-chess-knight-black:
-  label: Black Knight
-  description: A dark knight with a stubborn, forward lean.
-  model: chess-knight-black.glb
-  decorative: true
-  scale: 0.84
-  tags:
-  - chess
-  - piece
-chess-bishop-black:
-  label: Black Bishop
-  description: A dark bishop with a sharp, clean silhouette.
-  model: chess-bishop-black.glb
-  decorative: true
-  scale: 0.9
-  tags:
-  - chess
-  - piece
-chess-rook-black:
-  label: Black Rook
-  description: A dark rook with a heavy, square crown.
-  model: chess-rook-black.glb
-  decorative: true
-  scale: 0.82
-  tags:
-  - chess
-  - piece
-chess-queen-black:
-  label: Black Queen
-  description: A dark queen with a crown like a wrought-iron fence.
-  model: chess-queen-black.glb
-  decorative: true
-  scale: 1
-  tags:
-  - chess
-  - piece
-chess-king-black:
-  label: Black King
-  description: A dark king with a cross that catches the arcade lights.
-  model: chess-king-black.glb
-  decorative: true
-  scale: 1.04
-  tags:
-  - chess
-  - piece
 paintball-vending:
   label: Paintball Vending Machine
   description: A neon vending machine humming with paint canisters. Buy a blaster
-    or a set of ten paintballs.
+    or a set of ten paintballs, then enter the arena.
   model: paintball-vending.glb
   decorative: true
   behavior: paintball
+  activity: paintball
   one_per_room: true
   scale: 2
   sprite_footprint:
@@ -122,37 +15,27 @@ paintball-vending:
   - arcade
   - paintball
   - vending
-paintball-bunker:
-  label: Paint Bunker
-  description: A low inflatable bunker. Duck behind it and hope nobody flanks you.
-  model: paintball-bunker.glb
+  default_actions:
+  - - Enter the paintball arena
+    - .play paintball
+    - true
+chess-cabinet:
+  label: Chess Cabinet
+  description: A neon arcade cabinet wired for chess. Select it to play either side.
+  model: chess-cabinet.glb
   decorative: true
-  scale: 1.1
-  sprite_footprint:
-  - 7
-  - 4
-  tags:
-  - paintball
-paintball-barrel-stack:
-  label: Paint Barrel Stack
-  description: A stack of paint barrels waiting to be tapped. One splash and the whole
-    stack goes.
-  model: paintball-barrel-stack.glb
-  decorative: true
-  scale: 1.4
-  sprite_footprint:
-  - 5
-  - 5
-  tags:
-  - paintball
-chess-controller:
-  label: Chess
-  description: The chess controller. Play moves against the arcade chess engine here.
-  render_kind: text
-  decorative: false
   behavior: chess
+  activity: chess
   one_per_room: true
-  scale: 0.32
+  scale: 1.2
+  sprite_footprint:
+  - 4
+  - 3
   tags:
+  - arcade
   - chess
   - game
+  default_actions:
+  - - Play chess
+    - .play chess
+    - true

@@ -303,6 +303,34 @@ async def act_command(context: CommandContext, command: ParsedCommand) -> Comman
     return outcome
 
 
+async def activity_input_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Dispatch silent high-frequency input to an activity controller prop."""
+
+    room_id = require_room_id(context)
+    if len(command.args) < 2:
+        raise CommandError("Use '.activity_input <input> <target>'.")
+    action = command.args[0].strip().lower()
+    if not action:
+        raise CommandError("Choose activity input to send.")
+    target = await _resolve_action_target(context, command.args[1])
+    behavior = await context.behaviors.dispatch(
+        BehaviorEvent(
+            type="quick_action",
+            actor=PeepRef(kind="user", peep_id=None, account_id=context.account.id),
+            target=target,
+            room_id=room_id,
+            action=action,
+            data={},
+        )
+    )
+    outcome = CommandOutcome(message="Activity input received.", toast=False, log=False)
+    merge_behavior_result(context, outcome, behavior)
+    outcome.message = "Activity input received."
+    outcome.toast = False
+    outcome.log = False
+    return outcome
+
+
 async def dialog_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     if not command.args:
         raise CommandError("Choose a dialog option.")
@@ -580,6 +608,15 @@ def build_registry() -> CommandRegistry:
         toast=False,
         log=False,
         help="Charges the open activity's start cost for the new round.",
+    )
+    registry.register(
+        "activity_input",
+        "Send high-frequency input to an activity controller prop.",
+        activity_input_command,
+        usage=".activity_input <input> @prop:<id>",
+        toast=False,
+        log=False,
+        help="Activity windows use this for smooth movement and shooting without chat log spam.",
     )
     registry.register(
         "builder",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from collections.abc import Mapping
 import hashlib
 import hmac
 import secrets
@@ -22,6 +23,7 @@ class ActivitySession:
 
     id: str
     account_id: str
+    username: str
     kind: str
     title: str
     iframe_url: str
@@ -50,6 +52,11 @@ class ActivityService:
         self._config = config
         self._lock = threading.RLock()
         self._sessions: dict[str, ActivitySession] = {}
+        # Memory-only activity runtime state. Behavior state for room activity
+        # controllers and their public snapshots live here so the realtime
+        # tick/stream path never touches SQLite; everything resets on restart.
+        self._behavior_states: dict[str, dict[str, object]] = {}
+        self._public_states: dict[tuple[str, str], dict[str, object]] = {}
 
     def feature_enabled(self, feature: str) -> bool:
         """Return whether a feature flag is enabled, normalizing separators."""
@@ -66,12 +73,14 @@ class ActivityService:
         kind: str,
         title: str,
         room_id: str,
+        username: str = "",
         config: dict[str, object] | None = None,
     ) -> ActivitySession:
         activity_id = str(uuid.uuid4())
         return ActivitySession(
             id=activity_id,
             account_id=account_id,
+            username=str(username or ""),
             kind=kind,
             title=title,
             iframe_url=f"/activities/{kind}/?session_id={activity_id}",
@@ -87,7 +96,7 @@ class ActivityService:
         with self._lock:
             return self._sessions.get(account_id)
 
-    def ensure_initial_sticker(self, account_id: str, room_id: str) -> ActivitySession:
+    def ensure_initial_sticker(self, account_id: str, room_id: str, username: str = "") -> ActivitySession:
         """Ensure the initial sticker activity exists for the account."""
 
         with self._lock:
@@ -99,6 +108,7 @@ class ActivityService:
                 kind="sticker-designer",
                 title="Sticker Designer",
                 room_id=room_id,
+                username=username,
             )
             self._sessions[account_id] = session
             return session
@@ -111,6 +121,7 @@ class ActivityService:
         title: str,
         room_id: str,
         replace_existing: bool = False,
+        username: str = "",
         config: dict[str, object] | None = None,
     ) -> tuple[ActivitySession, ActivitySession | None]:
         """Start an activity, optionally replacing the current one."""
@@ -126,6 +137,7 @@ class ActivityService:
                 kind=kind,
                 title=title,
                 room_id=room_id,
+                username=username or (current.username if current is not None else ""),
                 config=config,
             )
             self._sessions[account_id] = session
@@ -158,6 +170,64 @@ class ActivityService:
             updated = replace(current, attention=True)
             self._sessions[account_id] = updated
             return updated
+
+    def sessions_in_room(self, room_id: str, kind: str = "") -> list[ActivitySession]:
+        """Return open sessions for a room, optionally filtered by activity kind."""
+
+        with self._lock:
+            return [
+                session
+                for session in self._sessions.values()
+                if session.room_id == room_id and (not kind or session.kind == kind)
+            ]
+
+    def has_sessions(self, room_id: str, kind: str = "") -> bool:
+        """Return whether any open session matches a room and activity kind."""
+
+        with self._lock:
+            return any(
+                session.room_id == room_id and (not kind or session.kind == kind)
+                for session in self._sessions.values()
+            )
+
+    def behavior_state(self, namespace: str, instance_id: str) -> dict[str, object]:
+        """Return the live behavior state dict for an activity controller."""
+
+        key = f"{namespace}:{instance_id}"
+        with self._lock:
+            return self._behavior_states.setdefault(key, {})
+
+    def save_behavior_state(self, namespace: str, instance_id: str, state: Mapping[str, object]) -> None:
+        """Persist an activity controller's behavior state in memory only."""
+
+        key = f"{namespace}:{instance_id}"
+        with self._lock:
+            self._behavior_states[key] = dict(state) if not isinstance(state, dict) else state
+
+    def room_state(self, room_id: str, kind: str) -> dict[str, object] | None:
+        """Return the latest public activity state for a room and kind."""
+
+        with self._lock:
+            stored = self._public_states.get((str(room_id), str(kind)))
+            return dict(stored) if isinstance(stored, dict) else None
+
+    def set_room_state(self, room_id: str, kind: str, state: Mapping[str, object]) -> None:
+        """Store the latest public activity state for snapshots and stream diffs."""
+
+        with self._lock:
+            self._public_states[(str(room_id), str(kind))] = (
+                dict(state) if isinstance(state, dict) else {}
+            )
+
+    def room_states(self, room_id: str) -> dict[str, dict[str, object]]:
+        """Return copies of every stored public activity state for a room."""
+
+        with self._lock:
+            return {
+                kind: dict(state)
+                for (stored_room, kind), state in self._public_states.items()
+                if stored_room == room_id and isinstance(state, dict)
+            }
 
     def serialize(self, activity: ActivitySession | None) -> dict[str, object] | None:
         """Serialize an activity descriptor for HTTP or WebSocket clients."""

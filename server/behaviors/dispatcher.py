@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+import copy
 import inspect
 import json
 import logging
@@ -167,23 +168,25 @@ class BehaviorDispatcher(BehaviorIntentMixin):
     def _attachments_for(self, event: BehaviorEvent) -> list[BehaviorAttachment]:
         if event.type in {"tick", "enter", "leave"}:
             return self._room_attachments_for(event.room_id or "")
+        if event.type == "activity_tick":
+            target = event.target
+            if isinstance(target, PropRef):
+                attachment = self._scripts.prop_attachments.get(target.instance_id)
+                if attachment is None:
+                    attachment = self._live_prop_attachment(target)
+                return [attachment] if attachment is not None else []
+            return []
         if event.type in {"quick_action", "card_play"}:
             target = event.target
             if isinstance(target, PeepRef) and target.peep_id:
                 attachment = self._scripts.peep_attachments.get(target.peep_id)
                 if attachment is not None:
                     return [attachment]
-                if event.type == "card_play":
-                    room = self._world.rooms.get(event.room_id or "")
-                    if room is not None and room.game is not None:
-                        # Game-room NPCs (for example paintbots) have no script
-                        # of their own; the room controller owns card resolution.
-                        return self._room_attachments_for(event.room_id or "")
                 return []
             if isinstance(target, PeepRef) and event.type == "card_play":
                 # A card used on another user has no peep attachment, so every
                 # script in the room observes it (only those with on_card_play
-                # react). This is how world games resolve user-targeted cards.
+                # react).
                 return self._room_attachments_for(event.room_id or "")
             if isinstance(target, PropRef):
                 attachment = self._scripts.prop_attachments.get(target.instance_id)
@@ -294,10 +297,9 @@ class BehaviorDispatcher(BehaviorIntentMixin):
             "powers": powers,
         }
 
-    def _card_view(self, event: BehaviorEvent) -> CardView | None:
-        """Return a read-only view of the card that triggered *event*, if any."""
+    def _card_definition_view(self, card_id: object) -> CardView | None:
+        """Return a read-only view of a card definition by id."""
 
-        card_id = event.data.get("card_id")
         if not isinstance(card_id, str) or not card_id:
             return None
         definition = self._catalog.cards.get(card_id)
@@ -314,9 +316,48 @@ class BehaviorDispatcher(BehaviorIntentMixin):
             quality=definition.quality,
         )
 
+    def _card_view(self, event: BehaviorEvent) -> CardView | None:
+        """Return a read-only view of the card that triggered *event*, if any."""
+
+        return self._card_definition_view(event.data.get("card_id"))
+
+    def _activity_controller_kind(self, attachment: BehaviorAttachment) -> str | None:
+        """Return the activity kind when an attachment is a room activity controller."""
+
+        ref = attachment.ref
+        if attachment.namespace != "prop" or not isinstance(ref, PropRef):
+            return None
+        room = self._world.rooms.get(ref.room_id)
+        if room is None:
+            return None
+        for kind, activity in room.activities.items():
+            if activity.controller == attachment.instance_id:
+                return kind
+        return None
+
     def _load_state(self, namespace: str, instance_id: str) -> dict[str, object]:
         with self._hub.locked() as connection:
             return read_behavior_state(connection, namespace, instance_id) or {}
+
+    def _load_state_for(self, attachment: BehaviorAttachment) -> dict[str, object]:
+        if self._activity_controller_kind(attachment) is not None and self._activities is not None:
+            stored = self._activities.behavior_state(attachment.namespace, attachment.instance_id)
+            return copy.deepcopy(stored)
+        return self._load_state(attachment.namespace, attachment.instance_id)
+
+    def _activity_state_view(self, room_id: str, kind: str) -> dict[str, object] | None:
+        if self._activities is None:
+            return None
+        return self._activities.room_state(room_id, kind)
+
+    def _activity_users_view(self, room_id: str, kind: str) -> list[dict[str, object]]:
+        if self._activities is None:
+            return []
+        sessions = self._activities.sessions_in_room(room_id, kind)
+        return [
+            {"id": session.account_id, "name": session.username or session.account_id}
+            for session in sessions
+        ]
 
     def _save_state(self, connection: sqlite3.Connection, attachment: BehaviorAttachment, state: dict[str, object]) -> None:
         connection.execute(
@@ -328,6 +369,33 @@ class BehaviorDispatcher(BehaviorIntentMixin):
             (attachment.namespace, attachment.instance_id, json.dumps(state), utc_now().isoformat()),
         )
 
+    def _save_state_for(
+        self,
+        connection: sqlite3.Connection | None,
+        attachment: BehaviorAttachment,
+        state: dict[str, object],
+    ) -> None:
+        if self._activity_controller_kind(attachment) is not None and self._activities is not None:
+            self._activities.save_behavior_state(attachment.namespace, attachment.instance_id, copy.deepcopy(state))
+            return
+        if connection is None:
+            return
+        self._save_state(connection, attachment, state)
+
+    MEMORY_ONLY_INTENTS = frozenset(
+        {"set_room_activity_state", "set_room_activity_delta", "feedback", "room_feedback", "effect"}
+    )
+
+    def _activity_only(self, contexts: list[tuple[BehaviorAttachment, BehaviorContext]]) -> bool:
+        """Return whether an event touches only transient activity controllers."""
+
+        for attachment, context in contexts:
+            if self._activity_controller_kind(attachment) is None:
+                return False
+            if any(intent.kind not in self.MEMORY_ONLY_INTENTS for intent in context.intents):
+                return False
+        return True
+
     def _room_view(self, room_id: str | None) -> dict[str, object]:
         key = room_id or ""
         static = self._room_view_cache.get(key)
@@ -338,7 +406,7 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                     "id": room_id,
                     "label": "",
                     "sprites_enabled": False,
-                    "game": None,
+                    "activity": None,
                     "props": [],
                     "peeps": [],
                     "exits": [],
@@ -348,15 +416,20 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                     "id": room.id,
                     "label": room.label,
                     "sprites_enabled": room.sprites_enabled,
-                    "game": None if room.game is None else {
-                        "kind": room.game.kind,
-                        "controller": room.game.controller,
-                        "renderer": room.game.renderer,
-                        "config": dict(room.game.config),
-                        "reset_powers": list(room.game.reset_powers),
-                        "assets": sorted(room.game.assets),
-                        "models": {name: model.prop_id for name, model in room.game.models.items()},
-                        "effect_sets": sorted(room.game.effect_sets),
+                    "activity": None if not room.activities else {
+                        "kind": room.activity.kind,
+                        "controller": room.activity.controller,
+                        "config": dict(room.activity.config),
+                        "reset_powers": list(room.activity.reset_powers),
+                    },
+                    "activities": {
+                        kind: {
+                            "kind": activity.kind,
+                            "controller": activity.controller,
+                            "config": dict(activity.config),
+                            "reset_powers": list(activity.reset_powers),
+                        }
+                        for kind, activity in room.activities.items()
                     },
                     "props": [
                         {
@@ -517,7 +590,7 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                 target=user_target if user_target is not None else (attachment.ref if attachment.ref is not None else event.target),
                 room=self._room_view(event.room_id),
                 world=self._world_view(),
-                state=self._load_state(attachment.namespace, attachment.instance_id),
+                state=self._load_state_for(attachment),
                 now=utc_now(),
                 statuses=actor_view["statuses"],
                 counters=actor_view["counters"],
@@ -526,8 +599,11 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                 environment=self._environment,
                 actor_username=str(actor_view.get("username") or ""),
                 card=self._card_view(event),
+                card_lookup=self._card_definition_view,
                 peeps_in=self._peeps_in_view,
                 room_users=self._room_users_view,
+                activity_state=lambda kind, room_id=event.room_id: self._activity_state_view(room_id or "", str(kind)),
+                activity_users=self._activity_users_view,
                 bops=int(actor_view.get("bops") or 0),
                 powers=actor_view.get("powers") or frozenset(),
                 vibe_toward=vibe_toward,
@@ -562,12 +638,35 @@ class BehaviorDispatcher(BehaviorIntentMixin):
         result: BehaviorResult,
     ) -> None:
         deferred: list[object] = []
+        if self._activity_only(contexts):
+            # Activity controllers with only transient/broadcast intents must
+            # not touch SQLite. Commit memory state and queue public state
+            # updates only after success.
+            for attachment, context in contexts:
+                for intent in context.intents:
+                    self._apply_intent(None, intent, context, event, result, deferred)
+                self._save_state_for(None, attachment, context.state)
+            self._commit_activity_states(result)
+            for operation in deferred:
+                outcome = operation()
+                if inspect.isawaitable(outcome):
+                    await outcome
+            return
         with self._hub.transaction() as connection:
             for attachment, context in contexts:
                 for intent in context.intents:
                     self._apply_intent(connection, intent, context, event, result, deferred)
-                self._save_state(connection, attachment, context.state)
+                self._save_state_for(connection, attachment, context.state)
+        self._commit_activity_states(result)
         for operation in deferred:
             outcome = operation()
             if inspect.isawaitable(outcome):
                 await outcome
+
+    def _commit_activity_states(self, result: BehaviorResult) -> None:
+        """Publish queued public activity states to the in-memory store."""
+
+        if self._activities is None:
+            return
+        for room_id, kind, state in result.room_activity_updates:
+            self._activities.set_room_state(room_id, kind, state)

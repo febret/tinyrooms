@@ -63,8 +63,11 @@ class BehaviorContext:
         environment: object | None = None,
         actor_username: str = "",
         card: CardView | None = None,
+        card_lookup: Callable[[str], CardView | None] | None = None,
         peeps_in: Callable[[str], list[dict[str, object]]] | None = None,
         room_users: Callable[[str], Awaitable[list[dict[str, object]]]] | None = None,
+        activity_state: Callable[[str], Mapping[str, object] | None] | None = None,
+        activity_users: Callable[[str, str], list[dict[str, object]]] | None = None,
         bops: int = 0,
         powers: frozenset[str] = frozenset(),
         vibe_toward: Callable[[str], int] | None = None,
@@ -82,8 +85,11 @@ class BehaviorContext:
         self._card_ids = frozenset(card_ids)
         self._equipped_ids = frozenset(equipped_ids)
         self._environment = environment
+        self._card_lookup = card_lookup
         self._peeps_in = peeps_in
         self._room_users = room_users
+        self._activity_state = activity_state
+        self._activity_users = activity_users
         self._bops = int(bops)
         self._powers = frozenset(powers)
         self._vibe_toward = vibe_toward
@@ -126,6 +132,25 @@ class BehaviorContext:
             return []
         return await self._room_users(str(room_id))
 
+    def room_activity_state(self, kind: str) -> dict[str, object] | None:
+        """Return the last committed public activity state for *kind*.
+
+        Activity state lives in memory only and resets on server restart.
+        """
+
+        if self._activity_state is None:
+            return None
+        stored = self._activity_state(str(kind))
+        return dict(stored) if isinstance(stored, Mapping) else None
+
+    def activity_users(self, room_id: str, kind: str) -> list[dict[str, object]]:
+        """Return accounts with an open activity session, without touching SQL."""
+
+        if self._activity_users is None:
+            return []
+        records = self._activity_users(str(room_id), str(kind))
+        return [dict(record) for record in records if isinstance(record, Mapping)]
+
     @property
     def bops(self) -> int:
         """Return the acting account's current Bops (0 for system events)."""
@@ -141,21 +166,6 @@ class BehaviorContext:
         """Queue moving the attached NPC sprite to a random valid position."""
 
         self._append("move_sprite_random", {})
-
-    def move_peep_sprite(
-        self,
-        peep_id: str,
-        *,
-        x: float | None = None,
-        y: float | None = None,
-        random: bool = False,
-    ) -> None:
-        """Queue moving a specific NPC sprite in the acting room."""
-
-        payload: dict[str, object] = {"peep_id": str(peep_id), "random": bool(random)}
-        if x is not None and y is not None:
-            payload["position"] = [float(x), float(y)]
-        self._append("move_peep_sprite", payload)
 
     def move_peep(self, peep_id: str, room_id: str) -> None:
         """Queue moving an NPC peep directly to another room."""
@@ -197,6 +207,13 @@ class BehaviorContext:
         """Return whether the acting peep has a copy of a card equipped."""
 
         return card_id in self._equipped_ids
+
+    def card_definition(self, card_id: str) -> CardView | None:
+        """Return a read-only view of a card definition, if the catalog has it."""
+
+        if self._card_lookup is None or not card_id:
+            return None
+        return self._card_lookup(str(card_id))
 
     def room_lighting(self) -> str:
         """Return the acting room's lighting mode."""
@@ -498,14 +515,19 @@ class BehaviorContext:
 
         return self.state.get(key, default)
 
-    def set_game_state(self, state: Mapping[str, object]) -> None:
-        """Persist and broadcast a room game board's public state.
+    def set_room_activity_state(self, state: Mapping[str, object], *, kind: str = "", delta: Mapping[str, object] | None = None) -> None:
+        """Broadcast a room activity's public state.
 
-        The payload is opaque to the core; room scripts decide its shape. It is
-        stored on the controller prop so snapshots recover the current board
-        after restart.
+        Activity state lives in memory only and resets on server restart. The
+        payload is opaque to the core; room scripts decide its shape. ``kind``
+        routes the broadcast to the right activity in rooms that host more
+        than one. When *delta* is provided, only the small delta is sent over
+        the wire while the full *state* is queued for snapshot recovery.
         """
 
-        payload = dict(state)
-        self.state["game_state"] = payload
-        self._append("set_game_state", {"state": payload})
+        payload: dict[str, object] = {"state": dict(state), "kind": str(kind)}
+        if isinstance(delta, Mapping):
+            payload["delta"] = dict(delta)
+            self._append("set_room_activity_delta", payload)
+            return
+        self._append("set_room_activity_state", payload)

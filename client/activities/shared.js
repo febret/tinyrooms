@@ -7,6 +7,7 @@
   const basePath = typeof window.__TR_BASE__ === "string" ? window.__TR_BASE__ : "";
   const activityId = new URLSearchParams(window.location.search).get("session_id") || "";
   const listeners = new Set();
+  const deltaListeners = new Set();
   const pending = new Map();
   const diagnostics = new Set();
   const feedback = document.createElement("div");
@@ -201,6 +202,11 @@
     return () => listeners.delete(listener);
   }
 
+  function subscribeDelta(listener) {
+    deltaListeners.add(listener);
+    return () => deltaListeners.delete(listener);
+  }
+
   let beforeCloseHandler = null;
 
   function onBeforeClose(handler) {
@@ -230,6 +236,16 @@
       state = event.data.state;
       roomMuted = state?.config?.soundEnabled === false;
       listeners.forEach(listener => listener(state));
+      return;
+    }
+    if (event.data.type === "tinyrooms.host.activity.delta") {
+      for (const listener of [...deltaListeners]) {
+        try {
+          listener(event.data.kind, event.data.delta);
+        } catch (error) {
+          console.warn("[Tinyrooms activity] Delta listener failed.", error);
+        }
+      }
       return;
     }
     if (event.data.type === "tinyrooms.host.before-close") {
@@ -273,6 +289,7 @@
     toast,
     celebrate,
     subscribe,
+    subscribeDelta,
     command,
     result,
     saveSurface,

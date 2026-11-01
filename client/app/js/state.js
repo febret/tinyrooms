@@ -5,17 +5,19 @@ import { withBase } from "./base-path.js";
 import {
   assetOrEmpty,
   clone,
+  applyActivityDelta,
   initialPhoneMessages,
   mergeLayoutProps,
   mergePhoneMessages,
   normalizeActivity,
+  normalizeActivityState,
+  normalizeActivityDelta,
   normalizeCardDefinition,
   normalizeChatEntry,
   normalizeContainer,
   normalizeCounters,
   normalizeDialog,
   normalizeEnvironment,
-  normalizeGameState,
   normalizeInventoryStack,
   normalizeJournal,
   normalizeMultiverseWorlds,
@@ -424,9 +426,18 @@ function applyServerEvent(state, event) {
       },
     };
   }
-  if (event.type === "room.board.state" && state.room) {
-    const nextState = normalizeGameState(event.state);
+  if (event.type === "room.activity.state" && state.room) {
+    const nextState = normalizeActivityState(event.state);
+    const kind = String(event.kind || "");
     const dynamicDescription = nextState?.room_description;
+    const activities = kind
+      ? {
+          ...(state.room.activities || {}),
+          ...(state.room.activities?.[kind]
+            ? { [kind]: { ...state.room.activities[kind], state: nextState } }
+            : {}),
+        }
+      : state.room.activities;
     return {
       ...state,
       room: {
@@ -434,7 +445,31 @@ function applyServerEvent(state, event) {
         description: typeof dynamicDescription === "string" && dynamicDescription.trim()
           ? dynamicDescription
           : state.room.baseDescription,
-        board: { ...state.room.board, state: nextState },
+        activity: kind && state.room.activity?.kind === kind
+          ? { ...state.room.activity, state: nextState }
+          : state.room.activity,
+        activities,
+      },
+    };
+  }
+  if (event.type === "room.activity.delta" && state.room) {
+    const delta = normalizeActivityDelta(event.delta);
+    const kind = String(event.kind || "");
+    if (!delta || !kind || !state.room.activities?.[kind]?.state) return state;
+    const nextActivityState = applyActivityDelta(state.room.activities[kind].state, delta);
+    if (nextActivityState === state.room.activities[kind].state) return state;
+    const activities = {
+      ...state.room.activities,
+      [kind]: { ...state.room.activities[kind], state: nextActivityState },
+    };
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        activity: kind && state.room.activity?.kind === kind
+          ? { ...state.room.activity, state: nextActivityState }
+          : state.room.activity,
+        activities,
       },
     };
   }

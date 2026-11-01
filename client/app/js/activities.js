@@ -111,6 +111,15 @@ export function createActivityManager({
     }, window.location.origin);
   }
 
+  function sendDelta(entry, kind, delta) {
+    entry.iframe.contentWindow?.postMessage({
+      type: "tinyrooms.host.activity.delta",
+      activityId: entry.activity.id,
+      kind,
+      delta,
+    }, window.location.origin);
+  }
+
   function syncPill(entry) {
     if (!entry.pill) return;
     const label = `Restore ${entry.activity.title}`;
@@ -349,6 +358,7 @@ export function createActivityManager({
       return;
     }
     if (event.data.type === "tinyrooms.activity.command") {
+      const silent = String(event.data.command || "").startsWith(".activity_input ");
       try {
         const result = await onCommand(String(event.data.command || ""));
         entry.iframe.contentWindow?.postMessage({
@@ -358,7 +368,7 @@ export function createActivityManager({
           ok: true,
           message: result?.message || "Done.",
           payload: result?.payload || null,
-          state: hostPayload(getState(), entry.activity),
+          state: silent ? null : hostPayload(getState(), entry.activity),
         }, window.location.origin);
       } catch (error) {
         entry.iframe.contentWindow?.postMessage({
@@ -368,7 +378,7 @@ export function createActivityManager({
           ok: false,
           message: error instanceof Error ? error.message : String(error),
           payload: null,
-          state: hostPayload(getState(), entry.activity),
+          state: silent ? null : hostPayload(getState(), entry.activity),
         }, window.location.origin);
       }
       return;
@@ -484,6 +494,12 @@ export function createActivityManager({
   }).observe(layer);
 
   return {
+    streamActivityDelta(kind, delta) {
+      for (const entry of windows.values()) {
+        if (String(entry.activity?.kind || "") !== String(kind || "")) continue;
+        sendDelta(entry, kind, delta);
+      }
+    },
     async sync(activities) {
       const nextIds = new Set((activities || []).map(activity => activity.id));
       for (const id of [...windows.keys()]) {

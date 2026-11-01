@@ -22,6 +22,7 @@ from server.base_path import BasePathMiddleware
 from server.behaviors.dispatcher import BehaviorDispatcher
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.behaviors.loader import BehaviorLoader
+from server.behaviors.activity_ticker import ActivityTicker
 from server.behaviors.ticker import RoomTicker
 from server.broadcast import broadcast_room_event as _broadcast_room_event
 from server.broadcast import deliver_behavior_result as _deliver_behavior_result
@@ -229,6 +230,7 @@ class RuntimeState:
     profile_revision: int = 0
     loaded_mods: object | None = None
     mutation_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    activity_ticker: ActivityTicker | None = None
 
     def start_mod_runtimes(self) -> None:
         """Start optional background work contributed by loaded mods."""
@@ -322,6 +324,8 @@ class RuntimeState:
         bundle = load_world_bundle(self.config, self.loaded_mods, self.config.world_path)
         self.stop_mod_runtimes()
         self.ticker.stop()
+        if self.activity_ticker is not None:
+            self.activity_ticker.stop()
         rebuilt = _build_runtime(
             self.config,
             hub=self.hub,
@@ -343,6 +347,8 @@ class RuntimeState:
                 continue
             setattr(self, runtime_field.name, getattr(rebuilt, runtime_field.name))
         self.ticker.start()
+        if self.activity_ticker is not None:
+            self.activity_ticker.start()
         self.start_mod_runtimes()
         await self._broadcast_world_reloaded(old_world)
 
@@ -670,6 +676,13 @@ def _build_runtime(
         on_result=_deliver_tick_result,
         interval=config.tick_seconds,
     )
+    activity_ticker = ActivityTicker(
+        dispatcher=behaviors,
+        world=world,
+        connections=connections,
+        activities=activities,
+        on_result=_deliver_tick_result,
+    )
     runtime = RuntimeState(
         config=config,
         hub=hub,
@@ -719,6 +732,7 @@ def _build_runtime(
         containers=containers,
         behaviors=behaviors,
         ticker=ticker,
+        activity_ticker=activity_ticker,
         vibes=vibes,
         card_drops=card_drops,
         loaded_mods=loaded_mods,
@@ -769,11 +783,15 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             mc_client = McClient(runtime)
             mc_client.start()
         runtime.ticker.start()
+        if runtime.activity_ticker is not None:
+            runtime.activity_ticker.start()
         runtime.start_mod_runtimes()
         try:
             yield
         finally:
             runtime.stop_mod_runtimes()
+            if runtime.activity_ticker is not None:
+                runtime.activity_ticker.stop()
             runtime.ticker.stop()
             if mc_client is not None:
                 await mc_client.stop()
@@ -981,7 +999,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         account = runtime.profiles.get_account_by_id(session.account_id)
         activity = runtime.activities.get(account.id)
         if not account.initial_sticker_complete:
-            activity = runtime.activities.ensure_initial_sticker(account.id, runtime.world.entry_room_id)
+            activity = runtime.activities.ensure_initial_sticker(account.id, runtime.world.entry_room_id, account.username_display)
         return {"ok": True, "activity": runtime.activities.serialize(activity)}
 
     @app.get("/api/activities/{activity_id}")

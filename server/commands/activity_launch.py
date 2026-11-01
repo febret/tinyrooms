@@ -104,6 +104,7 @@ def start_activity(
             title=definition.title,
             room_id=room_id,
             replace_existing=replace_existing,
+            username=context.account.username_display,
             config=config,
         )
     except ValueError as exc:

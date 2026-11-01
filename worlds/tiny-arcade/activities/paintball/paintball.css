@@ -1,0 +1,43 @@
+:root {
+  --arena-bg: #090217;
+  --arena-grid: #2b1150;
+  --arena-magenta: #ff2d95;
+  --arena-cyan: #19e3ff;
+  --arena-lime: #8dff4d;
+}
+.paint-shell { max-width: 1920px; height: 100%; gap: 8px; }
+.paint-hud { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 6px 12px; }
+.paint-score { display: grid; gap: 0; min-width: 0; }
+.paint-score strong { color: var(--arena-cyan); text-shadow: 0 0 14px #19e3ff88; font-size: 20px; }
+#scoreboard { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70vw; }
+.paint-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.paint-stage { position: relative; flex: 1 1 auto; min-height: 0; border-radius: 16px; overflow: auto; overscroll-behavior: contain; background: var(--arena-bg); box-shadow: 0 18px 50px #000c, inset 0 0 0 1px #ffffff18; }
+#arena { display: block; width: 100%; height: 100%; min-width: 560px; min-height: 420px; touch-action: none; cursor: crosshair; }
+.paint-overlay { position: absolute; inset: auto 12px 12px; display: grid; place-items: center; pointer-events: none; }
+.paint-overlay[hidden] { display: none; }
+.paint-card { max-width: 620px; padding: 10px 14px; background: #0b0420d9; border: 1px solid #19e3ff55; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px #000a; }
+.paint-title { color: var(--arena-cyan); font-weight: 800; letter-spacing: 1px; }
+.paint-message { font-size: 13px; color: #d9cdf4; }
+.paint-shop { position: absolute; inset: 12px auto 12px 12px; width: min(330px, 86%); padding: 12px; overflow: auto; background: #0d0625f2; border: 1px solid #ff2d9555; border-radius: 12px; box-shadow: 0 16px 40px #000c; }
+.paint-shop[hidden] { display: none; }
+.paint-shop h2 { color: var(--arena-magenta); font-size: 16px; margin-bottom: 8px; }
+.paint-shop-items { display: grid; gap: 8px; margin-bottom: 10px; }
+.paint-shop-row { display: grid; gap: 2px; padding: 8px; background: #160a38; border-radius: 10px; }
+.paint-shop-row strong { font-size: 14px; }
+.paint-shop-row span { font-size: 12px; color: #cbbbf0; }
+.paint-shop-row button { justify-self: start; }
+@media (prefers-reduced-motion: reduce) {
+  .paint-card { animation: none !important; transition: none !important; }
+}
+@media (orientation: portrait), (max-width: 700px) {
+  .paint-shell { gap: 6px; }
+  .paint-score strong { font-size: 16px; }
+  #scoreboard { max-width: 100%; font-size: 12px; }
+  .paint-meta { gap: 6px; }
+  .paint-meta .badge { font-size: 12px; }
+  .paint-stage { border-radius: 12px; }
+  #arena { min-width: 520px; min-height: 560px; }
+  .paint-overlay { inset: auto 8px 8px 8px; }
+  .paint-card { max-width: none; width: 100%; }
+  .paint-shop { inset: auto 8px 8px 8px; width: auto; max-height: 52%; }
+}
