@@ -11,7 +11,6 @@ export const GRID_DIRECTION_ORDER = ["north", "south", "east", "west", "up", "do
 export const INT32_MIN = -(2 ** 31);
 export const INT32_MAX = 2 ** 31 - 1;
 
-const LEGACY_MAP_CELL = 2;
 const SEARCH_LIMIT = 96;
 
 function isRoomObject(room) {
@@ -252,35 +251,6 @@ function findIsolatedFreeCell(occupancy, origin = [0, 0, 0], limit = SEARCH_LIMI
   return findFreeCell(occupancy, origin, { isolated: true, limit });
 }
 
-function legacyMapPoint(room) {
-  const point = room?.editor?.map;
-  if (!isRoomObject(point)) return null;
-  if (typeof point.x === "boolean" || typeof point.y === "boolean") return null;
-  const x = Number(point.x);
-  const y = Number(point.y);
-  return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
-}
-
-function rankInitialPositions(rooms) {
-  const points = rooms.map(({ room }) => legacyMapPoint(room));
-  const xs = [...new Set(points.map(point => point.x))].sort((a, b) => a - b);
-  const ys = [...new Set(points.map(point => point.y))].sort((a, b) => a - b);
-  const rankX = new Map(xs.map((value, index) => [value, index]));
-  const rankY = new Map(ys.map((value, index) => [value, index]));
-  const positions = {};
-  const occupancy = new Map();
-  rooms.forEach(({ id, room }) => {
-    const point = legacyMapPoint(room);
-    let candidate = [rankX.get(point.x) * LEGACY_MAP_CELL, rankY.get(point.y) * LEGACY_MAP_CELL, 0];
-    if (occupancy.has(cellKey(candidate))) {
-      candidate = findFreeCellNear(occupancy, candidate) || candidate;
-    }
-    occupancy.set(cellKey(candidate), id);
-    positions[id] = candidate;
-  });
-  return positions;
-}
-
 function exitTargets(room, liveIds) {
   const exits = isRoomObject(room.exits) ? Object.entries(room.exits) : [];
   return exits
@@ -336,11 +306,6 @@ function graphInitialPositions(draft, rooms) {
   return Object.fromEntries(placed);
 }
 
-function deriveInitialPositions(draft, rooms) {
-  if (rooms.every(({ room }) => legacyMapPoint(room))) return rankInitialPositions(rooms);
-  return graphInitialPositions(draft, rooms);
-}
-
 export function nextFreeCell(draft, { anchorId = null } = {}) {
   const entries = gridRooms(draft);
   if (!entries.length) return null;
@@ -355,7 +320,7 @@ export function ensureGridLayout(draft) {
   if (!rooms.length) return { created: 0, positions: {} };
   const existing = gridRooms(draft);
   if (!existing.length) {
-    const positions = deriveInitialPositions(draft, rooms);
+    const positions = graphInitialPositions(draft, rooms);
     for (const { id, room } of rooms) {
       if (positions[id]) room.grid = [...positions[id]];
     }

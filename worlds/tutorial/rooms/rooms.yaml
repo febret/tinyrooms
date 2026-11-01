@@ -14,9 +14,6 @@ hub:
     environment:
     - palette
     - board_image_style
-    map:
-      x: -31
-      y: 106
   props:
     custom:6df0fc7e-febf-42bd-af42-8cc5e63b085c:
       prop: dollhouse
@@ -50,9 +47,6 @@ foyer:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 222
-      y: 103
   props:
     custom:bf14a86a-8069-4f8d-b684-f0aa3cbf1da3:
       prop: oak-panel-door
@@ -150,9 +144,6 @@ kitchen:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 494
-      y: -97
   props:
     breakfast0:
       prop: kitchen-counter
@@ -258,9 +249,6 @@ bathroom:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 496
-      y: 42
   props:
     shower0:
       prop: shower
@@ -408,9 +396,6 @@ bedroom:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 773
-      y: 141
   props:
     bed0:
       prop: bed
@@ -503,9 +488,6 @@ utility:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 769
-      y: -74
   props:
     supplies0:
       prop: supply-shelf
@@ -627,9 +609,6 @@ basement:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 1015
-      y: -37
   dark: true
   props:
     key0:
@@ -759,9 +738,6 @@ garden:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 517
-      y: 351
   props:
     custom:0ff53339-813c-4c9c-84e5-88af66283442:
       prop: locked-front-door

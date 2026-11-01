@@ -10,13 +10,11 @@ hideout:
   - '#c9a24a'
   - '#4a6b8a'
   environment: night
+  grid: [2, 2, 0]
   editor:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 0
-      y: 0
   props:
     job-board:
       prop: heist-job-board
@@ -66,13 +64,11 @@ bank-lobby:
   - '#1d2f4a'
   - '#c9a24a'
   sprites_enabled: true
+  grid: [4, 2, 0]
   editor:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 120
-      y: 0
   props:
     lobby-counter:
       prop: live-edge-slab-table
@@ -126,13 +122,11 @@ bank-offices:
   - '#33506e'
   - '#c9a24a'
   sprites_enabled: true
+  grid: [6, 2, 0]
   editor:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 240
-      y: 0
   props:
     office-desk-a:
       prop: hacker-desk
@@ -203,13 +197,11 @@ bank-security:
   - '#7de3a8'
   - '#e35d5b'
   sprites_enabled: true
+  grid: [4, 4, 0]
   editor:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 120
-      y: 120
   props:
     security-console:
       prop: heist-console
@@ -266,13 +258,11 @@ bank-vault:
   - '#c9a24a'
   - '#e8ddc4'
   sprites_enabled: true
+  grid: [6, 4, 0]
   editor:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 240
-      y: 120
   props:
     vault-door:
       prop: heist-vault
@@ -343,13 +333,11 @@ bank-alley:
   - '#8a93a6'
   - '#c9a24a'
   sprites_enabled: true
+  grid: [2, 4, 0]
   editor:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 0
-      y: 120
   props:
     getaway-door:
       prop: heist-getaway
@@ -388,13 +376,11 @@ bank-roof:
   - '#c9a24a'
   - '#7de3a8'
   sprites_enabled: true
+  grid: [6, 0, 0]
   editor:
     environment:
     - palette
     - board_image_style
-    map:
-      x: 240
-      y: -120
   props:
     roof-winch:
       prop: heist-grapple
@@ -435,13 +421,11 @@ guard-hangar:
   - '#141414'
   - '#5a5f6a'
   - '#c9a24a'
+  grid: [0, 2, 0]
   editor:
     environment:
     - palette
     - board_image_style
-    map:
-      x: -120
-      y: 0
   props:
     guard-bunks:
       prop: gym-lockers

@@ -204,20 +204,8 @@ def _check_rooms(
         elif not template and room.get("grid") is None:
             unpositioned.append(room_id)
         editor = room.get("editor")
-        if editor is not None:
-            if not isinstance(editor, dict):
-                _issue(issues, f"{base}.editor", "editor must be a mapping.")
-            else:
-                map_position = editor.get("map")
-                if map_position is not None:
-                    map_path = f"{base}.editor.map"
-                    if not isinstance(map_position, dict):
-                        _issue(issues, map_path, "editor.map must be a mapping.")
-                    else:
-                        for axis in ("x", "y"):
-                            value = map_position.get(axis)
-                            if isinstance(value, bool) or not isinstance(value, (int, float)):
-                                _issue(issues, f"{map_path}.{axis}", f"editor.map.{axis} must be a number.")
+        if editor is not None and not isinstance(editor, dict):
+            _issue(issues, f"{base}.editor", "editor must be a mapping.")
         props = room.get("props")
         raw_exits = room.get("exits")
         exit_ids = frozenset(raw_exits) if isinstance(raw_exits, dict) else frozenset()
