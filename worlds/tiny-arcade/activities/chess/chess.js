@@ -1,5 +1,6 @@
 import {
   FILES,
+  PROMOTIONS,
   activityState,
   canReset,
   capturedPieces,
@@ -11,6 +12,7 @@ import {
   pieceLabel,
   pieceSvg,
   piecesBySquare,
+  squareIsLight,
 } from "./model.js";
 
 const Tiny = window.TinyActivity;
@@ -63,7 +65,7 @@ function choosePromotion(promotion) {
 function showPromotion(source, target) {
   pendingMove = { source, target };
   promotionOptions.textContent = "";
-  for (const promotion of ["q", "r", "b", "n"]) {
+  for (const promotion of PROMOTIONS) {
     const button = document.createElement("button");
     button.type = "button";
     button.innerHTML = pieceSvg(promotion.toUpperCase(), "w");
@@ -127,14 +129,16 @@ function renderBoard(state) {
       const square = `${FILES[file]}${rank}`;
       const cell = document.createElement("button");
       cell.type = "button";
-      cell.className = `chess-cell ${((file + rank) % 2 === 0 ? "dark" : "light")}`;
+      cell.className = `chess-cell ${squareIsLight(file, rank) ? "light" : "dark"}`;
       cell.dataset.file = FILES[file];
       cell.dataset.rank = String(rank);
       const piece = pieces.get(square);
       cell.setAttribute("aria-label", squareLabel(square, piece));
+      const isTarget = targets.includes(square);
       cell.dataset.selected = String(selected === square);
-      cell.dataset.target = String(targets.includes(square));
-      cell.dataset.last = String(last && (last.from === square || last.to === square));
+      cell.dataset.target = String(isTarget);
+      cell.dataset.capture = String(Boolean(isTarget && piece));
+      cell.dataset.last = String(Boolean(last && (last.from === square || last.to === square)));
       cell.dataset.threat = String(state.hazards?.[square] === "threat");
       cell.dataset.check = String(state.hazards?.[square] === "check");
       if (file === 0) {
@@ -154,7 +158,7 @@ function renderBoard(state) {
         token.className = `chess-piece ${pieceColor(piece.code) === "w" ? "white" : "black"}`;
         token.innerHTML = pieceSvg(pieceKind(piece.code), pieceColor(piece.code));
         cell.append(token);
-      } else if (targets.includes(square)) {
+      } else if (isTarget) {
         const dot = document.createElement("span");
         dot.className = "move-dot";
         cell.append(dot);

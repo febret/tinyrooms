@@ -61,6 +61,10 @@ export function squareFile(square) {
   return typeof square === "string" ? FILES.indexOf(square[0]) : -1;
 }
 
+export function squareIsLight(file, rank) {
+  return (file + rank) % 2 === 0;
+}
+
 export function squareRank(square) {
   return typeof square === "string" ? Number(square.slice(1)) : Number.NaN;
 }
