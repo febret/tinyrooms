@@ -113,7 +113,7 @@ export function createBoardCards({ register, texture, setRecordTarget, invalidat
     const record = entry.cards.get(id);
     if (!record) return;
     invalidateScene();
-    entry.root.remove(record.group);
+    record.group.parent?.remove(record.group);
     detachBoardTree(record.group);
     // The sprite material is this card's own; the shadow mesh and the loaded
     // texture draw on shared caches and stay alive for other copies.

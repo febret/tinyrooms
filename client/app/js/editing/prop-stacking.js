@@ -17,7 +17,9 @@ import { ELEVATION_PER_UNIT } from "../board/board-helpers.js";
 export function stackMetrics(record, worldX, worldZ) {
   const bounds = record?.bounds;
   if (!bounds) return null;
-  const scale = record.group.scale.x || 1;
+  const scaleX = record.group.scale.x || 1;
+  const scaleY = record.group.scale.y || 1;
+  const scaleZ = record.group.scale.z || 1;
   const halfLocalX = (bounds.max.x - bounds.min.x) / 2;
   const halfLocalZ = (bounds.max.z - bounds.min.z) / 2;
   const centerLocalX = (bounds.max.x + bounds.min.x) / 2;
@@ -27,12 +29,12 @@ export function stackMetrics(record, worldX, worldZ) {
   const sin = Math.sin(angle);
   return {
     id: record.id,
-    x: worldX + scale * (cos * centerLocalX + sin * centerLocalZ),
-    z: worldZ + scale * (-sin * centerLocalX + cos * centerLocalZ),
-    halfX: scale * (Math.abs(cos) * halfLocalX + Math.abs(sin) * halfLocalZ),
-    halfZ: scale * (Math.abs(sin) * halfLocalX + Math.abs(cos) * halfLocalZ),
+    x: worldX + scaleX * (cos * centerLocalX) + scaleZ * (sin * centerLocalZ),
+    z: worldZ - scaleX * (sin * centerLocalX) + scaleZ * (cos * centerLocalZ),
+    halfX: Math.abs(cos) * halfLocalX * scaleX + Math.abs(sin) * halfLocalZ * scaleZ,
+    halfZ: Math.abs(sin) * halfLocalX * scaleX + Math.abs(cos) * halfLocalZ * scaleZ,
     topZ: (Number(record.prop?.position?.[2]) || 0)
-      + ((bounds.max.y - bounds.min.y) * scale) / ELEVATION_PER_UNIT,
+      + ((bounds.max.y - bounds.min.y) * scaleY) / ELEVATION_PER_UNIT,
   };
 }
 

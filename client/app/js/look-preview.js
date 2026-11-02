@@ -1,4 +1,5 @@
 import { isExitProp } from "./exit-props.js";
+import { isWallProp } from "./wall-props.js";
 import { minimapMarkup } from "./minimap.js";
 import { escapeHtml } from "./presentation.js";
 import { findContainerCard, findInventoryCard, findRoomCard } from "./state.js";
@@ -41,6 +42,12 @@ export function lookPreview(state, description) {
     if (isExitProp(prop)) {
       return {
         markup: `<button type="button" class="look-preview look-preview-button look-preview-surface" data-look-inspect="prop" data-sound="open" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><span aria-hidden="true">➔</span> ${escapeHtml(prop.label)}</button>`,
+        action: { type: "open-view", view: "prop-details", propId: prop.id },
+      };
+    }
+    if (isWallProp(prop)) {
+      return {
+        markup: `<button type="button" class="look-preview look-preview-button look-preview-surface" data-look-inspect="prop" data-sound="open" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><span aria-hidden="true">▥</span> ${escapeHtml(prop.label)}</button>`,
         action: { type: "open-view", view: "prop-details", propId: prop.id },
       };
     }

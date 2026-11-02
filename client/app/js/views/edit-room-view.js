@@ -32,6 +32,7 @@ export function editorMetaText(selected, entry) {
   const [x, y] = selected.position;
   const detail = `Position ${Math.round(x)}, ${Math.round(y)} · Rotation ${Math.round(selected.rotation[1])}°`;
   if (entry && !entry.resizable) return `${detail} · Fixed size`;
+  if (entry?.renderKind === "wall") return `${detail} · Length ×${selected.scale.toFixed(2)}`;
   return `${detail} · Scale ${selected.scale.toFixed(2)}`;
 }
 
@@ -76,6 +77,22 @@ export function exitFinishMarkup(editor, selected) {
   `;
 }
 
+/** Wall texture, moulding, and color chooser for the currently selected wall. */
+export function wallStyleMarkup(editor, selected) {
+  const entry = selected ? libraryEntry(editor, selected.propId) : null;
+  const options = editor.wallStyleOptions;
+  if (!selected || !entry || entry.renderKind !== "wall" || !options) return "";
+  const defaults = options?.defaults?.wall || {};
+  const style = { ...defaults, ...(selected.wallStyle || {}) };
+  const color = value => escapeHtml(String(value || "#ffffff").toLowerCase());
+  return `
+    ${(options.textures || []).map(texture => `<button type="button" data-edit-wall-style="texture" data-wall-value="${escapeHtml(texture.id)}" aria-pressed="${style.texture === texture.id}">${escapeHtml(texture.label)}</button>`).join("")}
+    ${(options.finishes || []).map(finish => `<button type="button" data-edit-wall-style="finish" data-wall-value="${escapeHtml(finish.id)}" aria-pressed="${style.finish === finish.id}">${escapeHtml(finish.label)}</button>`).join("")}
+    <label class="editor-color">Trim <input type="color" data-edit-wall-style="main" value="${color(style.main)}"></label>
+    <label class="editor-color">Accent <input type="color" data-edit-wall-style="accent" value="${color(style.accent)}"></label>
+  `;
+}
+
 function selectionMarkup(editor) {
   const selected = selectedInstance(editor);
   const entry = selected ? libraryEntry(editor, selected.propId) : null;
@@ -98,6 +115,7 @@ export function editorSettingsView(state) {
     <strong>${escapeHtml(editorSelectedName(editor, selectedInstance(editor)))}</strong>
     <div class="editor-sign-styles" data-editor-sign-styles role="group" aria-label="Sign finish">${signStyleMarkup(editor, selectedInstance(editor))}</div>
     <div class="editor-exit-styles" data-editor-exit-styles role="group" aria-label="Exit finish">${exitFinishMarkup(editor, selectedInstance(editor))}</div>
+    <div class="editor-wall-styles" data-editor-wall-styles role="group" aria-label="Wall finish">${wallStyleMarkup(editor, selectedInstance(editor))}</div>
     ${selectionMarkup(editor)}
     ${snapRow(editor)}
   </section>`;
@@ -150,6 +168,7 @@ export function editRoomView(state, { authoring = false } = {}) {
         <span class="editor-selected-name" data-edit-selected-name aria-live="polite">No prop selected</span>
         <div class="editor-sign-styles" data-editor-sign-styles role="group" aria-label="Sign finish">${signStyleMarkup(editor, selectedInstance(editor))}</div>
         <div class="editor-exit-styles" data-editor-exit-styles role="group" aria-label="Exit finish">${exitFinishMarkup(editor, selectedInstance(editor))}</div>
+        <div class="editor-wall-styles" data-editor-wall-styles role="group" aria-label="Wall finish">${wallStyleMarkup(editor, selectedInstance(editor))}</div>
         ${libraryTagMarkup(library)}
         <input type="search" class="editor-search" data-edit-search placeholder="Search props" aria-label="Search props">
         ${authoring ? "" : '<button type="button" class="editor-shop-button" data-edit-action="shop">🛒 Shop</button>'}

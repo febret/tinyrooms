@@ -2,11 +2,16 @@ import * as THREE from "three";
 import { createTextProp, isTextProp } from "../text-props.js";
 import { createSignProp, createWhiteboardProp, isSurfaceProp, surfaceModelKey } from "../surface-props.js";
 import { createExitProp, exitPropModelKey, isExitProp, loadExitTexture, resolveExitFinish } from "../exit-props.js";
+import { createWallProp, isWallProp, loadWallTexture, resolveWallStyle, wallPropModelKey } from "../wall-props.js";
 import { withBase } from "../base-path.js";
 
 export const FLOOR_WIDTH = 12.05;
 export const FLOOR_HEIGHT = 10.05;
 export const ELEVATION_PER_UNIT = 0.1;
+// Board percentage 0..100 spans the visible floor plane, so a prop centered on
+// 0 or 100 sits exactly on the room edge.
+export const BOARD_X_PER_PERCENT = FLOOR_WIDTH / 100;
+export const BOARD_Z_PER_PERCENT = FLOOR_HEIGHT / 100;
 
 const FLOOR_REFERENCE_PX = 768;
 const BOARD_IMAGE_AXES = new Map([
@@ -35,7 +40,7 @@ export function boardImageRepeat(style, imageWidth, imageHeight) {
 
 /** Convert authoritative [horizontal %, depth %, elevation] into board-space XYZ. */
 export function boardPosition([x = 50, y = 50, z = 0] = []) {
-  return [(x - 50) * 0.105, z * ELEVATION_PER_UNIT, (y - 50) * 0.085];
+  return [(x - 50) * BOARD_X_PER_PERCENT, z * ELEVATION_PER_UNIT, (y - 50) * BOARD_Z_PER_PERCENT];
 }
 
 /**
@@ -206,6 +211,7 @@ export function propModelKey(prop) {
     isTextProp(prop) ? [prop.text?.content, prop.text?.font_id, prop.text?.color] : null,
     isSurfaceProp(prop) ? surfaceModelKey(prop) : null,
     isExitProp(prop) ? exitPropModelKey(prop) : null,
+    isWallProp(prop) ? wallPropModelKey(prop) : null,
   ]);
 }
 
@@ -225,6 +231,12 @@ export async function loadPropModel(prop, loader) {
     const finish = resolveExitFinish(prop);
     const texture = await loadExitTexture(finish.texture);
     const scene = createExitProp(prop, texture ? { [finish.texture]: texture } : {});
+    return { scene, scenes: [scene], animations: [] };
+  }
+  if (isWallProp(prop)) {
+    const style = resolveWallStyle(prop);
+    const texture = await loadWallTexture(style.texture);
+    const scene = createWallProp(prop, texture ? { [style.texture]: texture } : {}, prop.scale);
     return { scene, scenes: [scene], animations: [] };
   }
   return loader.loadAsync(withBase(prop.modelUrl));

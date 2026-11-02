@@ -152,7 +152,7 @@ function propPanel(state) {
       <div class="field-row">
         ${field("Rot Y", numberInput(rotation[1], `data-instance-field="rot.1"`, "15"))}
         ${resizable
-          ? field("Scale", numberInput(instance.scale ?? 1, `data-instance-field="scale"`))
+          ? field(definition?.render_kind === "wall" ? "Length" : "Scale", numberInput(instance.scale ?? 1, `data-instance-field="scale"`))
           : '<p class="note">Fixed size (scales in rooms are ignored unless the prop is resizable).</p>'}
       </div>
       ${field("Animation", textInput(instance.animation || "", `data-instance-field="animation"`))}

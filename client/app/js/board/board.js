@@ -6,6 +6,8 @@ import {
   setDarkened, setGhosted, setPropLightGlow, sharedTexture, shareModelTextures, unavailableMarker,
 } from "./board-resources.js";
 import {
+  BOARD_X_PER_PERCENT,
+  BOARD_Z_PER_PERCENT,
   advanceRecords,
   boardPosition,
   detachBoardTree,
@@ -21,6 +23,7 @@ import {
 import { isTextProp } from "../text-props.js";
 import { isSurfaceProp } from "../surface-props.js";
 import { isExitProp } from "../exit-props.js";
+import { applyWallLength, isWallProp } from "../wall-props.js";
 import { createGizmo, elevationDeltaForDrag, footprintRadius, rotationDeltaForDrag } from "../editing/gizmo.js";
 import { createEditModifier } from "../editing/edit-modifier.js";
 import { snapPositionValue } from "../editing/edit-reducer.js";
@@ -77,8 +80,8 @@ const FLOOR_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -TOP);
 /** Convert a world-space point on the floor back into an authoritative [x%, y%, z] position. */
 function boardPositionFromWorld(point) {
   return [
-    Math.min(100, Math.max(0, point.x / 0.105 + 50)),
-    Math.min(100, Math.max(0, point.z / 0.085 + 50)),
+    Math.min(100, Math.max(0, point.x / BOARD_X_PER_PERCENT + 50)),
+    Math.min(100, Math.max(0, point.z / BOARD_Z_PER_PERCENT + 50)),
     0,
   ];
 }
@@ -417,13 +420,13 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function selectedPropHeight() {
     const record = current?.props.get(editSelectionId);
     if (!record?.bounds) return 0;
-    return (record.bounds.max.y - record.bounds.min.y) * (record.group.scale.x || 1);
+    return (record.bounds.max.y - record.bounds.min.y) * (record.group.scale.y || 1);
   }
 
   /** World-space footprint radius of the selected prop, used to size the drag circle. */
   function selectedPropFootprint() {
     const record = current?.props.get(editSelectionId);
-    return footprintRadius(record?.bounds, record?.group.scale.x);
+    return footprintRadius(record?.bounds, record?.group.scale.x, record?.group.scale.z);
   }
 
   /** Whether the prop currently under the gizmo is locked against transforms. */
@@ -442,8 +445,9 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
    */
   function resolveEditPosition(id, candidate) {
     if (!stackProps) return candidate;
-    const position = snapPositionValue(candidate, editSnapPosition);
     const record = current?.props.get(id);
+    if (isWallProp(record?.prop)) return candidate;
+    const position = snapPositionValue(candidate, editSnapPosition);
     const world = boardPosition(position);
     const entry = stackMetrics(record, world[0], world[2]);
     if (!entry) return position;
@@ -687,7 +691,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     const group = new THREE.Group();
     register(entry, group, "prop", prop.id, prop.position);
     group.rotation.set(...propRotationRadians(prop.rotation));
-    group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
+    if (isWallProp(prop)) applyWallLength(group, prop.scale);
+    else group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
     const record = {
       id: prop.id, group, prop, modelKey: propModelKey(prop), positionKey: positionKey(prop.position),
       model: null, clips: [], animation: prop.animation || "", animationActive: false, mixers: [], animTimers: [], scenes: [],
@@ -698,7 +703,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     entry.props.set(prop.id, record);
     const placeholder = unavailableMarker(group);
     record.placeholder = placeholder;
-    if (!isTextProp(prop) && !isSurfaceProp(prop) && !isExitProp(prop) && !prop.modelUrl) {
+    if (!isTextProp(prop) && !isSurfaceProp(prop) && !isExitProp(prop) && !isWallProp(prop) && !prop.modelUrl) {
       fail(entry, `${prop.label} model is missing`);
       return;
     }
@@ -727,7 +732,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       }
       // The server sends the combined definition + instance scale, applied by `group`;
       // here we only ground the model so its base rests on the floor.
-      if (!isTextProp(prop) && !isSurfaceProp(prop) && !isExitProp(prop)) shareModelTextures(model, prop.modelUrl);
+      if (!isTextProp(prop) && !isSurfaceProp(prop) && !isExitProp(prop) && !isWallProp(prop)) shareModelTextures(model, prop.modelUrl);
       const visual = new THREE.Group();
       visual.position.y = -bounds.min.y;
       visual.add(model);
@@ -735,6 +740,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       record.model = model;
       record.visual = visual;
       record.bounds = bounds;
+      if (isWallProp(record.prop)) applyWallLength(group, record.prop.scale);
       record.clips = gltf.animations || [];
       record.scenes = gltf.scenes || [model];
       setGhosted(record, Boolean(record.prop.ghost));
@@ -790,7 +796,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     }
     const scale = Number.isFinite(prop.scale) ? prop.scale : 1;
     if (record.group.scale.x !== scale) {
-      record.group.scale.setScalar(scale);
+      if (isWallProp(prop)) applyWallLength(record.group, scale);
+      else record.group.scale.setScalar(scale);
       moved = true;
     }
     if (moved) invalidateScene();
@@ -818,7 +825,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     if (!record) return;
     invalidateScene();
     disposePropRecord(record);
-    entry.root.remove(record.group);
+    record.group.parent?.remove(record.group);
     const index = entry.pickables.indexOf(record.group);
     if (index >= 0) entry.pickables.splice(index, 1);
     entry.props.delete(id);

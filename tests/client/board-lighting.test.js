@@ -11,13 +11,14 @@ import {
   clearBoardBackdrop,
   lightingTint,
   lightingTintKey,
+  minimapTint,
   propLightWorldPosition,
   resolveRoomLighting,
   selectAmbientSources,
   selectPropLights,
   spriteLightingForPreset,
 } from "../../client/app/js/board/board-lighting.js";
-import { daylightForPhase } from "../../mods/tinytown/boards/daylight.js";
+import { daylightForPhase, normalizeDayCycle } from "../../mods/tinytown/boards/daylight.js";
 
 test("presets cover darkness, night, dusk, day, dawn, and fluorescent with render tuning", () => {
   for (const name of ["darkness", "night", "dusk", "day", "dawn", "fluorescent"]) {
@@ -124,6 +125,20 @@ test("prop light positions project above the board", () => {
   assert.equal(x, 0);
   assert.ok(y > 1);
   assert.equal(z, 0);
+});
+
+test("minimap shading is owned by the client recipe", () => {
+  assert.deepEqual(minimapTint("night"), { color: "#33456e", level: 0.35 });
+  assert.deepEqual(minimapTint("fluorescent"), { color: "#d8c86a", level: 0.55 });
+  assert.deepEqual(minimapTint("unknown"), { color: "#ffffff", level: 1 });
+});
+
+test("the diorama clock reads the unified lighting state", () => {
+  const cycle = normalizeDayCycle({
+    lighting_preset: { time_of_day: 0.25, day_cycle_seconds: 600 },
+  });
+  assert.equal(cycle.phase, 0.25);
+  assert.equal(cycle.duration, 600);
 });
 
 test("sprite lighting follows presets and diorama daylight", () => {

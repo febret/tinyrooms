@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures.js";
 
-test("procedural sign and whiteboard render without GLTF requests", async ({ page }) => {
+test("procedural sign, whiteboard, and wall render without GLTF requests", async ({ page }) => {
   const gltfRequests = [];
   page.on("request", request => {
     if (/\.(glb|gltf)(?:\?|$)/.test(request.url())) gltfRequests.push(request.url());
@@ -53,22 +53,33 @@ test("procedural sign and whiteboard render without GLTF requests", async ({ pag
               },
             },
           },
+          {
+            id: "wall", propId: "builtin:wall", renderKind: "wall", label: "Wall",
+            position: [50, 72, 0], rotation: [0, 90, 0], scale: 1.4,
+            wallStyle: { texture: "brick", finish: "crown-base", main: "#f1eadb", accent: "#b9a889" },
+          },
         ],
       },
     };
     await window.board.render(window.state);
   });
   await expect(page.locator("canvas")).toHaveAttribute("data-board-ready", "true");
-  expect(await page.evaluate(() => window.board.diagnostics().props)).toBe(2);
+  expect(await page.evaluate(() => window.board.diagnostics().props)).toBe(3);
   expect(await page.evaluate(() => window.board.diagnostics().triangles)).toBeGreaterThan(10);
+  const beforeNodes = await page.evaluate(() => window.board.diagnostics().nodes);
   await page.evaluate(async () => {
     window.state.room.props[0].signStyle = "neon";
     window.state.room.props[0].surface = { kind: "sign", revision: 2, content: { text: "Updated" } };
     window.state.room.props[1].surface.revision = 2;
+    window.state.room.props[2].wallStyle = {
+      texture: "wallpaper", finish: "crown-base", main: "#112233", accent: "#445566",
+    };
+    window.state.room.props[2].scale = 2.1;
     await window.board.render(window.state);
   });
   await expect(page.locator("canvas")).toHaveAttribute("data-board-ready", "true");
-  expect(await page.evaluate(() => window.board.diagnostics().props)).toBe(2);
+  expect(await page.evaluate(() => window.board.diagnostics().props)).toBe(3);
+  expect(await page.evaluate(() => window.board.diagnostics().nodes)).toBe(beforeNodes);
   expect(gltfRequests).toEqual([]);
   await page.evaluate(() => window.board.dispose());
 });

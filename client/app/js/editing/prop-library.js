@@ -19,6 +19,7 @@ function thumbnailMarkup(entry, className) {
   if (entry.renderKind === "door") return `<span class="${className} exit-prop-thumbnail exit-door-thumbnail" aria-hidden="true">Door</span>`;
   if (entry.renderKind === "arrow") return `<span class="${className} exit-prop-thumbnail exit-arrow-thumbnail" aria-hidden="true">Arrow</span>`;
   if (entry.renderKind === "stairs") return `<span class="${className} exit-prop-thumbnail exit-stairs-thumbnail" aria-hidden="true">Stairs</span>`;
+  if (entry.renderKind === "wall") return `<span class="${className} wall-prop-thumbnail" aria-hidden="true">Wall</span>`;
   return `<img class="${className}" data-thumb-model="${escapeHtml(entry.modelUrl)}"
     data-thumb-scale="${escapeHtml(entry.baseScale)}" alt="" aria-hidden="true">`;
 }

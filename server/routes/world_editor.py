@@ -17,6 +17,7 @@ from server.config import ConfigError, ensure_contained
 from server.content.exit_props import exit_style_options
 from server.content.surface_props import DEFAULT_SIGN_STYLE, sign_options, whiteboard_options
 from server.content.text_props import text_options
+from server.content.wall_props import wall_style_options
 from server.content.worlds import BOARD_IMAGE_STYLES, POWER_NAMES, prop_model_url
 from server.mods import board_designs_payload
 from server.routes.common import (
@@ -128,6 +129,7 @@ def _catalog_payload(runtime) -> dict[str, object]:
         "sign_options": sign_options(),
         "whiteboard_options": whiteboard_options(),
         "exit_style_options": exit_style_options(),
+        "wall_style_options": wall_style_options(),
         "behaviors": behavior_options(world.root_path, runtime.config.repo_root),
         "board_images": _image_names(world.root_path / "rooms"),
         "peep_images": _image_names(world.root_path / "peeps"),

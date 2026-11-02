@@ -33,12 +33,14 @@ export function worldRoomEditor(state, roomId) {
     sign_options: state.catalog?.sign_options,
     whiteboard_options: state.catalog?.whiteboard_options,
     exit_style_options: state.catalog?.exit_style_options,
+    wall_style_options: state.catalog?.wall_style_options,
     props: Object.entries(room.props || {}).filter(([, prop]) => visible.has(prop.prop)).map(([id, prop]) => ({
       id, prop_id: prop.prop, position: prop.pos, rotation: prop.rot, scale: prop.scale,
       locked: Boolean(settings.locks?.[roomId]?.[id]),
       ...(prop.text ? { text: { ...prop.text } } : {}),
       ...(typeof prop.sign_style === "string" ? { sign_style: prop.sign_style } : {}),
       ...(prop.exit_style && typeof prop.exit_style === "object" ? { exit_style: { ...prop.exit_style } } : {}),
+      ...(prop.wall_style && typeof prop.wall_style === "object" ? { wall_style: { ...prop.wall_style } } : {}),
       ...(prop.surface && typeof prop.surface === "object" ? { surface: prop.surface } : {}),
     })),
     environment_whitelist: ["palette", "board_image_style"],
@@ -74,6 +76,7 @@ export function applyRoomEditorChanges(room, before, after) {
       if (prop.text) room.props[prop.id].text = { ...prop.text };
       if (prop.signStyle) room.props[prop.id].sign_style = prop.signStyle;
       if (prop.exitStyle) room.props[prop.id].exit_style = { ...prop.exitStyle };
+      if (prop.wallStyle) room.props[prop.id].wall_style = { ...prop.wallStyle };
       continue;
     }
     const target = room.props[prop.id];
@@ -91,6 +94,10 @@ export function applyRoomEditorChanges(room, before, after) {
     if (JSON.stringify(old.exitStyle) !== JSON.stringify(prop.exitStyle)) {
       if (prop.exitStyle) target.exit_style = { ...prop.exitStyle };
       else delete target.exit_style;
+    }
+    if (JSON.stringify(old.wallStyle) !== JSON.stringify(prop.wallStyle)) {
+      if (prop.wallStyle) target.wall_style = { ...prop.wallStyle };
+      else delete target.wall_style;
     }
   }
   for (const key of ["palette", "board_image_style"]) {
@@ -142,6 +149,10 @@ export function createWorldRoomEditor(store, getRoomId) {
     if (action.type === "edit-exit-style") {
       const editor = worldRoomEditor(store.state, getRoomId());
       return dispatch({ type: "editor-exit-style", id: editor?.selectedId, key: action.key, value: action.value });
+    }
+    if (action.type === "edit-wall-style") {
+      const editor = worldRoomEditor(store.state, getRoomId());
+      return dispatch({ type: "editor-wall-style", id: editor?.selectedId, key: action.key, value: action.value });
     }
     if (action.type === "edit-snap") return dispatch({ type: "editor-snap", which: action.which, value: action.value });
     if (action.type === "edit-style") return dispatch({ type: "editor-env", key: "board_image_style", value: action.value });

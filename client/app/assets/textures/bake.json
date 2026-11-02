@@ -77,6 +77,90 @@
         "steps": 30,
         "negative": "text, watermark, logo, user interface, frame, border, spacecraft, people, low detail"
       }
+    },
+    {
+      "label": "wall-texture-plaster",
+      "tool": "image",
+      "prompt": "seamless tileable warm white plaster wall texture, smooth matte hand-troweled surface with faint tool marks, flat even lighting, no shadows, no text, no watermark, no objects, full-frame pattern",
+      "output": "client/app/assets/textures/wall-plaster.png",
+      "args": {"width": 512, "height": 512, "seed": 53001, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-wallpaper",
+      "tool": "image",
+      "prompt": "seamless tileable vintage floral wallpaper texture, small red roses and soft sage leaves on a warm cream ground, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-wallpaper.png",
+      "args": {"width": 512, "height": 512, "seed": 53002, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-brick",
+      "tool": "image",
+      "prompt": "seamless tileable red brick wall texture, running bond brickwork with pale mortar joints, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-brick.png",
+      "args": {"width": 512, "height": 512, "seed": 53003, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-brick-whitewashed",
+      "tool": "image",
+      "prompt": "seamless tileable whitewashed brick wall texture, soft aged limewash over pale brick with faint mortar lines, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-brick-whitewashed.png",
+      "args": {"width": 512, "height": 512, "seed": 53004, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-stone",
+      "tool": "image",
+      "prompt": "seamless tileable rough fieldstone masonry wall texture, irregular grey and tan stones with deep mortar joints, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-stone.png",
+      "args": {"width": 512, "height": 512, "seed": 53005, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-river-rock",
+      "tool": "image",
+      "prompt": "seamless tileable river rock wall texture, smooth rounded grey and brown pebbles packed tightly together, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-river-rock.png",
+      "args": {"width": 512, "height": 512, "seed": 53006, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-concrete",
+      "tool": "image",
+      "prompt": "seamless tileable raw grey poured concrete wall texture, subtle form marks and fine speckles, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-concrete.png",
+      "args": {"width": 512, "height": 512, "seed": 53007, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-wood",
+      "tool": "image",
+      "prompt": "seamless tileable warm wooden plank wall texture, straight horizontal board seams and natural grain, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-wood.png",
+      "args": {"width": 512, "height": 512, "seed": 53008, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-bamboo",
+      "tool": "image",
+      "prompt": "seamless tileable vertical bamboo pole wall texture, tightly lashed golden green bamboo canes with visible nodes, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-bamboo.png",
+      "args": {"width": 512, "height": 512, "seed": 53009, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-subway-tile",
+      "tool": "image",
+      "prompt": "seamless tileable glossy white subway tile wall texture, offset rectangular tiles with clean white grout lines, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-subway-tile.png",
+      "args": {"width": 512, "height": 512, "seed": 53010, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-beadboard",
+      "tool": "image",
+      "prompt": "seamless tileable white vertical beadboard wall texture, narrow painted planks with fine grooves, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-beadboard.png",
+      "args": {"width": 512, "height": 512, "seed": 53011, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
+    },
+    {
+      "label": "wall-texture-bone",
+      "tool": "image",
+      "prompt": "seamless tileable pale whale bone wall texture, smooth warm ivory cartilage with subtle ridges and faint mineral veins, flat even lighting, no shadows, no text, no watermark, full-frame pattern",
+      "output": "client/app/assets/textures/wall-bone.png",
+      "args": {"width": 512, "height": 512, "seed": 53012, "steps": 30, "negative": "text, watermark, objects, people, lighting, shadows, vignette, border, frame, perspective"}
     }
   ]
 }

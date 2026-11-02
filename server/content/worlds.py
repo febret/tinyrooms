@@ -63,6 +63,7 @@ from server.content.room_grid import (
 )
 from server.content.sounds import PROP_SOUND_KEYS, parse_sound, parse_sounds
 from server.content.exit_props import load_exit_style
+from server.content.wall_props import load_wall_style
 from server.content.surface_props import (
     MAX_SIGN_PROPS,
     MAX_WHITEBOARD_PROPS,
@@ -860,6 +861,11 @@ def load_world_definition(
                 label=label or None,
                 exit_to=exit_to,
                 exit_style=load_exit_style(
+                    raw_instance,
+                    props[prop_id].render_kind,
+                    f"Room '{room_id}' prop '{prop_instance_id}'",
+                ),
+                wall_style=load_wall_style(
                     raw_instance,
                     props[prop_id].render_kind,
                     f"Room '{room_id}' prop '{prop_instance_id}'",

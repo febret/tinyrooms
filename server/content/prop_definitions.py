@@ -18,6 +18,7 @@ from server.content.prop_assets import PROP_MODEL_PLACEHOLDER_PATH
 from server.content.sounds import PROP_SOUND_KEYS, parse_sounds
 from server.content.surface_props import SIGN_PROP_ID, WHITEBOARD_PROP_ID
 from server.content.text_props import TEXT_PROP_ID, validate_text
+from server.content.wall_props import WALL_PROP_ID
 
 if TYPE_CHECKING:
     from server.content.fx import EffectDefinition
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 PROPS_CONFIG_KEY = "CONFIG"
 DEFAULT_PROP_PRICE = 5
 FREE_PROPSET_SOURCES = frozenset({"base"})
-PROP_RENDER_KINDS = frozenset({"model", "text", "sign", "whiteboard"}) | EXIT_PROP_RENDER_KINDS
+PROP_RENDER_KINDS = frozenset({"model", "text", "sign", "whiteboard", "wall"}) | EXIT_PROP_RENDER_KINDS
 # Gameplay fields owned by a prop definition. Authoring them on a room prop
 # instance is rejected so every instance of the prop behaves identically.
 MOVED_INSTANCE_PROP_FIELDS = frozenset({"activity", "behavior", "content", "cooldown", "recipes"})
@@ -136,6 +137,7 @@ class PropInstanceDefinition:
     label: str | None = None
     exit_to: str | None = None
     exit_style: dict[str, str] | None = None
+    wall_style: dict[str, str] | None = None
     read_only_surface: bool = False
 
 
@@ -205,6 +207,14 @@ def builtin_prop_definitions() -> dict[str, PropDefinition]:
             model_name=None, model_path=None, decorative=False, animation=None,
             scale=1.0, source="builtin", source_kind="builtin",
             tags=("exit", "stairs"), price=0, locked=False, render_kind="stairs", resizable=True,
+        ),
+        WALL_PROP_ID: PropDefinition(
+            id=WALL_PROP_ID, label="Wall",
+            description="A movable wall panel with a choice of textures, trim, and colors.",
+            model_name=None, model_path=None, decorative=True, animation=None,
+            scale=1.0, editor_scale_min=0.25, editor_scale_max=4.0,
+            source="builtin", source_kind="builtin",
+            tags=("wall", "building"), price=0, locked=False, render_kind="wall", resizable=True,
         ),
     }
 

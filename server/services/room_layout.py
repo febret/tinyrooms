@@ -28,6 +28,12 @@ from server.content.text_props import (
     text_options,
     validate_text,
 )
+from server.content.wall_props import (
+    WALL_RENDER_KIND,
+    default_wall_style,
+    validate_wall_style,
+    wall_style_options,
+)
 from server.content.worlds import (
     BOARD_IMAGE_STYLES,
     PropDefinition,
@@ -249,6 +255,11 @@ class RoomLayoutService:
                     if isinstance(entry.get("exit_style"), dict)
                     else (dict(source.exit_style) if source and source.exit_style else None)
                 ),
+                wall_style=(
+                    dict(entry["wall_style"])
+                    if isinstance(entry.get("wall_style"), dict)
+                    else (dict(source.wall_style) if source and source.wall_style else None)
+                ),
                 read_only_surface=source.read_only_surface if source else False,
             )
         return list(merged.values())
@@ -324,6 +335,17 @@ class RoomLayoutService:
             **({"text": dict(instance.text)} if instance.text is not None else {}),
             **({"sign_style": _read_sign_style(instance.sign_style)} if definition.render_kind == "sign" else {}),
             **({"exit_style": dict(instance.exit_style)} if instance.exit_style is not None else {}),
+            **(
+                {
+                    "wall_style": (
+                        dict(instance.wall_style)
+                        if instance.wall_style is not None
+                        else default_wall_style()
+                    )
+                }
+                if definition.render_kind == WALL_RENDER_KIND
+                else {}
+            ),
             **({"surface": surface} if surface is not None else {}),
             "label": instance.label or definition.label,
             "description": instance.description if instance.description is not None else definition.description,
@@ -411,6 +433,7 @@ class RoomLayoutService:
                 **({"text": dict(instance.text)} if instance.text is not None else {}),
                 **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
                 **({"exit_style": dict(instance.exit_style)} if instance.exit_style is not None else {}),
+                **({"wall_style": dict(instance.wall_style)} if instance.wall_style is not None else {}),
             }
             for instance in self.effective_props(room.id)
         ]
@@ -426,6 +449,8 @@ class RoomLayoutService:
                 entry["render_kind"] = definition.render_kind
                 if definition.render_kind == "sign":
                     entry["sign_style"] = _read_sign_style(entry.get("sign_style"))
+                if definition.render_kind == WALL_RENDER_KIND:
+                    entry["wall_style"] = dict(entry.get("wall_style") or default_wall_style())
                 entry.update(self._effect_payload(room.id, str(entry["id"]), definition))
                 kind = surface_kind(definition.render_kind)
                 if kind is not None and self._surfaces is not None:
@@ -458,6 +483,7 @@ class RoomLayoutService:
             "sign_options": sign_options(),
             "whiteboard_options": whiteboard_options(),
             "exit_style_options": exit_style_options(),
+            "wall_style_options": wall_style_options(),
         }
 
     def save(
@@ -584,6 +610,8 @@ class RoomLayoutService:
                     "scale": instance_scale_for(definition, instance.scale),
                     "locked": False,
                     **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
+                    **({"exit_style": dict(instance.exit_style)} if instance.exit_style is not None else {}),
+                    **({"wall_style": dict(instance.wall_style)} if instance.wall_style is not None else {}),
                 }
         for entry in live:
             if not isinstance(entry, dict):
@@ -651,6 +679,17 @@ class RoomLayoutService:
                         raise ValueError(f"Layout prop '{instance_id}' exit_style: {exc}") from exc
             elif "exit_style" in entry:
                 raise ValueError("Only door, arrow, and stairs props may have an exit_style.")
+            wall_style = None
+            if definition is not None and definition.render_kind == WALL_RENDER_KIND:
+                if entry.get("wall_style") is not None:
+                    try:
+                        wall_style = validate_wall_style(entry.get("wall_style"))
+                    except ValueError as exc:
+                        raise ValueError(f"Layout prop '{instance_id}' wall_style: {exc}") from exc
+                else:
+                    wall_style = default_wall_style()
+            elif "wall_style" in entry:
+                raise ValueError("Only wall props may have a wall_style.")
             props.append(
                 {
                     "id": instance_id,
@@ -662,6 +701,7 @@ class RoomLayoutService:
                     **({"text": text} if text is not None else {}),
                     **({"sign_style": sign_style} if sign_style is not None else {}),
                     **({"exit_style": exit_style} if exit_style is not None else {}),
+                    **({"wall_style": wall_style} if wall_style is not None else {}),
                 }
             )
         for instance_id, entry in hidden_existing.items():

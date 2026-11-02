@@ -172,6 +172,7 @@ export function normalizeProp(prop) {
     ...(prop?.text ? { text: { ...prop.text } } : {}),
     ...(typeof prop?.sign_style === "string" ? { signStyle: prop.sign_style } : {}),
     ...(prop?.exit_style && typeof prop.exit_style === "object" ? { exitStyle: { ...prop.exit_style } } : {}),
+    ...(prop?.wall_style && typeof prop.wall_style === "object" ? { wallStyle: { ...prop.wall_style } } : {}),
     ...(prop?.surface && typeof prop.surface === "object" ? { surface: normalizeSurface(prop.surface) } : {}),
     animation: typeof prop?.animation === "string" ? prop.animation : "",
     state: typeof prop?.active_state === "string"

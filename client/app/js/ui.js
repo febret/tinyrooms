@@ -628,6 +628,11 @@ async function handleAction(action, { silentSound = false } = {}) {
     if (editor?.selectedId) {
       store.dispatch({ type: "editor-exit-style", id: editor.selectedId, key: action.key, value: action.value });
     }
+  } else if (action.type === "edit-wall-style") {
+    const editor = store.getState().editor;
+    if (editor?.selectedId) {
+      store.dispatch({ type: "editor-wall-style", id: editor.selectedId, key: action.key, value: action.value });
+    }
   } else if (action.type === "edit-action") {
     await applyEditorAction(action);
   } else if (action.type === "open-prop-editor") {

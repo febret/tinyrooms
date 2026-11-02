@@ -21,6 +21,7 @@ from server.content.prop_definitions import PROP_RENDER_KINDS
 from server.content.room_grid import parse_room_grid
 from server.content.surface_props import validate_sign_style
 from server.content.text_props import validate_text
+from server.content.wall_props import WALL_PROP_ID, WALL_RENDER_KIND, validate_wall_style
 from server.content.worlds import EXIT_TRANSITION_TYPES, PROPS_CONFIG_KEY
 
 
@@ -135,6 +136,7 @@ def _prop_render_kinds(draft_props: Any) -> dict[str, str]:
         DOOR_PROP_ID: "door",
         ARROW_PROP_ID: "arrow",
         STAIRS_PROP_ID: "stairs",
+        WALL_PROP_ID: WALL_RENDER_KIND,
     }
     if isinstance(draft_props, dict):
         for prop_id, prop in draft_props.items():
@@ -259,6 +261,15 @@ def _check_rooms(
                             _issue(issues, f"{instance_path}.sign_style", str(exc))
                     elif "sign_style" in instance:
                         _issue(issues, f"{instance_path}.sign_style", "Only sign props may have a sign_style.")
+                    wall_style = instance.get("wall_style")
+                    if wall_style is not None:
+                        if render_kind != WALL_RENDER_KIND:
+                            _issue(issues, f"{instance_path}.wall_style", "Only wall props may have a wall_style.")
+                        else:
+                            try:
+                                validate_wall_style(wall_style)
+                            except ValueError as exc:
+                                _issue(issues, f"{instance_path}.wall_style", str(exc))
                 single_use_counts: dict[str, int] = {}
                 for instance in props.values():
                     if not isinstance(instance, dict):

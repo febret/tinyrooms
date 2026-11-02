@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
 from server.content.exit_props import EXIT_STYLES_BY_KIND, default_exit_finish
+from server.content.wall_props import WALL_RENDER_KIND, default_wall_style
 from server.content.room_grid import direction_between
 from server.content.sounds import sounds_payload
 from server.content.surface_props import DEFAULT_SIGN_STYLE, validate_sign_style
@@ -988,6 +989,17 @@ class RoomService:
                     )
                 }
                 if prop_definition.render_kind in EXIT_STYLES_BY_KIND
+                else {}
+            ),
+            **(
+                {
+                    "wall_style": (
+                        dict(prop.wall_style)
+                        if prop.wall_style is not None
+                        else default_wall_style()
+                    )
+                }
+                if prop_definition.render_kind == WALL_RENDER_KIND
                 else {}
             ),
             "label": "Something in the dark" if dark else (prop.label or prop_definition.label),

@@ -205,28 +205,30 @@ kitchen:
       - 0
       scale: 0.708928928049511
     custom:0c461757-c53d-456c-856f-b3a33c7b24d6:
-      prop: stucco-wall
+      prop: builtin:wall
+      wall_style: {texture: plaster, finish: none, main: '#f1eadb', accent: '#b9a889'}
       pos:
       - 0
       - 90
       - 0
       rot:
       - 0
-      - 359.74
+      - 90
       - 0
-      scale: 0.894044257500358
+      scale: 0.662
       exit_to: foyer
     custom:8d0d8a48-da16-4ace-8d4f-705852d7be0f:
-      prop: stucco-wall
+      prop: builtin:wall
+      wall_style: {texture: plaster, finish: none, main: '#f1eadb', accent: '#b9a889'}
       pos:
       - 100
       - 90
       - 0
       rot:
       - 0
-      - 359.74000000000024
+      - 270
       - 0
-      scale: 0.8728426324887194
+      scale: 0.662
       exit_to: utility
   cards:
   - card: tasty-toast
@@ -657,7 +659,8 @@ basement:
       - 2.4400000000004525
       - 0
     custom:b6a14d3f-954e-40b5-9758-265ef4c21f80:
-      prop: exposed-stone-wall
+      prop: builtin:wall
+      wall_style: {texture: stone, finish: none, main: '#f1eadb', accent: '#b9a889'}
       pos:
       - 20
       - 0
@@ -666,9 +669,10 @@ basement:
       - 0
       - 0
       - 0
-      scale: 1.9738777322304517
+      scale: 0.996
     custom:f68a4dcc-248b-4e61-92c1-9ade94625b9f:
-      prop: exposed-stone-wall
+      prop: builtin:wall
+      wall_style: {texture: stone, finish: none, main: '#f1eadb', accent: '#b9a889'}
       pos:
       - 80
       - 0
@@ -677,7 +681,7 @@ basement:
       - 0
       - 0
       - 0
-      scale: 1.9738777322304508
+      scale: 0.996
     custom:39290190-a99e-4bf5-ad69-6047263cbf99:
       prop: oak-stairwell-landing
       pos:
@@ -881,7 +885,8 @@ garden:
       - 0
       scale: 1.1924380586506707
     custom:ea32a20a-19c3-4c1e-9cf1-517d5a8a199b:
-      prop: red-brick-wall
+      prop: builtin:wall
+      wall_style: {texture: brick, finish: none, main: '#f1eadb', accent: '#b9a889'}
       pos:
       - 15
       - 0
@@ -890,9 +895,10 @@ garden:
       - 0
       - 0
       - 0
-      scale: 1.4333294145603421
+      scale: 0.997
     custom:8a39831f-40f4-4ee4-9b94-16c8b3d83136:
-      prop: red-brick-wall
+      prop: builtin:wall
+      wall_style: {texture: brick, finish: none, main: '#f1eadb', accent: '#b9a889'}
       pos:
       - 95
       - 0
@@ -901,7 +907,7 @@ garden:
       - 0
       - 0
       - 0
-      scale: 1.4333294145603432
+      scale: 0.997
   cards: []
   exits:
     foyer:

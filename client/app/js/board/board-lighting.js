@@ -1,3 +1,5 @@
+import { BOARD_X_PER_PERCENT, BOARD_Z_PER_PERCENT } from "./board-helpers.js";
+
 export const MAX_PROP_LIGHTS = 6;
 export const PROP_LIGHT_DISTANCE = 8;
 
@@ -250,5 +252,5 @@ export function selectPropLights(props, presetName, limit = MAX_PROP_LIGHTS) {
 
 export function propLightWorldPosition(position) {
   const [x = 50, y = 50, z = 0] = Array.isArray(position) ? position : [];
-  return [(x - 50) * 0.105, z * 0.1 + 1.2, (y - 50) * 0.085];
+  return [(x - 50) * BOARD_X_PER_PERCENT, z * 0.1 + 1.2, (y - 50) * BOARD_Z_PER_PERCENT];
 }

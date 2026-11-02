@@ -1,4 +1,6 @@
 import { isExitProp, resolveExitFinish } from "../exit-props.js";
+import { isWallProp, resolveWallStyle } from "../wall-props.js";
+import { snapWallPlacement } from "./wall-placement.js";
 
 const UNDO_LIMIT = 50;
 export const POSITION_SNAP = 5;
@@ -31,6 +33,8 @@ function normalizeInstance(entry) {
     ...(typeof entry?.sign_style === "string" ? { signStyle: entry.sign_style } : {}),
     ...(entry?.exit_style && typeof entry.exit_style === "object" ? { exitStyle: { ...entry.exit_style } } : {}),
     ...(entry?.exitStyle && typeof entry.exitStyle === "object" ? { exitStyle: { ...entry.exitStyle } } : {}),
+    ...(entry?.wall_style && typeof entry.wall_style === "object" ? { wallStyle: { ...entry.wall_style } } : {}),
+    ...(entry?.wallStyle && typeof entry.wallStyle === "object" ? { wallStyle: { ...entry.wallStyle } } : {}),
     ...(entry?.surface && typeof entry.surface === "object" ? { surface: { ...entry.surface } } : {}),
     state: typeof entry?.state === "string" ? entry.state : "",
     states: entry?.states && typeof entry.states === "object" ? { ...entry.states } : {},
@@ -85,6 +89,7 @@ export function normalizeEditorView(view) {
     signOptions: view?.sign_options || null,
     whiteboardOptions: view?.whiteboard_options || null,
     exitStyleOptions: view?.exit_style_options || null,
+    wallStyleOptions: view?.wall_style_options || null,
     environmentWhitelist: Array.isArray(view?.environment_whitelist) ? [...view.environment_whitelist] : [],
     environment,
     savedEnvironment: { ...environment },
@@ -117,6 +122,7 @@ export function editorPatch(editor) {
       ...(instance.text ? { text: { ...instance.text } } : {}),
       ...(instance.signStyle ? { sign_style: instance.signStyle } : {}),
       ...(instance.exitStyle ? { exit_style: { ...instance.exitStyle } } : {}),
+      ...(instance.wallStyle ? { wall_style: { ...instance.wallStyle } } : {}),
     })),
     environment: editor.environment,
   };
@@ -128,6 +134,15 @@ export function editablePropIds(editor) {
 
 export function libraryEntry(editor, propId) {
   return (editor?.library || []).find(entry => entry.propId === propId) || null;
+}
+
+function placeInstance(editor, instance, position) {
+  const snapped = snapPosition(editor, position);
+  if (!isWallProp(libraryEntry(editor, instance.propId))) {
+    return { ...instance, position: snapped };
+  }
+  const placement = snapWallPlacement(snapped, instance.rotation, editor.snapPosition);
+  return { ...instance, position: placement.position, rotation: placement.rotation };
 }
 
 export function defaultSurfaceFor(entry) {
@@ -180,6 +195,7 @@ export function editorBoardProps(editor) {
       ...(instance.text ? { text: { ...instance.text } } : {}),
       ...(instance.signStyle ? { signStyle: instance.signStyle } : (entry?.renderKind === "sign" ? { signStyle: entry.defaultSignStyle || "wood" } : {})),
       ...(instance.exitStyle ? { exitStyle: { ...instance.exitStyle } } : {}),
+      ...(instance.wallStyle ? { wallStyle: { ...instance.wallStyle } } : {}),
       ...(surface ? { surface } : {}),
       label: entry?.label || "Prop",
       description: entry?.description || "",
@@ -274,12 +290,14 @@ export function editorReducer(state, action) {
         ...(action.text ? { text: { ...action.text } } : {}),
         ...(entry.renderKind === "sign" ? { signStyle: action.signStyle || entry.defaultSignStyle || "wood" } : {}),
         ...(isExitProp(entry) ? { exitStyle: resolveExitFinish({ renderKind: entry.renderKind }) } : {}),
+        ...(isWallProp(entry) ? { wallStyle: resolveWallStyle({ wallStyle: editor.wallStyleOptions?.defaults?.wall }) } : {}),
         ...(defaultSurfaceFor(entry) ? { surface: defaultSurfaceFor(entry) } : {}),
       };
+      const placed = placeInstance(editor, instance, instance.position);
       const next = pushUndo(editor);
-      const props = [...next.props, instance];
+      const props = [...next.props, placed];
       const withNew = withProps(next, props);
-      return { ...state, editor: { ...withNew, selectedId: instance.id } };
+      return { ...state, editor: { ...withNew, selectedId: placed.id } };
     }
     case "editor-text": {
       if (!editor?.canEdit) return state;
@@ -305,6 +323,17 @@ export function editorReducer(state, action) {
       if (JSON.stringify(instance.exitStyle) === JSON.stringify(next)) return state;
       return { ...state, editor: updateInstance(pushUndo(editor), action.id, current => ({ ...current, exitStyle: next })) };
     }
+    case "editor-wall-style": {
+      if (!editor?.canEdit || !action.id || !["texture", "finish", "main", "accent"].includes(action.key)) return state;
+      const instance = editor.props.find(entry => entry.id === action.id);
+      if (!instance || instance.locked) return state;
+      const entry = libraryEntry(editor, instance.propId);
+      if (!entry || !isWallProp(entry)) return state;
+      const defaults = resolveWallStyle({ wallStyle: editor.wallStyleOptions?.defaults?.wall });
+      const next = { ...defaults, ...(instance.wallStyle || {}), [action.key]: action.value };
+      if (JSON.stringify(instance.wallStyle) === JSON.stringify(next)) return state;
+      return { ...state, editor: updateInstance(pushUndo(editor), action.id, current => ({ ...current, wallStyle: next })) };
+    }
     case "editor-remove": {
       if (!editor) return state;
       const next = pushUndo(editor);
@@ -318,7 +347,7 @@ export function editorReducer(state, action) {
       const props = editor.props.map(instance => {
         if (instance.id !== action.id) return instance;
         if (instance.locked) return instance;
-        if (action.position) return { ...instance, position: snapPosition(editor, action.position) };
+        if (action.position) return placeInstance(editor, instance, action.position);
         if (action.rotation) return { ...instance, rotation: snapRotation(editor, action.rotation) };
         if (typeof action.scale === "number") {
           const entry = libraryEntry(editor, instance.propId);
@@ -339,7 +368,7 @@ export function editorReducer(state, action) {
         instance.position[2],
       ];
       const next = pushUndo(editor);
-      return { ...state, editor: updateInstance(next, instance.id, current => ({ ...current, position: snapPosition(next, position) })) };
+      return { ...state, editor: updateInstance(next, instance.id, current => placeInstance(next, current, position)) };
     }
     case "editor-rotate": {
       if (!editor) return state;

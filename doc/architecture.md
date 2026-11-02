@@ -79,8 +79,12 @@ Prop schema and file-wide scale settings are defined by
 definition so every placed instance behaves identically; instances only carry
 placement, custom quick actions, and optional label/description overrides.
 Authored props may declare `render_kind` (`model`, `text`, `sign`,
-`whiteboard`) to reuse the procedural surface renderers, and `one_per_room` to
-cap placement at a single instance per room. Props declare `resizable`
+`whiteboard`, `door`, `arrow`, `stairs`, `wall`) to reuse the procedural
+surface renderers, and `one_per_room` to cap placement at a single instance per
+room. The built-in wall renders as a rectangular panel with selectable textures,
+moulding/trim finishes, and custom trim colors; its instance `scale` changes the
+wall's length only, and the room editor snaps it onto nearby room edges.
+Props declare `resizable`
 (default `false`); room edit mode only scales resizable props, and any
 room-instance `scale` on a non-resizable prop is ignored in favor of the
 definition's authored scale. Room owners may place

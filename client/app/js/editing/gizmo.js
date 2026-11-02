@@ -31,12 +31,12 @@ export function circleLocalRadius(footprintWorld, factor) {
   return Math.max(CIRCLE_MIN_RADIUS, Math.max(Number(footprintWorld) || 0, 0) / clamped) + CIRCLE_MARGIN;
 }
 
-/** World-space footprint radius from a model's local bounds and applied scale. */
-export function footprintRadius(bounds, scale) {
+/** World-space footprint radius from a model's local bounds and applied axis scales. */
+export function footprintRadius(bounds, scaleX, scaleZ = scaleX) {
   if (!bounds) return 0;
   const halfX = (bounds.max.x - bounds.min.x) / 2;
   const halfZ = (bounds.max.z - bounds.min.z) / 2;
-  return Math.max(halfX, halfZ) * (Number(scale) || 1);
+  return Math.max(halfX * (Number(scaleX) || 1), halfZ * (Number(scaleZ) || 1));
 }
 
 function handleMesh(mesh, mode) {
