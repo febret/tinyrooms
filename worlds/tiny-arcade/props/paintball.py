@@ -13,6 +13,7 @@ import random
 from typing import Any
 
 from server.behaviors.events import PeepRef
+from server.content.cards import FOOD_TAGS
 from server.game.activity_arena import (
     hits_obstacle,
     move_body,
@@ -21,15 +22,15 @@ from server.game.activity_arena import (
 
 
 STATE_KEY = "paintball"
-STATE_VERSION = 4
+STATE_VERSION = 6
 INPUT_TIMEOUT_SECONDS = 0.7
 
 DEFAULT_ROUND_SECONDS = 120
 DEFAULT_INTERMISSION_SECONDS = 30
 DEFAULT_REWARDS = (10, 5, 1)
 DEFAULT_QUALITY = 1
-DEFAULT_ARENA_WIDTH = 100.0
-DEFAULT_ARENA_HEIGHT = 100.0
+DEFAULT_ARENA_WIDTH = 140.0
+DEFAULT_ARENA_HEIGHT = 140.0
 DEFAULT_PLAYER_RADIUS = 1.8
 DEFAULT_PLAYER_SPEED = 24.0
 DEFAULT_BOT_SPEED = 16.0
@@ -38,29 +39,18 @@ DEFAULT_PROJECTILE_LIFETIME = 1.1
 DEFAULT_PROJECTILE_RADIUS = 1.1
 DEFAULT_PROJECTILE_BOOST = 1.5
 DEFAULT_PROJECTILE_DRAG = 0.9
-DEFAULT_MOVE_ACCEL = 160.0
-DEFAULT_MOVE_FRICTION = 220.0
+DEFAULT_MOVE_ACCEL = 110.0
+DEFAULT_MOVE_FRICTION = 140.0
 DEFAULT_FIRE_COOLDOWN = 0.45
 DEFAULT_OBSTACLE_COUNT = (3, 5)
 DEFAULT_SHOT_SPREAD = {1: 0.095, 2: 0.060, 3: 0.030}
 DEFAULT_BOT_WAYPOINT_SECONDS = (2.0, 5.0)
-DEFAULT_AMMO = (
-    {"card": "paintball-cherry", "color": "#ff4d6d"},
-    {"card": "paintball-berry", "color": "#4ea8ff"},
-    {"card": "paintball-lime", "color": "#5cf29a"},
-    {"card": "paintball-lemon", "color": "#ffe066"},
-    {"card": "paintball-grape", "color": "#c77dff"},
-)
-DEFAULT_VENDING = (
-    {"card": "paintball-blaster-splash", "quantity": 1, "bops": 1},
-    {"card": "paintball-blaster-neon", "quantity": 1, "bops": 8},
-    {"card": "paintball-blaster-prism", "quantity": 1, "bops": 20},
-    {"card": "paintball-cherry", "quantity": 10, "bops": 1},
-    {"card": "paintball-berry", "quantity": 10, "bops": 1},
-    {"card": "paintball-lime", "quantity": 10, "bops": 1},
-    {"card": "paintball-lemon", "quantity": 10, "bops": 1},
-    {"card": "paintball-grape", "quantity": 10, "bops": 1},
-)
+DEFAULT_GUN_QUALITY = 1
+DEFAULT_SHOT_ENERGY_COST = 2.0
+DEFAULT_IMMUNITY_SECONDS = 5.0
+PAINT_COLORS = ("#ff4d6d", "#4ea8ff", "#5cf29a", "#ffe066", "#c77dff")
+DEFAULT_FIELD_TEXTURES = ("neon", "jungle", "desert", "urban")
+DEFAULT_OBSTACLE_TEXTURES = ("barrel", "bunker", "spool", "rock")
 DEFAULT_BOT_IDS = (
     "paintbot-pip",
     "paintbot-bolt",
@@ -72,25 +62,41 @@ DEFAULT_BOT_QUALITY = 2
 DEFAULT_BOT_SHOT_SECONDS = (5.5, 9.5)
 MAX_PROJECTILES = 48
 MAX_SPLATS = 80
+MAX_HIT_EVENTS = 8
+HIT_EVENT_TTL_SECONDS = 2.0
 PAINT_DECAL_ID = "paint"
 PAINT_DECAL_KIND = "paint"
-CUTSCENE_ID = "paintball-podium"
 USER = "user"
 BOT = "bot"
-SPAWN_SLOTS = (
-    (10.0, 10.0),
-    (90.0, 10.0),
-    (10.0, 90.0),
-    (90.0, 90.0),
-    (50.0, 8.0),
-    (50.0, 92.0),
-    (8.0, 50.0),
-    (92.0, 50.0),
-    (28.0, 28.0),
-    (72.0, 28.0),
-    (28.0, 72.0),
-    (72.0, 72.0),
+SPAWN_FRACTIONS = (
+    (0.10, 0.10),
+    (0.90, 0.10),
+    (0.10, 0.90),
+    (0.90, 0.90),
+    (0.50, 0.08),
+    (0.50, 0.92),
+    (0.08, 0.50),
+    (0.92, 0.50),
+    (0.28, 0.28),
+    (0.72, 0.28),
+    (0.28, 0.72),
+    (0.72, 0.72),
 )
+
+
+def _state_arena(state: dict[str, Any]) -> tuple[float, float]:
+    arena = state.get("arena") if isinstance(state.get("arena"), dict) else {}
+    try:
+        width = float(arena.get("width", DEFAULT_ARENA_WIDTH))
+        height = float(arena.get("height", DEFAULT_ARENA_HEIGHT))
+    except (TypeError, ValueError):
+        return DEFAULT_ARENA_WIDTH, DEFAULT_ARENA_HEIGHT
+    return max(20.0, width), max(20.0, height)
+
+
+def _spawn_slots(arena: tuple[float, float]) -> list[tuple[float, float]]:
+    width, height = arena
+    return [(fraction_x * width, fraction_y * height) for fraction_x, fraction_y in SPAWN_FRACTIONS]
 
 
 def _activity(context) -> dict[str, Any]:
@@ -146,40 +152,34 @@ def _rewards(config: dict[str, Any]) -> tuple[int, ...]:
     return values or DEFAULT_REWARDS
 
 
-def _ammo(config: dict[str, Any]) -> tuple[dict[str, str], ...]:
-    raw = config.get("ammo")
+def _field_textures(config: dict[str, Any]) -> tuple[str, ...]:
+    raw = config.get("field_textures")
     if not isinstance(raw, list):
-        return DEFAULT_AMMO
-    entries = []
-    for entry in raw:
-        if not isinstance(entry, dict):
-            continue
-        card = str(entry.get("card", "")).strip()
-        color = str(entry.get("color", "")).strip()
-        if card and color:
-            entries.append({"card": card, "color": color})
-    return tuple(entries) or DEFAULT_AMMO
+        return DEFAULT_FIELD_TEXTURES
+    fields = tuple(str(value).strip() for value in raw if str(value).strip())
+    return fields or DEFAULT_FIELD_TEXTURES
 
 
-def _vending(config: dict[str, Any]) -> tuple[dict[str, object], ...]:
-    raw = config.get("vending")
+def _obstacle_textures(config: dict[str, Any]) -> tuple[str, ...]:
+    raw = config.get("obstacle_textures")
     if not isinstance(raw, list):
-        return DEFAULT_VENDING
-    entries = []
-    for entry in raw:
-        if not isinstance(entry, dict):
-            continue
-        card = str(entry.get("card", "")).strip()
-        if not card:
-            continue
-        entries.append(
-            {
-                "card": card,
-                "quantity": max(1, int(entry.get("quantity", 1) or 1)),
-                "bops": max(0, int(entry.get("bops", 0) or 0)),
-            }
-        )
-    return tuple(entries) or DEFAULT_VENDING
+        return DEFAULT_OBSTACLE_TEXTURES
+    sprites = tuple(str(value).strip() for value in raw if str(value).strip())
+    return sprites or DEFAULT_OBSTACLE_TEXTURES
+
+
+def _shot_energy_cost(config: dict[str, Any]) -> float:
+    try:
+        return max(0.0, float(config.get("shot_energy_cost", DEFAULT_SHOT_ENERGY_COST)))
+    except (TypeError, ValueError):
+        return DEFAULT_SHOT_ENERGY_COST
+
+
+def _immunity_seconds(config: dict[str, Any]) -> float:
+    try:
+        return max(0.0, float(config.get("immunity_seconds", DEFAULT_IMMUNITY_SECONDS)))
+    except (TypeError, ValueError):
+        return DEFAULT_IMMUNITY_SECONDS
 
 
 def _bot_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -243,6 +243,7 @@ def _generate_obstacles(seed: int, config: dict[str, Any], arena: tuple[float, f
     width, height = arena
     low, high = _obstacle_count(config)
     count = rng.randint(low, high) if high >= low else low
+    sprites = _obstacle_textures(config)
     obstacles: list[dict[str, Any]] = []
     spawn_clearance = DEFAULT_PLAYER_RADIUS + 3.0
     for index in range(count):
@@ -252,7 +253,7 @@ def _generate_obstacles(seed: int, config: dict[str, Any], arena: tuple[float, f
             y = rng.uniform(6.0 + radius, max(7.0 + radius, height - 6.0 - radius))
             if any(
                 math.hypot(x - slot_x, y - slot_y) <= spawn_clearance + radius
-                for slot_x, slot_y in SPAWN_SLOTS
+                for slot_x, slot_y in _spawn_slots(arena)
             ):
                 continue
             if any(math.hypot(x - other["x"], y - other["y"]) < 14.0 for other in obstacles):
@@ -260,7 +261,14 @@ def _generate_obstacles(seed: int, config: dict[str, Any], arena: tuple[float, f
             if hits_obstacle(x, y, 1.0, obstacles):
                 continue
             obstacles.append(
-                {"id": f"obstacle-{index}", "kind": "circle", "x": round(x, 2), "y": round(y, 2), "r": round(radius, 2)}
+                {
+                    "id": f"obstacle-{index}",
+                    "kind": "circle",
+                    "x": round(x, 2),
+                    "y": round(y, 2),
+                    "r": round(radius, 2),
+                    "sprite": rng.choice(sprites),
+                }
             )
             break
     return obstacles
@@ -279,12 +287,14 @@ def _new_state(context) -> dict[str, Any]:
         "round_started_at": "",
         "arena": {"width": width, "height": height},
         "arena_seed": 0,
+        "field": "",
         "obstacles": [],
         "participants": {},
         "projectiles": [],
         "projectile_seq": 0,
         "scores": {},
         "splats": [],
+        "hits": [],
         "last_round": None,
         "records": {"games": 0, "best_hits": 0, "best_name": ""},
         "last_sim_at": now.isoformat(),
@@ -302,6 +312,8 @@ def _load_state(context) -> dict[str, Any] | None:
     raw.setdefault("participants", {})
     raw.setdefault("projectiles", [])
     raw.setdefault("obstacles", [])
+    raw.setdefault("field", "")
+    raw.setdefault("hits", [])
     raw.setdefault("last_sim_at", context.now.isoformat())
     return raw
 
@@ -330,6 +342,7 @@ def _now_ms(now: datetime) -> int:
 
 def _ranking(state: dict[str, Any]) -> list[dict[str, Any]]:
     scores = state.get("scores") if isinstance(state.get("scores"), dict) else {}
+    participants = state.get("participants") if isinstance(state.get("participants"), dict) else {}
     rows: list[dict[str, Any]] = []
     for account_id, entry in scores.items():
         if not isinstance(entry, dict):
@@ -337,6 +350,12 @@ def _ranking(state: dict[str, Any]) -> list[dict[str, Any]]:
         hits = max(0, int(entry.get("hits", 0) or 0))
         if hits <= 0:
             continue
+        participant = participants.get(str(account_id))
+        color = entry.get("color")
+        sprite = entry.get("sprite")
+        if isinstance(participant, dict):
+            color = participant.get("color", color)
+            sprite = participant.get("sprite", sprite)
         shots = max(1, int(entry.get("shots", 0) or 0))
         rows.append(
             {
@@ -346,6 +365,8 @@ def _ranking(state: dict[str, Any]) -> list[dict[str, Any]]:
                 "shots": shots,
                 "accuracy": round(hits / shots, 3),
                 "bot": bool(entry.get("bot")),
+                "color": str(color or "#ff4d6d"),
+                "sprite": str(sprite or ""),
             }
         )
     rows.sort(key=lambda row: (-row["hits"], -row["accuracy"], str(row["name"]).casefold()))
@@ -407,6 +428,8 @@ def _public_participants(state: dict[str, Any]) -> list[dict[str, Any]]:
                 "color": str(participant.get("color", "#ff4d6d")),
                 "sprite": str(participant.get("sprite", "") or ""),
                 "flash_until": participant.get("flash_until"),
+                "immune_until": participant.get("immune_until"),
+                "respawn": int(participant.get("respawn", 0) or 0),
             }
         )
     rows.sort(key=lambda row: (row["kind"] != USER, str(row["name"]).casefold()))
@@ -453,6 +476,28 @@ def _public_splats(state: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
+def _public_hits(state: dict[str, Any]) -> list[dict[str, Any]]:
+    hits = state.get("hits") if isinstance(state.get("hits"), list) else []
+    rows = []
+    for hit in hits[-MAX_HIT_EVENTS:]:
+        if not isinstance(hit, dict):
+            continue
+        rows.append(
+            {
+                "id": str(hit.get("id", "")),
+                "victim": str(hit.get("victim", "")),
+                "name": str(hit.get("name", "") or "Peep"),
+                "kind": BOT if hit.get("kind") == BOT else USER,
+                "x": round(float(hit.get("x", 0.0)), 3),
+                "y": round(float(hit.get("y", 0.0)), 3),
+                "color": str(hit.get("color", "#ff4d6d")),
+                "sprite": str(hit.get("sprite", "") or ""),
+                "t": hit.get("t"),
+            }
+        )
+    return rows
+
+
 def _public(state: dict[str, Any], now: datetime, config: dict[str, Any] | None = None, *, seq: int = 0, t: int = 0) -> dict[str, Any]:
     participants = _public_participants(state)
     shop_config = config if isinstance(config, dict) else {}
@@ -477,22 +522,22 @@ def _public(state: dict[str, Any], now: datetime, config: dict[str, Any] | None 
             "move_accel": _config_float(shop_config, "move_accel", DEFAULT_MOVE_ACCEL),
             "move_friction": _config_float(shop_config, "move_friction", DEFAULT_MOVE_FRICTION),
             "fire_cooldown": _config_float(shop_config, "fire_cooldown", DEFAULT_FIRE_COOLDOWN),
+            "shot_energy_cost": _shot_energy_cost(shop_config),
+            "immunity_seconds": _immunity_seconds(shop_config),
         },
+        "field": str(state.get("field", "") or ""),
         "obstacles": list(state.get("obstacles", [])),
         "participants": participants,
         "projectiles": _public_projectiles(state),
         "scoreboard": _ranking(state),
         "splats": _public_splats(state),
-        "shop": [
-            {"card": str(entry.get("card")), "quantity": int(entry.get("quantity", 1) or 1), "bops": int(entry.get("bops", 0) or 0)}
-            for entry in _vending(shop_config)
-        ],
+        "hits": _public_hits(state),
         "last_round": state.get("last_round"),
         "records": state.get("records"),
     }
 
 
-_PARTICIPANT_DELTA_FIELDS = ("x", "y", "aim", "color", "flash_until")
+_PARTICIPANT_DELTA_FIELDS = ("x", "y", "aim", "color", "flash_until", "immune_until", "respawn")
 
 
 def _delta(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any] | None:
@@ -501,7 +546,7 @@ def _delta(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any] 
     if not isinstance(previous, dict) or not isinstance(current, dict):
         return None
     delta: dict[str, Any] = {"from": int(previous.get("seq", 0) or 0), "seq": int(current.get("seq", 0) or 0), "t": int(current.get("t", 0) or 0)}
-    for key in ("phase", "round", "phase_ends_at", "seconds_left", "status"):
+    for key in ("phase", "round", "phase_ends_at", "seconds_left", "status", "field"):
         if previous.get(key) != current.get(key):
             delta[key] = current.get(key)
     scoreboard = current.get("scoreboard")
@@ -553,6 +598,10 @@ def _delta(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any] 
     added_splats = [entry for entry in current.get("splats", []) if isinstance(entry, dict) and entry.get("id") not in previous_splats]
     if added_splats:
         delta["splats_add"] = [dict(entry) for entry in added_splats]
+    previous_hits = {entry.get("id") for entry in previous.get("hits", []) if isinstance(entry, dict)}
+    added_hits = [entry for entry in current.get("hits", []) if isinstance(entry, dict) and entry.get("id") not in previous_hits]
+    if added_hits:
+        delta["hits_add"] = [dict(entry) for entry in added_hits]
     if len(delta) <= 3:
         return None
     return delta
@@ -572,7 +621,7 @@ def _publish(context, state: dict[str, Any], *, force_full: bool = False) -> boo
     seq = int(previous.get("seq", 0) or 0) + 1
     current = _public(state, context.now, config, seq=seq, t=_now_ms(context.now))
     full = bool(force_full) or previous.get("seq") is None
-    for key in ("round", "phase", "arena", "tuning", "obstacles", "shop", "last_round", "records", "room_description"):
+    for key in ("round", "phase", "arena", "tuning", "field", "obstacles", "last_round", "records", "room_description"):
         if previous.get(key) != current.get(key):
             full = True
             break
@@ -625,21 +674,29 @@ def _ensure_participant(
             "vy": 0.0,
             "color": color,
             "sprite": sprite,
+            "spawn": [float(x), float(y)],
             "shots": 0,
             "hits": 0,
+            "respawn": 0,
             "cleanliness": 100.0,
             "max_cleanliness": 100.0,
             "next_shot_at": None,
+            "last_shot_at": None,
             "last_input_at": None,
             "waypoint": None,
             "waypoint_until": None,
             "flash_until": None,
+            "immune_until": None,
         }
         participants[participant_id] = participant
     participant["name"] = name
     participant["kind"] = kind
     if sprite:
         participant["sprite"] = sprite
+    participant.setdefault("spawn", [float(x), float(y)])
+    participant.setdefault("respawn", 0)
+    participant.setdefault("last_shot_at", None)
+    participant.setdefault("immune_until", None)
     if now is not None:
         participant.setdefault("next_shot_at", None)
     return participant
@@ -677,14 +734,15 @@ def _free_spawn(state: dict[str, Any], index: int) -> tuple[float, float]:
     obstacles = state.get("obstacles") if isinstance(state.get("obstacles"), list) else []
     participants = state.get("participants") if isinstance(state.get("participants"), dict) else {}
     taken = [(float(entry.get("x", 0.0)), float(entry.get("y", 0.0))) for entry in participants.values() if isinstance(entry, dict)]
-    for offset in range(len(SPAWN_SLOTS)):
-        slot = SPAWN_SLOTS[(index + offset) % len(SPAWN_SLOTS)]
+    slots = _spawn_slots(_state_arena(state))
+    random.shuffle(slots)
+    for slot in slots:
         if hits_obstacle(slot[0], slot[1], DEFAULT_PLAYER_RADIUS + 2.0, obstacles):
             continue
         if any(math.hypot(slot[0] - x, slot[1] - y) < 8.0 for x, y in taken):
             continue
         return slot
-    return SPAWN_SLOTS[index % len(SPAWN_SLOTS)]
+    return slots[index % len(slots)]
 
 
 def _sync_users(state: dict[str, Any], context, room_id: str) -> bool:
@@ -715,6 +773,7 @@ def _sync_users(state: dict[str, Any], context, room_id: str) -> bool:
             kind=USER,
             x=slot[0],
             y=slot[1],
+            color=random.choice(PAINT_COLORS),
         )
         changed = True
     for participant_id in [key for key, entry in participants.items() if isinstance(entry, dict) and entry.get("kind") == USER]:
@@ -729,26 +788,42 @@ def _spread_for_quality(quality: int) -> float:
     return max(0.012, float(spread))
 
 
-def _equipped_blaster(context) -> tuple[str, int] | None:
-    best: tuple[str, int] | None = None
-    for entry in _vending(_config(context)):
-        card_id = str(entry.get("card", ""))
-        if not card_id.startswith("paintball-blaster"):
-            continue
-        if not context.has_equipped_card(card_id):
-            continue
+def _is_immune(participant: dict[str, Any], now: datetime) -> bool:
+    immune = _parse_timestamp(participant.get("immune_until"))
+    return immune is not None and now < immune
+
+
+def _food_candidates(context) -> list[tuple[str, str, float]]:
+    candidates: list[tuple[str, str, float]] = []
+    for card_id in context.card_ids:
         view = context.card_definition(card_id)
-        quality = int(view.quality) if view is not None else DEFAULT_QUALITY
-        if best is None or quality > best[1]:
-            best = (card_id, max(1, quality))
-    return best
+        if view is None or view.effect != "energy":
+            continue
+        tags = view.tags if isinstance(view.tags, frozenset) else frozenset(view.tags or ())
+        if not (FOOD_TAGS & tags):
+            continue
+        try:
+            amount = float(view.amount or 0.0)
+        except (TypeError, ValueError):
+            amount = 0.0
+        if amount <= 0:
+            continue
+        candidates.append((card_id, str(view.label or card_id), amount))
+    return candidates
 
 
-def _ammo_for(context) -> dict[str, str] | None:
-    for entry in _ammo(_config(context)):
-        if context.has_equipped_card(entry["card"]):
-            return entry
-    return None
+def _auto_eat_food(context, participant: dict[str, Any]) -> bool:
+    """Restore one random food card when a shooter reaches zero Energy."""
+
+    candidates = _food_candidates(context)
+    if not candidates:
+        return False
+    card_id, label, amount = random.choice(candidates)
+    context.remove_card(card_id, 1)
+    context.apply_counter("energy", amount)
+    context.feedback(f"You ate {label} (+{amount:.0f} Energy).", "info")
+    participant["ate_at"] = context.now.isoformat()
+    return True
 
 
 def _move_tuning(config: dict[str, Any]) -> tuple[float, float]:
@@ -793,6 +868,8 @@ def _fire_projectile(
     quality: int,
 ) -> bool:
     config = _config(context)
+    if _is_immune(shooter, now):
+        return False
     cooldown = _config_float(config, "fire_cooldown", DEFAULT_FIRE_COOLDOWN)
     last = _parse_timestamp(shooter.get("last_shot_at"))
     if last is not None and (now - last).total_seconds() < cooldown:
@@ -857,7 +934,72 @@ def _add_splat(state: dict[str, Any], x: float, y: float, color: str) -> None:
     state["splats"] = splats[-MAX_SPLATS:]
 
 
-def _apply_hit(context, state: dict[str, Any], victim: dict[str, Any], x: float, y: float, color: str, now: datetime) -> None:
+def _respawn_participant(state: dict[str, Any], victim: dict[str, Any], now: datetime, immunity_seconds: float) -> None:
+    """Return a hit player to their saved start and start their spawn shield."""
+
+    spawn = victim.get("spawn") if isinstance(victim.get("spawn"), list) else None
+    if (
+        not isinstance(spawn, list)
+        or len(spawn) != 2
+        or not all(isinstance(value, (int, float)) for value in spawn)
+    ):
+        spawn = list(_free_spawn(state, 0))
+        victim["spawn"] = [float(spawn[0]), float(spawn[1])]
+    victim["x"], victim["y"] = float(spawn[0]), float(spawn[1])
+    victim["move"] = [0.0, 0.0]
+    victim["vx"], victim["vy"] = 0.0, 0.0
+    victim["fire"] = False
+    victim["last_input_at"] = None
+    victim["respawn"] = int(victim.get("respawn", 0) or 0) + 1
+    victim["immune_until"] = (now + timedelta(seconds=max(0.0, immunity_seconds))).isoformat()
+    if victim.get("kind") == BOT:
+        victim["next_shot_at"] = victim["immune_until"]
+        victim["waypoint"] = None
+        victim["waypoint_until"] = None
+
+
+def _prune_hits(state: dict[str, Any], now: datetime) -> None:
+    hits = state.get("hits")
+    if not isinstance(hits, list):
+        state["hits"] = []
+        return
+    cutoff = now - timedelta(seconds=HIT_EVENT_TTL_SECONDS)
+    state["hits"] = [
+        entry for entry in hits
+        if isinstance(entry, dict) and (_parse_timestamp(entry.get("t")) or now) >= cutoff
+    ][-MAX_HIT_EVENTS:]
+
+
+def _record_hit(
+    state: dict[str, Any],
+    victim: dict[str, Any],
+    x: float,
+    y: float,
+    color: str,
+    now: datetime,
+    source: object,
+) -> None:
+    hits = state.get("hits")
+    if not isinstance(hits, list):
+        hits = []
+        state["hits"] = hits
+    hits.append(
+        {
+            "id": f"hit-{source}" if source is not None else f"hit-{len(hits)}",
+            "victim": str(victim.get("id", "")),
+            "name": str(victim.get("name", "") or "Peep"),
+            "kind": BOT if victim.get("kind") == BOT else USER,
+            "x": float(x),
+            "y": float(y),
+            "color": color,
+            "sprite": str(victim.get("sprite", "") or ""),
+            "t": now.isoformat(),
+        }
+    )
+    state["hits"] = hits[-MAX_HIT_EVENTS:]
+
+
+def _apply_hit(context, state: dict[str, Any], victim: dict[str, Any], x: float, y: float, color: str, now: datetime, source: object = None) -> None:
     victim["hits_taken"] = int(victim.get("hits_taken", 0) or 0) + 1
     victim["flash_until"] = (now + timedelta(milliseconds=650)).isoformat()
     if victim.get("kind") == USER:
@@ -879,6 +1021,8 @@ def _apply_hit(context, state: dict[str, Any], victim: dict[str, Any], x: float,
             target=victim_ref,
         )
     _add_splat(state, x, y, color)
+    _record_hit(state, victim, x, y, color, now, source)
+    _respawn_participant(state, victim, now, _immunity_seconds(_config(context)))
 
 
 def _paint_decal_count(cleanliness: float, max_cleanliness: float) -> int:
@@ -942,15 +1086,14 @@ def _update_bot(
     _move_body(bot, desired_x, desired_y, step=step, arena=arena, obstacles=obstacles, accel=accel, friction=friction)
     bot_config = _bot_config(config)
     next_shot = _parse_timestamp(bot.get("next_shot_at"))
-    if target is not None and (next_shot is None or now >= next_shot):
-        colors = [entry["color"] for entry in _ammo(config)]
+    if target is not None and not _is_immune(bot, now) and (next_shot is None or now >= next_shot):
         fired = _fire_projectile(
             context,
             state,
             bot,
             now=now,
             direction=(float(target.get("x", 0.0)) - float(bot.get("x", 0.0)), float(target.get("y", 0.0)) - float(bot.get("y", 0.0))),
-            color=random.choice(colors) if colors else "#ff4d6d",
+            color=str(bot.get("color", "#ff4d6d")),
             quality=int(bot_config["quality"]),
         )
         low_shot, high_shot = bot_config["shot_seconds"]
@@ -991,6 +1134,8 @@ def _advance_projectiles(
         for entry in participants.values():
             if not isinstance(entry, dict) or str(entry.get("id")) == str(projectile.get("owner")):
                 continue
+            if _is_immune(entry, now):
+                continue
             victim_x, victim_y = float(entry.get("x", 0.0)), float(entry.get("y", 0.0))
             dx, dy = end_x - start_x, end_y - start_y
             length_squared = dx * dx + dy * dy
@@ -1004,7 +1149,7 @@ def _advance_projectiles(
                 end_x, end_y = victim_x, victim_y
                 break
         if victim is not None:
-            _apply_hit(context, state, victim, end_x, end_y, str(projectile.get("color", "#ff4d6d")), now)
+            _apply_hit(context, state, victim, end_x, end_y, str(projectile.get("color", "#ff4d6d")), now, source=projectile.get("id"))
             owner = participants.get(str(projectile.get("owner")))
             if isinstance(owner, dict):
                 owner["hits"] = int(owner.get("hits", 0) or 0) + 1
@@ -1028,6 +1173,7 @@ def _simulate(context, state: dict[str, Any], now: datetime) -> None:
     last = _parse_timestamp(state.get("last_sim_at")) or now
     elapsed = max(0.0, min(1.0, (now - last).total_seconds()))
     state["last_sim_at"] = now.isoformat()
+    _prune_hits(state, now)
     if state.get("phase") != "active" or elapsed <= 0:
         return
     config = _config(context)
@@ -1059,16 +1205,23 @@ def _simulate(context, state: dict[str, Any], now: datetime) -> None:
         _advance_projectiles(context, state, step=step, arena=arena, obstacles=obstacles, now=now)
 
 
+def _warn_once(context, participant: dict[str, Any], now: datetime, message: str, *, style: str = "info") -> None:
+    warned_at = _parse_timestamp(participant.get("warned_at"))
+    if warned_at is None or (now - warned_at).total_seconds() >= 5:
+        participant["warned_at"] = now.isoformat()
+        context.feedback(message, style)
+
+
 def _try_human_fire(context, state: dict[str, Any], participant: dict[str, Any], *, now: datetime) -> bool:
-    blaster = _equipped_blaster(context)
-    ammo = _ammo_for(context)
-    if blaster is None or ammo is None:
-        warned_at = _parse_timestamp(participant.get("warned_at"))
-        if warned_at is None or (now - warned_at).total_seconds() >= 5:
-            participant["warned_at"] = now.isoformat()
-            context.feedback("Equip a paint blaster and paintballs to shoot.", "info")
+    config = _config(context)
+    if _is_immune(participant, now):
+        _warn_once(context, participant, now, "Respawn shield is still up — no shooting yet.")
         return False
-    participant["color"] = ammo["color"]
+    cost = _shot_energy_cost(config)
+    energy = context.counter("energy", 0.0)
+    if cost > 0 and energy < cost:
+        _warn_once(context, participant, now, f"Not enough Energy to shoot ({cost:.0f} required).")
+        return False
     aim = participant.get("aim") if isinstance(participant.get("aim"), list) else [1.0, 0.0]
     fired = _fire_projectile(
         context,
@@ -1076,20 +1229,23 @@ def _try_human_fire(context, state: dict[str, Any], participant: dict[str, Any],
         participant,
         now=now,
         direction=(float(aim[0]), float(aim[1])),
-        color=ammo["color"],
-        quality=blaster[1],
+        color=str(participant.get("color", "#ff4d6d")),
+        quality=DEFAULT_GUN_QUALITY,
     )
-    if fired:
-        target = PeepRef(kind="user", peep_id=None, account_id=str(participant.get("id", "")))
-        context.remove_card(ammo["card"], 1, target=target)
-        return True
-    return False
+    if not fired:
+        return False
+    if cost > 0:
+        context.apply_counter("energy", -cost)
+        if energy - cost <= 0 and not _auto_eat_food(context, participant):
+            context.feedback("Out of Energy.", "info")
+    return True
 
 
 def _reset_human(human: dict[str, Any], slot: tuple[float, float]) -> None:
     """Respawn a returning player for the next round."""
 
-    human["x"], human["y"] = slot
+    human["x"], human["y"] = float(slot[0]), float(slot[1])
+    human["spawn"] = [float(slot[0]), float(slot[1])]
     human["move"] = [0.0, 0.0]
     human["aim"] = [1.0, 0.0]
     human["fire"] = False
@@ -1097,9 +1253,12 @@ def _reset_human(human: dict[str, Any], slot: tuple[float, float]) -> None:
     human["vy"] = 0.0
     human["shots"] = 0
     human["hits"] = 0
+    human["respawn"] = 0
+    human["last_shot_at"] = None
     human["last_input_at"] = None
     human["warned_at"] = None
     human["flash_until"] = None
+    human["immune_until"] = None
     human["waypoint"] = None
     human["waypoint_until"] = None
 
@@ -1115,6 +1274,7 @@ async def _start_round(context, state: dict[str, Any], now: datetime) -> None:
     state["phase_ends_at"] = (now + timedelta(seconds=duration)).isoformat()
     state["arena"] = {"width": width, "height": height}
     state["arena_seed"] = seed
+    state["field"] = random.choice(_field_textures(config))
     state["obstacles"] = _generate_obstacles(seed, config, (width, height))
     room_id = str(context.room.get("id", ""))
     _sync_users(state, context, room_id)
@@ -1128,9 +1288,9 @@ async def _start_round(context, state: dict[str, Any], now: datetime) -> None:
     state["projectiles"] = []
     state["scores"] = {}
     state["splats"] = []
+    state["hits"] = []
     state["last_sim_at"] = now.isoformat()
     bot_config = _bot_config(config)
-    colors = [entry["color"] for entry in _ammo(config)]
     human_count = sum(1 for entry in state["participants"].values() if isinstance(entry, dict) and entry.get("kind") == USER)
     for index, bot_id in enumerate(bot_config["ids"][: max(0, int(bot_config["target_players"]) - human_count)]):
         slot = _free_spawn(state, 100 + index)
@@ -1141,7 +1301,7 @@ async def _start_round(context, state: dict[str, Any], now: datetime) -> None:
             kind=BOT,
             x=slot[0],
             y=slot[1],
-            color=random.choice(colors) if colors else "#ff4d6d",
+            color=random.choice(PAINT_COLORS),
             sprite=str(bot_id),
             now=now,
         )
@@ -1154,6 +1314,7 @@ def _finish_round(context, state: dict[str, Any], now: datetime) -> None:
     ranking = _ranking(state)
     top = ranking[:3]
     state["last_round"] = {"round": int(state.get("round", 0) or 0), "top": top}
+    state["hits"] = []
     records = state.get("records")
     if not isinstance(records, dict):
         records = {"games": 0, "best_hits": 0, "best_name": ""}
@@ -1173,16 +1334,6 @@ def _finish_round(context, state: dict[str, Any], now: datetime) -> None:
             ledger_key=f"paintball:{game_key}:{entry['id']}",
             target=PeepRef(kind="user", peep_id=None, account_id=entry["id"]),
         )
-    if top:
-        params: dict[str, object] = {}
-        for index, key in enumerate(("first", "second", "third")):
-            if index >= len(top):
-                continue
-            token = "$peep" if top[index].get("bot") else "$user"
-            params[key] = f"{token}:{top[index]['id']}"
-            params[f"{key}_name"] = top[index]["name"]
-            params[f"{key}_hits"] = top[index]["hits"]
-        context.cutscene(CUTSCENE_ID, audience="room", params=params)
 
 
 async def _advance(context, state: dict[str, Any], now: datetime) -> None:
@@ -1254,7 +1405,7 @@ async def on_activity_tick(context, event):
 
 
 async def on_quick_action(context, event):
-    """Handle movement/aim input, vending, joins, and the staff round reset."""
+    """Handle movement/aim input, joins, and the staff round reset."""
 
     action = str(event.action or "").strip()
     room_id = str(context.room.get("id", ""))
@@ -1270,46 +1421,26 @@ async def on_quick_action(context, event):
     if action == "join":
         await _run_room_tick(context, _state_for(context), force_full=True)
         return
-    if not action.startswith("buy:"):
-        parsed = _parse_input(action)
-        if parsed is None:
-            return
-        actor_id = getattr(context.actor, "account_id", None)
-        if not actor_id:
-            return
-        state = _state_for(context)
-        await _advance(context, state, context.now)
-        if state.get("phase") != "active":
-            return
-        roster_changed = _sync_users(state, context, room_id)
-        participant = state.get("participants", {}).get(actor_id)
-        if not isinstance(participant, dict):
-            return
-        move_x, move_y, aim_x, aim_y, fire = parsed
-        participant["move"] = [move_x, move_y]
-        participant["last_input_at"] = context.now.isoformat()
-        if math.hypot(aim_x, aim_y) > 1e-6:
-            participant["aim"] = [aim_x, aim_y]
-        participant["fire"] = fire
-        fired = _try_human_fire(context, state, participant, now=context.now) if fire else False
-        if fired or roster_changed:
-            _publish(context, state)
+    parsed = _parse_input(action)
+    if parsed is None:
+        return
+    actor_id = getattr(context.actor, "account_id", None)
+    if not actor_id:
         return
     state = _state_for(context)
-    card_id = action[4:]
-    entry = next((item for item in _vending(_config(context)) if item["card"] == card_id), None)
-    if entry is None:
-        context.feedback("That vending slot is empty.", "error")
+    await _advance(context, state, context.now)
+    if state.get("phase") != "active":
         return
-    if card_id.startswith("paintball-blaster") and context.has_card(card_id):
-        context.feedback("You already own that blaster.", "info")
+    roster_changed = _sync_users(state, context, room_id)
+    participant = state.get("participants", {}).get(actor_id)
+    if not isinstance(participant, dict):
         return
-    cost = int(entry.get("bops", 0) or 0)
-    if context.bops < cost:
-        context.feedback(f"You need {cost - context.bops} more Bops.", "error")
-        return
-    context.purchase_card(
-        card_id,
-        quantity=int(entry.get("quantity", 1) or 1),
-        bops=cost,
-    )
+    move_x, move_y, aim_x, aim_y, fire = parsed
+    participant["move"] = [move_x, move_y]
+    participant["last_input_at"] = context.now.isoformat()
+    if math.hypot(aim_x, aim_y) > 1e-6:
+        participant["aim"] = [aim_x, aim_y]
+    participant["fire"] = fire
+    fired = _try_human_fire(context, state, participant, now=context.now) if fire else False
+    if fired or roster_changed:
+        _publish(context, state)

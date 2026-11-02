@@ -589,8 +589,7 @@ Its custom frame styles stay in the [shared stylesheet](../client/app/css/cutsce
 because they belong to core scenes. World-specific scene styles instead live
 in that world's `cutscenes.css` file (declared with `css:` in `world.yaml` and
 served at `/assets/world/<id>/world.css`); for example, Molly's coupled
-sprites and hearts live in the tutorial world stylesheet, and the paintball
-podium styles live in the tiny-arcade one.
+sprites and hearts live in the tutorial world stylesheet.
 
 When authoring, load/validate the world, launch the actual bound action, check
 missing assets, skip and travel behavior, and verify reduced-motion gameplay

@@ -38,7 +38,7 @@ CARD_BACKGROUND_SET = "card-backgrounds"
 CARD_BACKGROUND_RARITIES = ("common", "uncommon", "rare", "epic", "legendary")
 CARD_BACKGROUND_TAGS = ("food", "paint", "subject", "medicine", "utility", "topic")
 
-_FOOD_TAGS = frozenset({"food", "produce", "ingredient", "crafted-ingredient", "dish"})
+FOOD_TAGS = frozenset({"food", "produce", "ingredient", "crafted-ingredient", "dish"})
 _MEDICINE_TAGS = frozenset({"medicine", "health", "medical"})
 _UTILITY_TAGS = frozenset({"utility", "tool", "tools", "scoop", "vacuum", "cleaning"})
 _PAINT_TAGS = frozenset({"paintgun", "paintball-ammo"})
@@ -66,7 +66,7 @@ def card_background_group(
         if tag in _MEDICINE_TAGS:
             return "bg-tag-medicine.png"
     for tag in normalized:
-        if tag in _FOOD_TAGS or tag == "supermarket":
+        if tag in FOOD_TAGS or tag == "supermarket":
             return "bg-tag-food.png"
     for tag in normalized:
         if tag in _UTILITY_TAGS:

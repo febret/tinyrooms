@@ -267,30 +267,6 @@ lobby:
       - - Enter the paintball arena
         - .play paintball
         - true
-      - - Buy Splash Pal (1 Bop)
-        - .act buy:paintball-blaster-splash @prop:paintball-vending
-        - true
-      - - Buy Neon Buzzer (8 Bops)
-        - .act buy:paintball-blaster-neon @prop:paintball-vending
-        - true
-      - - Buy Prism Cannon (20 Bops)
-        - .act buy:paintball-blaster-prism @prop:paintball-vending
-        - true
-      - - Buy 10 Cherry Paintballs (1 Bop)
-        - .act buy:paintball-cherry @prop:paintball-vending
-        - true
-      - - Buy 10 Berry Paintballs (1 Bop)
-        - .act buy:paintball-berry @prop:paintball-vending
-        - true
-      - - Buy 10 Lime Paintballs (1 Bop)
-        - .act buy:paintball-lime @prop:paintball-vending
-        - true
-      - - Buy 10 Lemon Paintballs (1 Bop)
-        - .act buy:paintball-lemon @prop:paintball-vending
-        - true
-      - - Buy 10 Grape Paintballs (1 Bop)
-        - .act buy:paintball-grape @prop:paintball-vending
-        - true
   activities:
     chess:
       controller: chess-cabinet
@@ -313,18 +289,20 @@ lobby:
         - 10
         - 5
         - 1
+        arena_width: 140
+        arena_height: 140
         player_speed: 24
         bot_speed: 16
         projectile_speed: 70
         projectile_lifetime: 1.1
         projectile_boost: 1.5
         projectile_drag: 0.9
-        move_accel: 160
-        move_friction: 220
+        move_accel: 110
+        move_friction: 140
         fire_cooldown: 0.45
         obstacle_count:
-        - 3
-        - 5
+        - 6
+        - 10
         bots:
           ids:
           - paintbot-pip
@@ -337,42 +315,18 @@ lobby:
           shot_seconds:
           - 5.5
           - 9.5
-        ammo:
-        - card: paintball-cherry
-          color: '#ff4d6d'
-        - card: paintball-berry
-          color: '#4ea8ff'
-        - card: paintball-lime
-          color: '#5cf29a'
-        - card: paintball-lemon
-          color: '#ffe066'
-        - card: paintball-grape
-          color: '#c77dff'
-        vending:
-        - card: paintball-blaster-splash
-          quantity: 1
-          bops: 1
-        - card: paintball-blaster-neon
-          quantity: 1
-          bops: 8
-        - card: paintball-blaster-prism
-          quantity: 1
-          bops: 20
-        - card: paintball-cherry
-          quantity: 10
-          bops: 1
-        - card: paintball-berry
-          quantity: 10
-          bops: 1
-        - card: paintball-lime
-          quantity: 10
-          bops: 1
-        - card: paintball-lemon
-          quantity: 10
-          bops: 1
-        - card: paintball-grape
-          quantity: 10
-          bops: 1
+        shot_energy_cost: 2
+        immunity_seconds: 5
+        field_textures:
+        - neon
+        - jungle
+        - desert
+        - urban
+        obstacle_textures:
+        - barrel
+        - bunker
+        - spool
+        - rock
   exits: {}
 bot-hangar:
   label: Paintbot Hangar

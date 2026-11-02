@@ -29,6 +29,9 @@ class CardView:
     tags: frozenset[str] = frozenset()
     consume_card: str | None = None
     quality: int = 0
+    label: str = ""
+    effect: str | None = None
+    amount: float | None = None
 
 
 def _target_payload(target: PeepRef | PropRef | None) -> dict[str, object]:
@@ -197,6 +200,11 @@ class BehaviorContext:
             return float(self.counters.get(name, default))
         except (TypeError, ValueError):
             return default
+
+    def card_ids(self) -> tuple[str, ...]:
+        """Return the acting peep's owned card ids, deduplicated and sorted."""
+
+        return tuple(sorted({str(card_id) for card_id in self._card_ids if str(card_id)}))
 
     def has_card(self, card_id: str) -> bool:
         """Return whether the acting peep owns at least one copy of a card."""

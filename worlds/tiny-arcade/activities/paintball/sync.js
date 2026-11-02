@@ -1,7 +1,8 @@
 export const INTERP_DELAY_MS = 90;
-// Keep in sync with server MAX_SPLATS (paintball.py) and
+// Keep in sync with server MAX_SPLATS and MAX_HIT_EVENTS (paintball.py) and
 // MAX_ACTIVITY_SPLATS (client/app/js/normalize.js).
 export const MAX_SPLATS = 80;
+export const MAX_HITS = 8;
 
 export function isDeltaApplicable(state, delta) {
   if (!state || typeof state !== "object" || !delta || typeof delta !== "object") return false;
@@ -46,7 +47,7 @@ export function applyActivityDelta(state, delta) {
     seq: Number(delta.seq),
     t: Number(delta.t ?? state.t ?? 0),
   };
-  for (const key of ["phase", "round", "phase_ends_at", "seconds_left", "status", "scoreboard"]) {
+  for (const key of ["phase", "round", "phase_ends_at", "seconds_left", "status", "field", "scoreboard"]) {
     if (delta[key] !== undefined) next[key] = delta[key];
   }
   if (delta.participants || delta.participants_remove) {
@@ -57,6 +58,9 @@ export function applyActivityDelta(state, delta) {
   }
   if (delta.splats_add) {
     next.splats = [...(Array.isArray(state.splats) ? state.splats : []), ...delta.splats_add].slice(-MAX_SPLATS);
+  }
+  if (delta.hits_add) {
+    next.hits = [...(Array.isArray(state.hits) ? state.hits : []), ...delta.hits_add].slice(-MAX_HITS);
   }
   return next;
 }

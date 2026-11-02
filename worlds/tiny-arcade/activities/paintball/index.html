@@ -14,24 +14,13 @@
         <div class="paint-score"><strong id="status">Paintball Arena</strong><span id="scoreboard" class="muted"></span></div>
         <div class="paint-meta">
           <span class="badge">Health <strong id="health">—</strong></span>
-          <span class="badge">Paint <strong id="ammo">—</strong></span>
-          <span class="badge">Blaster <strong id="gun">—</strong></span>
-          <button type="button" class="quiet small" id="shop-toggle">Vending</button>
+          <span class="badge">Energy <strong id="energy">—</strong></span>
+          <span class="badge">Color <strong id="paint">—</strong></span>
         </div>
       </section>
       <section class="paint-stage">
         <canvas id="arena" aria-label="Paintball arena"></canvas>
-        <div class="paint-overlay" id="overlay" hidden>
-          <div class="paint-card">
-            <p class="paint-title" id="overlay-title">Next round</p>
-            <p class="paint-message" id="overlay-message">Waiting for the next round.</p>
-          </div>
-        </div>
-        <div class="paint-shop" id="shop" hidden>
-          <h2>Arena vending</h2>
-          <div id="shop-items" class="paint-shop-items"></div>
-          <button type="button" class="quiet small" id="shop-close">Close</button>
-        </div>
+        <div class="paint-podium" id="podium" hidden></div>
       </section>
     </main>
     <script src="/activities/shared.js"></script>

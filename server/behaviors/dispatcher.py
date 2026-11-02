@@ -310,11 +310,15 @@ class BehaviorDispatcher(BehaviorIntentMixin):
             )
         if definition is None:
             return None
+        amount = definition.amount
         return CardView(
             id=definition.id,
             tags=definition.tags,
             consume_card=definition.consume_card,
             quality=definition.quality,
+            label=definition.label,
+            effect=definition.effect,
+            amount=None if amount is None else float(amount),
         )
 
     def _card_view(self, event: BehaviorEvent) -> CardView | None:

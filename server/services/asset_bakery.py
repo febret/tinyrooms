@@ -304,6 +304,8 @@ def preview_url_for(config: AppConfig, output: str) -> str:
         return "/assets/sounds/" + "/".join(parts[2:])
     if parts[0] == "data" and len(parts) >= 3 and parts[1] == "fx":
         return "/assets/fx/" + "/".join(parts[2:])
+    if parts[0] == "worlds" and len(parts) >= 5 and parts[2] == "activities":
+        return "/activities/" + "/".join(parts[3:])
     if parts[0] == "worlds" and len(parts) >= 4 and parts[2] in {
         "cards",
         "rooms",

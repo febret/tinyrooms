@@ -11,23 +11,25 @@
 .paint-score strong { color: var(--arena-cyan); text-shadow: 0 0 14px #19e3ff88; font-size: 20px; }
 #scoreboard { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70vw; }
 .paint-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.paint-stage { position: relative; flex: 1 1 auto; min-height: 0; border-radius: 16px; overflow: auto; overscroll-behavior: contain; background: var(--arena-bg); box-shadow: 0 18px 50px #000c, inset 0 0 0 1px #ffffff18; }
-#arena { display: block; width: 100%; height: 100%; min-width: 560px; min-height: 420px; touch-action: none; cursor: crosshair; }
-.paint-overlay { position: absolute; inset: auto 12px 12px; display: grid; place-items: center; pointer-events: none; }
-.paint-overlay[hidden] { display: none; }
-.paint-card { max-width: 620px; padding: 10px 14px; background: #0b0420d9; border: 1px solid #19e3ff55; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px #000a; }
-.paint-title { color: var(--arena-cyan); font-weight: 800; letter-spacing: 1px; }
-.paint-message { font-size: 13px; color: #d9cdf4; }
-.paint-shop { position: absolute; inset: 12px auto 12px 12px; width: min(330px, 86%); padding: 12px; overflow: auto; background: #0d0625f2; border: 1px solid #ff2d9555; border-radius: 12px; box-shadow: 0 16px 40px #000c; }
-.paint-shop[hidden] { display: none; }
-.paint-shop h2 { color: var(--arena-magenta); font-size: 16px; margin-bottom: 8px; }
-.paint-shop-items { display: grid; gap: 8px; margin-bottom: 10px; }
-.paint-shop-row { display: grid; gap: 2px; padding: 8px; background: #160a38; border-radius: 10px; }
-.paint-shop-row strong { font-size: 14px; }
-.paint-shop-row span { font-size: 12px; color: #cbbbf0; }
-.paint-shop-row button { justify-self: start; }
+.paint-stage { position: relative; flex: 1 1 auto; min-height: 0; border-radius: 16px; overflow: hidden; overscroll-behavior: contain; background: var(--arena-bg); box-shadow: 0 18px 50px #000c, inset 0 0 0 1px #ffffff18; }
+#arena { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; touch-action: none; cursor: crosshair; }
+.paint-podium { position: absolute; inset: 0; display: grid; align-content: end; justify-items: center; gap: 6px; padding: 16px 12px 12px; background: radial-gradient(ellipse at 50% 115%, #2a1240cc, #0a0612ee); }
+.paint-podium[hidden] { display: none; }
+.paintball-podium-title { margin: 0; color: #fff; font-size: clamp(1.1rem, 3.4vmin, 1.8rem); font-weight: 900; letter-spacing: 0.16em; text-align: center; text-shadow: 0 0 18px #ff4d6d, 0 3px 10px #000c; }
+.paintball-podium-row { display: flex; align-items: flex-end; justify-content: center; gap: clamp(8px, 2.4vmin, 24px); width: min(100%, 760px); }
+.paintball-podium-block { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: min(28%, 180px); }
+.paintball-podium-sprite { width: clamp(48px, 10vmin, 96px); height: auto; filter: drop-shadow(0 10px 18px #000b); }
+.paintball-podium-empty { display: grid; place-items: center; width: clamp(48px, 10vmin, 96px); aspect-ratio: 1; border: 2px dashed #ffffff33; border-radius: 50%; color: #ffffff55; font-size: 1.2rem; }
+.paintball-podium-name { max-width: 100%; margin-bottom: 6px; overflow: hidden; font-size: clamp(0.7rem, 1.8vmin, 0.9rem); font-weight: 800; text-overflow: ellipsis; text-shadow: 0 2px 8px #000c; white-space: nowrap; }
+.paintball-podium-step { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; padding-top: 8px; border: 3px solid; border-bottom: none; border-radius: 10px 10px 0 0; background: linear-gradient(180deg, #ffffff1c, #ffffff05); box-shadow: 0 0 26px -6px currentColor inset; }
+.paintball-podium-medal { font-size: clamp(1rem, 3vmin, 1.5rem); font-weight: 900; line-height: 1; }
+.paintball-podium-score { margin-top: 4px; color: #e8f4ff; font-size: clamp(0.58rem, 1.6vmin, 0.75rem); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.paintball-podium-message { margin: 2px 0 0; font-size: 12px; color: #d9cdf4; }
+.paintball-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.paintball-confetti-piece { position: absolute; top: -8%; width: 8px; height: 14px; border-radius: 2px; opacity: 0; animation: paintball-confetti-fall 2200ms linear infinite; }
+@keyframes paintball-confetti-fall { 0% { opacity: 0; transform: translate3d(0, -10%, 0) rotate(0deg); } 12% { opacity: 1; } 100% { opacity: 0; transform: translate3d(var(--drift, 0), 620%, 0) rotate(540deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .paint-card { animation: none !important; transition: none !important; }
+  .paintball-confetti-piece { animation: none !important; }
 }
 @media (orientation: portrait), (max-width: 700px) {
   .paint-shell { gap: 6px; }
@@ -36,8 +38,6 @@
   .paint-meta { gap: 6px; }
   .paint-meta .badge { font-size: 12px; }
   .paint-stage { border-radius: 12px; }
-  #arena { min-width: 520px; min-height: 560px; }
-  .paint-overlay { inset: auto 8px 8px 8px; }
-  .paint-card { max-width: none; width: 100%; }
-  .paint-shop { inset: auto 8px 8px 8px; width: auto; max-height: 52%; }
+  #arena { min-width: 0; min-height: 0; }
+  .paint-podium { padding: 12px 8px 8px; }
 }

@@ -1,5 +1,6 @@
-import { clamp, hashId, moveCircle, normalizeVector, stepVelocity, stickVector } from "./arena.js";
+import { PLAYER_SPRITE_WORLD_HEIGHT, backingStoreSize, cameraOffset, clamp, easeInOutQuad, explosionParticles, fadeAlpha, hashId, moveCircle, normalizeVector, stepVelocity, stickVector, viewScale } from "./arena.js";
 import { INTERP_DELAY_MS, applyActivityDelta, createParticipantInterpolator, createServerClock, projectilePosition } from "./sync.js";
+import { renderPodium } from "./podium.js";
 
 const Tiny = window.TinyActivity;
 const canvas = document.querySelector("#arena");
@@ -8,28 +9,21 @@ const connection = document.querySelector("#connection");
 const statusView = document.querySelector("#status");
 const scoreboardView = document.querySelector("#scoreboard");
 const healthView = document.querySelector("#health");
-const ammoView = document.querySelector("#ammo");
-const gunView = document.querySelector("#gun");
-const shop = document.querySelector("#shop");
-const shopItems = document.querySelector("#shop-items");
-const shopToggle = document.querySelector("#shop-toggle");
-const shopClose = document.querySelector("#shop-close");
-const overlay = document.querySelector("#overlay");
-const overlayTitle = document.querySelector("#overlay-title");
-const overlayMessage = document.querySelector("#overlay-message");
+const energyView = document.querySelector("#energy");
+const paintView = document.querySelector("#paint");
+const podium = document.querySelector("#podium");
 
-const GUN_NAMES = {
-  "paintball-blaster-splash": "Splash Pal",
-  "paintball-blaster-neon": "Neon Buzzer",
-  "paintball-blaster-prism": "Prism Cannon",
+const FIELD_IMAGES = {
+  neon: "/activities/paintball/assets/field-neon.png",
+  jungle: "/activities/paintball/assets/field-jungle.png",
+  desert: "/activities/paintball/assets/field-desert.png",
+  urban: "/activities/paintball/assets/field-urban.png",
 };
-const GUN_QUALITY = { "paintball-blaster-splash": 1, "paintball-blaster-neon": 2, "paintball-blaster-prism": 3 };
-const AMMO_NAMES = {
-  "paintball-cherry": "Cherry",
-  "paintball-berry": "Berry",
-  "paintball-lime": "Lime",
-  "paintball-lemon": "Lemon",
-  "paintball-grape": "Grape",
+const OBSTACLE_IMAGES = {
+  barrel: "/activities/paintball/assets/obstacle-barrel.png",
+  bunker: "/activities/paintball/assets/obstacle-bunker.png",
+  spool: "/activities/paintball/assets/obstacle-spool.png",
+  rock: "/activities/paintball/assets/obstacle-rock.png",
 };
 
 let host = null;
@@ -54,6 +48,11 @@ let lastInputError = "";
 let lastInputErrorAt = 0;
 let lastHudAt = 0;
 let lastFrame = 0;
+let lastPodiumKey = "";
+let hitEffects = [];
+let seenHitIds = new Set();
+let respawnGlide = null;
+let respawnFade = null;
 
 function activityState() {
   const activity = host?.room?.activities?.paintball;
@@ -121,22 +120,160 @@ function participantSprite(participant) {
   return null;
 }
 
-function equippedLoadout() {
-  const inventory = host?.user?.inventory;
-  const stacks = Array.isArray(inventory) ? inventory : [];
-  let gun = null;
-  let ammo = null;
-  for (const stack of stacks) {
-    if (!stack?.equipped || !stack?.definition) continue;
-    const id = String(stack.definition.id || "");
-    if (GUN_NAMES[id] && (!gun || (GUN_QUALITY[id] || 1) > (GUN_QUALITY[gun.id] || 1))) {
-      gun = { id, label: GUN_NAMES[id] };
+function fieldImage(state) {
+  const name = String(state?.field || "");
+  if (!FIELD_IMAGES[name]) return null;
+  return spriteImage(Tiny.image(FIELD_IMAGES[name]));
+}
+
+function obstacleImage(obstacle) {
+  const name = String(obstacle?.sprite || "");
+  if (!OBSTACLE_IMAGES[name]) return null;
+  return spriteImage(Tiny.image(OBSTACLE_IMAGES[name]));
+}
+
+function podiumImageUrl(entry) {
+  if (!entry) return "";
+  const id = String(entry.id || "");
+  if (entry.bot || id.startsWith("paintbot-")) {
+    const sprite = String(entry.sprite || id);
+    const worldId = host?.user?.worldId || "";
+    if (sprite && worldId) return Tiny.image(`/assets/world/${worldId}/peeps/${sprite}.png`);
+    return "";
+  }
+  return occupantSticker(id);
+}
+
+function isImmune(participant) {
+  return Boolean(participant?.immune_until) && Date.parse(String(participant.immune_until)) > Date.now();
+}
+
+function reducedMotion() {
+  return Boolean(host?.config?.reducedMotion);
+}
+
+function drawShieldShimmer(x, y, bodyH) {
+  const centerY = y - bodyH * 0.4;
+  const seconds = performance.now() / 1000;
+  const pulse = reducedMotion() ? 0.5 : 0.5 + 0.5 * Math.sin(seconds * 5.2);
+  const glowR = bodyH * (0.72 + 0.08 * pulse);
+  context.save();
+  context.globalAlpha = 0.5 + 0.25 * pulse;
+  const halo = context.createRadialGradient(x, centerY, bodyH * 0.28, x, centerY, glowR);
+  halo.addColorStop(0, "rgba(25,227,255,0)");
+  halo.addColorStop(0.72, "rgba(25,227,255,0.16)");
+  halo.addColorStop(1, "rgba(25,227,255,0.42)");
+  context.fillStyle = halo;
+  context.beginPath();
+  context.arc(x, centerY, glowR, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+  if (reducedMotion()) return;
+  context.save();
+  context.beginPath();
+  context.arc(x, centerY, glowR * 0.94, 0, Math.PI * 2);
+  context.clip();
+  context.translate(x, centerY);
+  context.rotate(Math.sin(seconds * 1.7) * 0.9);
+  const sweep = Math.sin(seconds * 2.3) * 0.5 + 0.5;
+  const band = context.createLinearGradient(-glowR * 1.2, 0, glowR * 1.2, 0);
+  band.addColorStop(Math.max(0, sweep - 0.28), "rgba(255,255,255,0)");
+  band.addColorStop(sweep, "rgba(255,255,255,0.34)");
+  band.addColorStop(Math.min(1, sweep + 0.28), "rgba(255,255,255,0)");
+  context.fillStyle = band;
+  context.fillRect(-glowR * 1.2, -glowR * 1.2, glowR * 2.4, glowR * 2.4);
+  context.restore();
+}
+
+function ghostImage(hit) {
+  if (!hit) return null;
+  return participantSprite({
+    id: hit.victim,
+    kind: hit.kind,
+    sprite: hit.sprite,
+    color: hit.color,
+  });
+}
+
+function observeHits(state) {
+  const now = performance.now();
+  const reducedMotion = Boolean(host?.config?.reducedMotion);
+  for (const hit of state?.hits || []) {
+    const id = String(hit?.id || "");
+    if (!id || seenHitIds.has(id)) continue;
+    seenHitIds.add(id);
+    if (seenHitIds.size > 64) seenHitIds.delete(seenHitIds.values().next().value);
+    hitEffects.push({
+      id,
+      x: Number(hit.x) || 0,
+      y: Number(hit.y) || 0,
+      color: String(hit.color || "#ff4d6d"),
+      ghost: {
+        id: String(hit.victim || ""),
+        kind: String(hit.kind || "user"),
+        sprite: String(hit.sprite || ""),
+        color: String(hit.color || "#ff4d6d"),
+      },
+      seed: hashId(id),
+      bornAt: now,
+      particles: reducedMotion ? [] : explosionParticles(hashId(id)),
+      ghostMs: reducedMotion ? 320 : 900,
+      blastMs: reducedMotion ? 260 : 650,
+    });
+  }
+  hitEffects = hitEffects.filter(effect => now - effect.bornAt < Math.max(effect.ghostMs, effect.blastMs));
+}
+
+function drawHitEffects() {
+  const now = performance.now();
+  const bodyH = Math.max(40, scale * PLAYER_SPRITE_WORLD_HEIGHT);
+  for (const effect of hitEffects) {
+    const age = now - effect.bornAt;
+    const ghostProgress = Math.min(1, age / effect.ghostMs);
+    const blastProgress = Math.min(1, age / effect.blastMs);
+    const [x, y] = project(effect.x, effect.y);
+    if (ghostProgress < 1) {
+      const alpha = 1 - ghostProgress;
+      const lift = ghostProgress * bodyH * 0.35;
+      context.save();
+      context.globalAlpha = Math.max(0, alpha);
+      const image = ghostImage(effect.ghost);
+      if (image) {
+        const aspect = (image.naturalWidth || 1) / (image.naturalHeight || 1);
+        const w = bodyH * aspect;
+        context.drawImage(image, x - w / 2, y - bodyH + bodyH * 0.03 - lift, w, bodyH);
+      } else {
+        drawPeepToken(x, y - lift, bodyH, { color: effect.ghost.color, aim: [1, 0] });
+      }
+      context.restore();
     }
-    if (AMMO_NAMES[id]) {
-      ammo = { id, label: AMMO_NAMES[id], quantity: (ammo?.quantity || 0) + Number(stack.quantity || 0) };
+    if (blastProgress < 1) {
+      const radius = bodyH * (0.35 + blastProgress * 1.1);
+      context.save();
+      context.globalAlpha = 0.85 * (1 - blastProgress);
+      context.strokeStyle = effect.color;
+      context.lineWidth = Math.max(2, bodyH * 0.08 * (1 - blastProgress));
+      context.beginPath();
+      context.arc(x, y - bodyH * 0.35, radius, 0, Math.PI * 2);
+      context.stroke();
+      context.globalAlpha = 0.5 * (1 - blastProgress);
+      context.fillStyle = "#ffffff";
+      context.beginPath();
+      context.arc(x, y - bodyH * 0.35, Math.max(1.5, radius * 0.18), 0, Math.PI * 2);
+      context.fill();
+      for (const particle of effect.particles) {
+        const travel = bodyH * particle.distance * (0.25 + blastProgress * 1.15);
+        const px = x + Math.cos(particle.angle + particle.drift * blastProgress) * travel;
+        const py = y - bodyH * 0.35 + Math.sin(particle.angle + particle.drift * blastProgress) * travel;
+        context.globalAlpha = 0.9 * (1 - blastProgress);
+        context.fillStyle = particle.drift > 0 ? effect.color : shade(effect.color, 1.25);
+        context.beginPath();
+        context.arc(px, py, Math.max(1, bodyH * particle.size * (1 - blastProgress * 0.6)), 0, Math.PI * 2);
+        context.fill();
+      }
+      context.restore();
     }
   }
-  return { gun, ammo };
 }
 
 function currentState() {
@@ -211,7 +348,7 @@ function canvasPoint(clientX, clientY) {
 
 function stickCenter(role) {
   const rect = canvas.getBoundingClientRect();
-  const radius = Math.min(rect.width, rect.height) * 0.11;
+  const radius = Math.max(40, Math.min(rect.width, rect.height) * 0.11);
   if (role === "move") return { x: radius * 1.25, y: rect.height - radius * 1.35, radius };
   return { x: rect.width - radius * 1.25, y: rect.height - radius * 1.35, radius };
 }
@@ -279,95 +416,54 @@ window.addEventListener("blur", () => {
   mouseFire = false;
 });
 
-shopToggle.addEventListener("click", () => {
-  shop.hidden = !shop.hidden;
-  if (!shop.hidden) renderShop(activityState());
-});
-
-shopClose.addEventListener("click", () => {
-  shop.hidden = true;
-});
-
-shopItems.addEventListener("click", event => {
-  const button = event.target.closest("[data-buy]");
-  if (!button || !controller()) return;
-  button.disabled = true;
-  void Tiny.command(`.activity_input buy:${button.dataset.buy} @prop:${controller()}`)
-    .catch(error => Tiny.toast(error instanceof Error ? error.message : String(error), true))
-    .finally(() => { button.disabled = false; });
-});
-
-let lastShopKey = "";
-
-function renderShop(state) {
-  if (shop.hidden || !state) return;
-  const key = JSON.stringify(state.shop || []);
-  if (key === lastShopKey && shopItems.childElementCount) return;
-  lastShopKey = key;
-  shopItems.textContent = "";
-  for (const item of state.shop || []) {
-    const row = document.createElement("div");
-    row.className = "paint-shop-row";
-    const title = document.createElement("strong");
-    title.textContent = GUN_NAMES[item.card] || AMMO_NAMES[item.card] || item.card;
-    const meta = document.createElement("span");
-    meta.textContent = `${item.quantity} for ${item.bops} Bop${item.bops === 1 ? "" : "s"}`;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "small";
-    button.dataset.buy = String(item.card);
-    button.textContent = "Buy";
-    row.append(title, meta, button);
-    shopItems.append(row);
-  }
-  if (!shopItems.childElementCount) {
-    const empty = document.createElement("p");
-    empty.className = "muted";
-    empty.textContent = "The vending machine is empty.";
-    shopItems.append(empty);
-  }
-}
-
 function resize() {
   const rect = canvas.getBoundingClientRect();
-  const ratio = Math.min(window.devicePixelRatio || 1, 2);
-  const nextWidth = Math.max(1, Math.round(rect.width * ratio));
-  const nextHeight = Math.max(1, Math.round(rect.height * ratio));
-  if (nextWidth !== canvas.width || nextHeight !== canvas.height) {
-    canvas.width = nextWidth;
-    canvas.height = nextHeight;
+  const store = backingStoreSize(rect.width, rect.height, window.devicePixelRatio);
+  if (canvas.width !== store.width || canvas.height !== store.height) {
+    canvas.width = store.width;
+    canvas.height = store.height;
   }
-  width = canvas.width;
-  height = canvas.height;
+  context.setTransform(store.ratio, 0, 0, store.ratio, 0, 0);
+  width = store.cssWidth;
+  height = store.cssHeight;
 }
 
 function project(x, y) {
   return [offsetX + x * scale, offsetY + y * scale];
 }
 
-function drawBackground(arena) {
-  const gradient = context.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, "#0c0324");
-  gradient.addColorStop(1, "#070113");
-  context.fillStyle = gradient;
+function drawBackground(arena, state) {
+  context.fillStyle = "#070113";
   context.fillRect(0, 0, width, height);
-  const step = 5 * scale;
-  context.save();
-  context.strokeStyle = "#3d1c74";
-  context.lineWidth = Math.max(1, scale * 0.15);
-  context.beginPath();
-  for (let x = offsetX % step; x <= width; x += step) {
-    context.moveTo(x, 0);
-    context.lineTo(x, height);
-  }
-  for (let y = offsetY % step; y <= height; y += step) {
-    context.moveTo(0, y);
-    context.lineTo(width, y);
-  }
-  context.stroke();
-  context.restore();
   const [left, top] = project(0, 0);
   const [right, bottom] = project(arena.width, arena.height);
+  const image = fieldImage(state);
+  if (image) {
+    context.drawImage(image, left, top, right - left, bottom - top);
+    context.fillStyle = "#07011333";
+    context.fillRect(left, top, right - left, bottom - top);
+  } else {
+    const gradient = context.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, "#0c0324");
+    gradient.addColorStop(1, "#070113");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, width, height);
+    const step = 5 * scale;
+    context.save();
+    context.strokeStyle = "#3d1c74";
+    context.lineWidth = Math.max(1, scale * 0.15);
+    context.beginPath();
+    for (let x = offsetX % step; x <= width; x += step) {
+      context.moveTo(x, 0);
+      context.lineTo(x, height);
+    }
+    for (let y = offsetY % step; y <= height; y += step) {
+      context.moveTo(0, y);
+      context.lineTo(width, y);
+    }
+    context.stroke();
+    context.restore();
+  }
   context.save();
   context.strokeStyle = "#19e3ff";
   context.lineWidth = Math.max(2, scale * 0.45);
@@ -393,11 +489,29 @@ function seededRandom(seed, salt) {
 }
 
 function drawObstacle(obstacle) {
-  const seed = hashId(obstacle.id);
+  const image = obstacleImage(obstacle);
   context.save();
   if (obstacle.kind === "circle") {
     const [x, y] = project(obstacle.x, obstacle.y);
     const radius = obstacle.r * scale;
+    if (image) {
+      context.fillStyle = "#00000088";
+      context.beginPath();
+      context.ellipse(x, y + radius * 0.92, radius * 0.9, radius * 0.24, 0, 0, Math.PI * 2);
+      context.fill();
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.clip();
+      context.drawImage(image, x - radius, y - radius, radius * 2, radius * 2);
+      context.strokeStyle = "#0a061833";
+      context.lineWidth = Math.max(1.5, scale * 0.28);
+      context.beginPath();
+      context.arc(x, y, radius * 0.985, 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+      return;
+    }
+    const seed = hashId(obstacle.id);
     context.fillStyle = "#00000088";
     context.beginPath();
     context.ellipse(x, y + radius * 0.92, radius * 0.9, radius * 0.24, 0, 0, Math.PI * 2);
@@ -618,13 +732,18 @@ function drawPeepToken(x, y, bodyH, participant) {
 
 function drawParticipant(participant, local) {
   const [x, y] = project(participant.x, participant.y);
-  const bodyH = Math.max(40, scale * 7.5);
+  const bodyH = Math.max(40, scale * PLAYER_SPRITE_WORLD_HEIGHT);
   const flashing = Boolean(participant.flash_until && Date.parse(participant.flash_until) > Date.now());
+  const shielded = isImmune(participant);
   context.save();
   context.fillStyle = "#00000099";
   context.beginPath();
   context.ellipse(x, y + bodyH * 0.05, bodyH * 0.3, bodyH * 0.1, 0, 0, Math.PI * 2);
   context.fill();
+  if (shielded) {
+    context.shadowColor = "rgba(25,227,255,0.9)";
+    context.shadowBlur = reducedMotion() ? 12 : 14 + 8 * (0.5 + 0.5 * Math.sin(performance.now() / 1000 * 5.2));
+  }
   if (flashing) {
     try {
       context.filter = "brightness(1.8) saturate(0.5)";
@@ -645,6 +764,9 @@ function drawParticipant(participant, local) {
   } catch {
     // Ignore runtimes without canvas filter support.
   }
+  context.shadowColor = "transparent";
+  context.shadowBlur = 0;
+  if (shielded) drawShieldShimmer(x, y, bodyH);
   if (local) {
     context.fillStyle = "#19e3ff";
     context.globalAlpha = 0.95;
@@ -711,12 +833,36 @@ function updateLocalPlayer(state, delta) {
   const me = state.participants.find(entry => String(entry.id) === String(host?.user?.id));
   if (!me) {
     localPlayer = null;
+    respawnGlide = null;
+    respawnFade = null;
     return null;
   }
   const { radius, playerSpeed, moveAccel, moveFriction } = tuning(state);
   const arena = arenaSize(state);
   if (!localPlayer || localPlayer.round !== state.round) {
-    localPlayer = { x: me.x, y: me.y, vx: 0, vy: 0, round: state.round };
+    localPlayer = { x: me.x, y: me.y, vx: 0, vy: 0, round: state.round, respawn: Number(me.respawn || 0) };
+    respawnGlide = null;
+    respawnFade = null;
+  }
+  const serverRespawn = Number(me.respawn || 0);
+  if (serverRespawn !== Number(localPlayer.respawn || 0)) {
+    respawnGlide = { fromX: localPlayer.x, fromY: localPlayer.y, start: performance.now(), duration: 650 };
+    respawnFade = null;
+    localPlayer.vx = 0;
+    localPlayer.vy = 0;
+    localPlayer.round = state.round;
+    localPlayer.respawn = serverRespawn;
+  }
+  if (respawnGlide) {
+    const progress = Math.min(1, (performance.now() - respawnGlide.start) / respawnGlide.duration);
+    const ease = easeInOutQuad(progress);
+    localPlayer.x = respawnGlide.fromX + (me.x - respawnGlide.fromX) * ease;
+    localPlayer.y = respawnGlide.fromY + (me.y - respawnGlide.fromY) * ease;
+    if (progress >= 1) {
+      respawnGlide = null;
+      respawnFade = { start: performance.now(), duration: reducedMotion() ? 200 : 420 };
+    }
+    return { ...me, x: localPlayer.x, y: localPlayer.y };
   }
   const [moveX, moveY] = currentMoveVector();
   const [vx, vy] = stepVelocity(
@@ -735,6 +881,8 @@ function updateLocalPlayer(state, delta) {
     localPlayer.y = me.y;
     localPlayer.vx = 0;
     localPlayer.vy = 0;
+    localPlayer.round = state.round;
+    localPlayer.respawn = Number(me.respawn || 0);
   } else if (error > 0.75) {
     const blend = Math.min(1, delta * 6);
     localPlayer.x += (me.x - localPlayer.x) * blend;
@@ -765,6 +913,7 @@ function renderStateSnapshot(state) {
 function applySnapshotDelta(delta) {
   if (!delta || typeof delta !== "object") return;
   if (!arenaState) return;
+  const previous = new Map((arenaState.participants || []).map(entry => [String(entry?.id), entry]));
   const next = applyActivityDelta(arenaState, delta);
   if (!next) return;
   const spawnT = Number(delta.t ?? Date.now());
@@ -774,6 +923,10 @@ function applySnapshotDelta(delta) {
   serverClock.observe(spawnT);
   interpolator.push(delta.participants, spawnT);
   if (delta.participants_remove) interpolator.forget(delta.participants_remove);
+  const teleports = (delta.participants || [])
+    .filter(entry => entry && entry.respawn !== undefined && Number(entry.respawn) !== Number(previous.get(String(entry.id))?.respawn || 0))
+    .map(entry => String(entry.id));
+  if (teleports.length) interpolator.forget(teleports);
 }
 
 function draw(timestamp) {
@@ -783,12 +936,13 @@ function draw(timestamp) {
   const state = currentState();
   if (!state) return;
   const arena = arenaSize(state);
-  scale = Math.min(width / arena.width, height / arena.height);
-  offsetX = (width - arena.width * scale) / 2;
-  offsetY = (height - arena.height * scale) / 2;
   const delta = Math.min(0.1, lastFrame ? (timestamp - lastFrame) / 1000 : 0.016);
   lastFrame = timestamp;
   const me = updateLocalPlayer(state, delta);
+  scale = viewScale(width, height);
+  const focusX = me ? localPlayer.x : arena.width / 2;
+  const focusY = me ? localPlayer.y : arena.height / 2;
+  [offsetX, offsetY] = cameraOffset(width, height, scale, focusX, focusY);
   const aim = me ? currentAimVector(me) : [1, 0];
   const move = currentMoveVector();
   if (me) {
@@ -796,8 +950,9 @@ function draw(timestamp) {
   }
   const renderTime = serverClock.now() - INTERP_DELAY_MS;
   const drag = tuning(state).projectileDrag;
+  observeHits(state);
   context.clearRect(0, 0, width, height);
-  drawBackground(arena);
+  drawBackground(arena, state);
   for (const obstacle of obstacles(state)) drawObstacle(obstacle);
   for (const splat of state.splats || []) drawSplat(splat);
   for (const projectile of state.projectiles || []) {
@@ -808,12 +963,25 @@ function draw(timestamp) {
   for (const participant of state.participants || []) {
     const local = me && String(participant.id) === String(me.id);
     if (local) {
+      if (respawnGlide) continue;
+      if (respawnFade) {
+        const alpha = fadeAlpha(performance.now() - respawnFade.start, respawnFade.duration);
+        if (alpha < 1) {
+          context.save();
+          context.globalAlpha = alpha;
+          drawParticipant({ ...participant, x: localPlayer.x, y: localPlayer.y, aim }, local);
+          context.restore();
+          continue;
+        }
+        respawnFade = null;
+      }
       drawParticipant({ ...participant, x: localPlayer.x, y: localPlayer.y, aim }, local);
       continue;
     }
     const sample = interpolator.sample(participant.id, renderTime);
     drawParticipant(sample ? { ...participant, x: sample[0], y: sample[1] } : participant, local);
   }
+  drawHitEffects();
   drawSticks();
 }
 
@@ -827,21 +995,30 @@ function renderHud(state) {
   scoreboardView.textContent = (state.scoreboard || []).slice(0, 5).map(entry => `${entry.name} ${entry.hits}`).join(" · ");
   const counters = host?.user?.counters || {};
   healthView.textContent = `${Math.round(Number(counters.health || 0))}/${Math.round(Number(counters.maxHealth || 0))}`;
-  const { gun, ammo } = equippedLoadout();
-  gunView.textContent = gun ? gun.label : "None";
-  ammoView.textContent = ammo ? `${ammo.label} ×${ammo.quantity}` : "None";
+  energyView.textContent = `${Math.round(Number(counters.energy || 0))}/${Math.round(Number(counters.maxEnergy || 0))}`;
+  const me = (state.participants || []).find(entry => String(entry?.id) === String(host?.user?.id));
+  const paint = String(me?.color || "#ff4d6d");
+  paintView.textContent = paint;
+  paintView.style.color = paint;
   const lastRound = state.last_round;
   if (state.phase === "active") {
-    overlay.hidden = true;
+    podium.hidden = true;
+    lastPodiumKey = "";
   } else {
-    overlay.hidden = false;
-    overlayTitle.textContent = `Round ${state.round} complete`;
+    podium.hidden = false;
     const top = Array.isArray(lastRound?.top) ? lastRound.top.slice(0, 3) : [];
-    overlayMessage.textContent = top.length
-      ? `Top: ${top.map(entry => `${entry.name} (${entry.hits})`).join(", ")}. Next round in ${minutes}:${remainder}.`
-      : `Next round in ${minutes}:${remainder}.`;
+    const key = `${state.phase}:${state.round}:${seconds}:${JSON.stringify(top)}`;
+    if (key !== lastPodiumKey) {
+      lastPodiumKey = key;
+      renderPodium(podium, {
+        top,
+        round: Number(state.round || 0),
+        seconds,
+        imageFor: podiumImageUrl,
+        reducedMotion: Boolean(host?.config?.reducedMotion),
+      });
+    }
   }
-  renderShop(state);
 }
 
 Tiny.subscribe(next => {

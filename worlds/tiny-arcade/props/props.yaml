@@ -1,7 +1,6 @@
 paintball-vending:
-  label: Paintball Vending Machine
-  description: A neon vending machine humming with paint canisters. Buy a blaster
-    or a set of ten paintballs, then enter the arena.
+  label: Paintball Arena
+  description: A neon arena terminal humming with paint canisters. Select it to enter the arena.
   model: paintball-vending.glb
   decorative: true
   behavior: paintball
