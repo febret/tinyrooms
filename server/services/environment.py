@@ -4,33 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-import json
-import time
 
-from server.content.lighting import DAY_NIGHT_CYCLE_SECONDS, cycle_phase
 from server.content.worlds import WorldDefinition
 from server.security import utc_now
 from server.state.migrations import DatabaseHub
 from server.state.world_state import WorldStateRepository
 
-
 ENVIRONMENT_KEYS = ("lighting", "lighting_expires_at", "hidden_props", "disabled_exits", "disabled_actions")
-DIORAMA_BOARD_TYPE = "diorama"
-
-
-def diorama_environment(
-    environment: dict[str, object],
-    *,
-    now: float | None = None,
-) -> dict[str, object]:
-    """Add the shared wall-clock phase that drives a diorama's day/night cycle"""
-
-    seconds = time.time() if now is None else float(now)
-    return {
-        **environment,
-        "time_of_day": round(cycle_phase(seconds), 6),
-        "day_cycle_seconds": DAY_NIGHT_CYCLE_SECONDS,
-    }
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,17 +101,7 @@ class EnvironmentService:
         return EnvironmentUpdate(room_id=room_id, revision=revision, environment=dict(environment))
 
     def _read(self, connection, room_id: str) -> tuple[dict[str, object], int]:
-        row = connection.execute(
-            "SELECT environment_json, layout_revision FROM world.room_states WHERE room_id = ?",
-            (room_id,),
-        ).fetchone()
-        if row is None:
-            return {}, 0
-        try:
-            environment = json.loads(row["environment_json"])
-        except (TypeError, ValueError):
-            environment = {}
-        return (environment if isinstance(environment, dict) else {}), int(row["layout_revision"])
+        return self._world_state.read_room_environment_in_transaction(connection, room_id)
 
     def expire(self, room_id: str) -> EnvironmentUpdate | None:
         """Remove expired entries and return a revisioned update when changed."""

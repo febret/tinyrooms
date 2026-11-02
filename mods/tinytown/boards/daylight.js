@@ -5,17 +5,17 @@ import * as THREE from "three";
 // The server is authoritative for the cycle length and always sends
 // day_cycle_seconds in snapshots (see DAY_NIGHT_CYCLE_SECONDS in
 // server/content/lighting.py). This constant is only a fallback for rooms
-// whose snapshot carries no usable duration; a parity test pins the two
-// together, since the runtimes cannot share code.
-export const DIORAMA_CYCLE_SECONDS = 600.0;
+// whose snapshot carries no usable duration; keep the two values in sync.
+export const DAY_CYCLE_SECONDS = 600.0;
 
-/** Normalize a room environment phase into a continuous ten-minute cycle. */
+/** Normalize the resolved lighting state into a continuous ten-minute cycle. */
 export function normalizeDayCycle(environment) {
-  const rawDuration = Number(environment?.day_cycle_seconds);
+  const lighting = environment?.lighting_preset;
+  const rawDuration = Number(lighting?.day_cycle_seconds);
   const duration = Number.isFinite(rawDuration) && rawDuration >= 30
     ? Math.min(rawDuration, 900)
-    : DIORAMA_CYCLE_SECONDS;
-  const rawPhase = Number(environment?.time_of_day);
+    : DAY_CYCLE_SECONDS;
+  const rawPhase = Number(lighting?.time_of_day);
   const fallback = ((Date.now() / 1000) % duration) / duration;
   const phase = Number.isFinite(rawPhase) ? rawPhase : fallback;
   return { phase: ((phase % 1) + 1) % 1, duration };
@@ -23,7 +23,7 @@ export function normalizeDayCycle(environment) {
 
 /** Advance a cycle by elapsed seconds, wrapping at its duration. */
 export function cyclePhaseAt(cycle, elapsedSeconds) {
-  const duration = cycle.duration || DIORAMA_CYCLE_SECONDS;
+  const duration = cycle.duration || DAY_CYCLE_SECONDS;
   const elapsed = Number.isFinite(elapsedSeconds) ? elapsedSeconds : 0;
   return (((cycle.phase + elapsed / duration) % 1) + 1) % 1;
 }

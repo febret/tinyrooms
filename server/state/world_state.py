@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
+import json
+import sqlite3
+import threading
+import uuid
 from copy import deepcopy
 from dataclasses import dataclass
-import json
-import threading
 from typing import Any
-import sqlite3
-import uuid
 
 from server.content.worlds import InitialRoomCard, WorldDefinition
 from server.protocol import MAX_HISTORY_MESSAGES
 from server.security import utc_now
 from server.state.migrations import DatabaseHub
-
 
 PLAYER_ROOM_PREFIX = "classroom:"
 
@@ -30,6 +29,19 @@ def _position_from_json(raw: str) -> tuple[float, float, float]:
         return (float(values[0]), float(values[1]), float(values[2]))
     except (ValueError, TypeError):
         return (50.0, 50.0, 0.0)
+
+
+def _environment_from_row(row: object | None) -> tuple[dict[str, Any], int]:
+    """Decode a ``room_states`` row into environment state and revision."""
+
+    if row is None:
+        return {}, 0
+    try:
+        environment = json.loads(row["environment_json"])
+    except (TypeError, ValueError):
+        environment = {}
+    resolved = environment if isinstance(environment, dict) else {}
+    return resolved, int(row["layout_revision"])
 
 
 class LayoutRevisionConflict(ValueError):
@@ -510,17 +522,23 @@ class WorldStateRepository:
                 "SELECT environment_json, layout_revision FROM world.room_states WHERE room_id = ?",
                 (room_id,),
             ).fetchone()
-        if row is None:
-            return {}, 0
-        try:
-            environment = json.loads(row["environment_json"])
-        except (TypeError, ValueError):
-            environment = {}
-        resolved = environment if isinstance(environment, dict) else {}
-        revision = int(row["layout_revision"])
+        resolved, revision = _environment_from_row(row)
         with self._environment_lock:
             self._environment_cache[room_id] = (resolved, revision)
         return deepcopy(resolved), revision
+
+    def read_room_environment_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        room_id: str,
+    ) -> tuple[dict[str, Any], int]:
+        """Read environment state inside a caller-owned transaction."""
+
+        row = connection.execute(
+            "SELECT environment_json, layout_revision FROM world.room_states WHERE room_id = ?",
+            (room_id,),
+        ).fetchone()
+        return _environment_from_row(row)
 
     def invalidate_room_environment(self, room_id: str | None = None) -> None:
         """Drop cached environment rows, for one room or all of them."""

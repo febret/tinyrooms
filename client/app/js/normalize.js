@@ -735,12 +735,8 @@ export function normalizeMinimapTile(tile) {
     imageUrl: assetOrEmpty(tile.image_url),
     palette: Array.isArray(tile.palette) ? tile.palette.map(String) : [],
     dark: Boolean(tile.dark),
-    lighting: tile.lighting && typeof tile.lighting === "object"
-      ? {
-        name: String(tile.lighting.name || ""),
-        color: String(tile.lighting.color || "#ffffff"),
-        level: Number(tile.lighting.level || 0),
-      }
+    lighting: tile.lighting && typeof tile.lighting === "object" && tile.lighting.name
+      ? { name: String(tile.lighting.name) }
       : null,
   };
 }
@@ -764,6 +760,8 @@ export function normalizeRoom(room, previousRoom = null) {
   const sameRoom = Boolean(previousRoom) && String(previousRoom.id) === String(room.id);
   const keepProps = sameRoom && (room.props_unchanged === true || !("props" in room));
   const keepExits = sameRoom && (room.exits_unchanged === true || !("exits" in room));
+  const environment = normalizeEnvironment(room.environment);
+  const lighting = environment.lighting_preset;
   return {
     id: String(room.id || ""),
     label: String(room.label || "Room"),
@@ -778,14 +776,14 @@ export function normalizeRoom(room, previousRoom = null) {
       imageUrl: assetOrEmpty(room.board?.image_url),
       imageStyle: String(room.board?.image_style || ""),
       palette: Array.isArray(room.board?.palette) ? [...room.board.palette] : [],
-      dark: Boolean(room.board?.dark),
-      baseDark: Boolean(room.board?.base_dark ?? room.board?.dark),
+      dark: Boolean(lighting?.dark ?? room.board?.dark),
+      baseDark: Boolean(lighting?.base_dark ?? lighting?.dark ?? room.board?.base_dark ?? room.board?.dark),
       spritesEnabled: Boolean(room.board?.sprites_enabled),
       spriteScale: Number(room.board?.sprite_scale) > 0 ? Number(room.board?.sprite_scale) : 1,
     },
     activities: normalizeRoomActivities(room.activities),
     note: String(room.metadata?.note || ""),
-    environment: normalizeEnvironment(room.environment),
+    environment,
     environmentRevision: Number(room.environment_revision || 0),
     transition: normalizeRoomTransition(room.transition),
     grid: normalizeGridPosition(room.grid),

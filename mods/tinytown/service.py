@@ -17,7 +17,6 @@ from mods.tinytown.catalog import (
     MAX_NPCS_PER_HOUSE,
 )
 from mods.tinytown.content import FloorTexture, HouseRecord, HouseTemplate, load_floor_textures, load_house_templates
-from mods.tinytown.day_night import DayNightCycle
 from mods.tinytown.gallery import TinytownGallery
 from mods.tinytown.npcs import NpcHouse
 from server.content.room_grid import allocate_grid_block, extend_grid_cluster, room_grid_enabled
@@ -1078,7 +1077,6 @@ class TinytownService:
         self.npcs = self.housing.npcs
         self.roommates = self.housing.roommates
         self.market = self.housing.market
-        self._day_night = DayNightCycle(runtime)
 
     @property
     def available(self) -> bool:
@@ -1092,7 +1090,6 @@ class TinytownService:
 
     def start(self) -> None:
         self.npcs.start()
-        self._day_night.start()
         self._wire_dialog_settlement()
 
     def _wire_dialog_settlement(self) -> None:
@@ -1103,7 +1100,6 @@ class TinytownService:
 
     def stop(self) -> None:
         self.npcs.stop()
-        self._day_night.stop()
 
     def npc_payload(self, peep: object, room_id: str | None) -> dict[str, object] | None:
         return self.npcs.npc_payload(peep, room_id)

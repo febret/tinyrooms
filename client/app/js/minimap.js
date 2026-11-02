@@ -1,4 +1,5 @@
 import { escapeHtml } from "./presentation.js";
+import { minimapTint } from "./board/board-lighting.js";
 
 export const MINIMAP_RADIUS = 2;
 export const MINIMAP_DIRECTIONS = [
@@ -58,9 +59,10 @@ export function minimapModel(room) {
 
 function tileMarkup(tile) {
   const fallback = Array.isArray(tile.palette) && tile.palette[0] ? `background-color:${escapeHtml(tile.palette[0])};` : "";
-  const level = Number(tile.lighting?.level);
-  const shade = Number.isFinite(level)
-    ? `background-color:${escapeHtml(tile.lighting?.color || "#000000")};opacity:${Math.min(0.78, Math.max(0, (1 - level) * 0.72)).toFixed(2)};`
+  const name = tile.lighting?.name;
+  const tint = name ? minimapTint(name) : null;
+  const shade = tint
+    ? `background-color:${escapeHtml(tint.color)};opacity:${Math.min(0.78, Math.max(0, (1 - tint.level) * 0.72)).toFixed(2)};`
     : "";
   return `<span class="mini-cell is-room${tile.current ? " is-current" : ""}${tile.dark ? " is-dark" : ""}" style="--mini-column:${tile.column + 1};--mini-row:${tile.row + 1};${fallback}" title="${escapeHtml(tile.label)}">`
     + `${tile.imageUrl ? `<img class="mini-floor" src="${escapeHtml(tile.imageUrl)}" alt="" aria-hidden="true" draggable="false">` : ""}`

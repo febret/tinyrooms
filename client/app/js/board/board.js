@@ -194,6 +194,14 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     return spritesChanged || cardsChanged;
   }
 
+  /** Paint the diorama backdrop and tint sprites/cards from one daylight frame. */
+  function applyDioramaDaylight(day) {
+    if (!current || !day) return false;
+    applyBoardBackdrop(canvas, day.sky, day.ground);
+    spriteLighting = roomDark ? DARK_SPRITE_LIGHTING : spriteLightingForPreset(day);
+    return applySpriteLighting(current, spriteLighting);
+  }
+
   const clock = new THREE.Clock();
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -842,7 +850,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     const enabled = Boolean(room.board?.spritesEnabled);
     const actors = enabled ? [...(room.occupants || []), ...(room.npcs || [])] : [];
     const spriteScale = Number(room.board?.spriteScale) > 0 ? Number(room.board?.spriteScale) : 1;
-    spriteLayer.sync(entry, actors, roomDark, spriteScale);
+    spriteLayer.sync(entry, actors, spriteScale);
   }
 
   /** Replace the floor only when the board artwork or palette actually changes. */
@@ -1385,12 +1393,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       const dioramaFrame = current.diorama?.update(delta, { reducedMotion });
       if (current.diorama) {
         current.diorama.setSceneLights(lights);
-        const day = dioramaFrame?.daylight;
-        if (day) {
-          applyBoardBackdrop(canvas, day.sky, day.ground);
-          spriteLighting = roomDark ? DARK_SPRITE_LIGHTING : spriteLightingForPreset(day);
-          applySpriteLighting(current, spriteLighting);
-        }
+        applyDioramaDaylight(dioramaFrame?.daylight);
       }
       if (roomScared && !reducedMotion && !editEnabled) scaredShake(current.root, clock.elapsedTime);
       for (const record of current.props.values()) {
@@ -1530,9 +1533,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         current.diorama.setRoomDark(roomDark);
         current.diorama.setSceneLights(lights);
         syncPropLights(lightSelection.lights);
-        const day = current.diorama.daylight;
-        applyBoardBackdrop(canvas, day.sky, day.ground);
-        spriteLighting = roomDark ? DARK_SPRITE_LIGHTING : spriteLightingForPreset(day);
+        if (applyDioramaDaylight(current.diorama.daylight)) invalidate();
       } else {
         resetBoardLights(lights);
         if (applyEnvironmentLighting(lights, preset, renderer, ambientSources.lamps, ambientSources.windows)) invalidate();
@@ -1540,8 +1541,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         const backdrop = backdropForPreset(preset);
         applyBoardBackdrop(canvas, backdrop.top, backdrop.bottom);
         spriteLighting = spriteLightingForPreset(preset);
+        if (applySpriteLighting(current, spriteLighting)) invalidate();
       }
-      if (applySpriteLighting(current, spriteLighting)) invalidate();
       for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
       updateSelection();
     },

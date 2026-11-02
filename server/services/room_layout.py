@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-import json
-from pathlib import Path
 import re
 import uuid
+from dataclasses import dataclass
+from pathlib import Path
 
 from server.content.exit_props import (
     EXIT_STYLES_BY_KIND,
@@ -14,6 +13,7 @@ from server.content.exit_props import (
     validate_exit_finish,
 )
 from server.content.prop_definitions import instance_scale_for
+from server.content.sounds import sounds_payload
 from server.content.surface_props import (
     DEFAULT_SIGN_STYLE,
     MAX_SIGN_PROPS,
@@ -37,7 +37,6 @@ from server.content.worlds import (
     WorldDefinition,
     prop_model_url,
 )
-from server.content.sounds import sounds_payload
 from server.profiles import AccountRecord
 from server.services.environment import EnvironmentService
 from server.services.lighting import is_toggleable
@@ -537,19 +536,8 @@ class RoomLayoutService:
             prop_instance_ids=tuple(room.props.keys()),
         )
 
-    @staticmethod
-    def _read(connection, room_id: str) -> tuple[dict[str, object], int]:
-        row = connection.execute(
-            "SELECT environment_json, layout_revision FROM world.room_states WHERE room_id = ?",
-            (room_id,),
-        ).fetchone()
-        if row is None:
-            return {}, 0
-        try:
-            environment = json.loads(row["environment_json"])
-        except (TypeError, ValueError):
-            environment = {}
-        return (environment if isinstance(environment, dict) else {}), int(row["layout_revision"])
+    def _read(self, connection, room_id: str) -> tuple[dict[str, object], int]:
+        return self._world_state.read_room_environment_in_transaction(connection, room_id)
 
     def _validate_props(
         self,

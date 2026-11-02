@@ -952,7 +952,8 @@ export function createTinytownBoard({
   let roomDark = false;
   let disposed = false;
   let lastShadowAt = -10;
-  let lastPhase = -1;
+  let lastPhase = cycle.phase;
+  let lastDaylight = daylightForPhase(cycle.phase);
 
   function applyLighting(day) {
     setExposure(day.exposure);
@@ -968,10 +969,6 @@ export function createTinytownBoard({
       light.intensity = day.night * 6.05 * flicker;
     }
     fireflyMaterial.opacity = day.night * 0.9;
-  }
-
-  function currentDaylight() {
-    return daylightForPhase(cyclePhaseAt(cycle, (performance.now() - startedAt) / 1000));
   }
 
   function update(delta, { reducedMotion = false } = {}) {
@@ -999,13 +996,15 @@ export function createTinytownBoard({
       requestShadow();
     }
     lastPhase = phase;
+    lastDaylight = day;
     return { phase, daylight: day };
   }
 
   function setSceneLights(lights) {
-    // The diorama owns the shared scene lights while it is visible.
-    const phase = cyclePhaseAt(cycle, (performance.now() - startedAt) / 1000);
-    const day = daylightForPhase(phase);
+    // The diorama owns the shared scene lights while it is visible. Reuse the
+    // frame's cached daylight instead of recomputing the clock here.
+    const phase = lastPhase;
+    const day = lastDaylight;
     const solar = (phase - 0.25) * Math.PI * 2;
     const lampAmbient = Math.min(lampLights.length * 0.012, 0.16) * day.night;
     lights.hemisphere.color.copy(day.sky);
@@ -1033,7 +1032,7 @@ export function createTinytownBoard({
       roomDark = Boolean(value);
     },
     get daylight() {
-      return currentDaylight();
+      return lastDaylight;
     },
     get phase() {
       return lastPhase;

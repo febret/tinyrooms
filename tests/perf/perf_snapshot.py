@@ -212,13 +212,12 @@ class SnapshotContentTests(PerfCase):
             """Drop wall-clock-driven keys that advance between two snapshots.
 
             ``time_of_day`` is ``round(cycle_phase(time.time()), 6)`` (see
-            ``LightingService.snapshot_payload`` and ``diorama_environment``), so
-            two back-to-back snapshots can differ in the 6th decimal even when
-            the cache is correct. The cache owns persisted keys, not the phase.
+            ``LightingService.snapshot_payload``), so two back-to-back snapshots
+            can differ in the 6th decimal even when the cache is correct. The
+            cache owns persisted keys, not the phase.
             """
 
             scrubbed = dict(environment)
-            scrubbed.pop("time_of_day", None)
             preset = scrubbed.get("lighting_preset")
             if isinstance(preset, dict):
                 scrubbed["lighting_preset"] = {

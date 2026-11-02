@@ -6,17 +6,14 @@
 
 import * as THREE from "three";
 
-const LIT_LIGHTING = {
-  hemisphere: 1.45,
-  sunlight: 2,
-  fill: 0.45,
-};
+import { LIGHTING_PRESETS } from "./board-lighting.js";
 
 /** Create the scene's fixed lights, including the shadow-casting sun. */
 export function createBoardLights(scene) {
-  const hemisphere = new THREE.HemisphereLight("#fff2d5", "#496e69", LIT_LIGHTING.hemisphere);
+  const day = LIGHTING_PRESETS.day;
+  const hemisphere = new THREE.HemisphereLight(day.hemisphereSky, day.hemisphereGround, day.hemisphere);
   scene.add(hemisphere);
-  const sunlight = new THREE.DirectionalLight("#ffe6bb", LIT_LIGHTING.sunlight);
+  const sunlight = new THREE.DirectionalLight(day.sun, day.sunlight);
   sunlight.position.set(-5, 12, 7);
   sunlight.castShadow = true;
   sunlight.shadow.mapSize.set(2048, 2048);
@@ -24,7 +21,7 @@ export function createBoardLights(scene) {
   sunlight.shadow.normalBias = 0.025;
   sunlight.shadow.bias = -0.0001;
   scene.add(sunlight);
-  const fill = new THREE.DirectionalLight("#bce2df", LIT_LIGHTING.fill);
+  const fill = new THREE.DirectionalLight(day.fillColor, day.fill);
   fill.position.set(5, 5, -4);
   scene.add(fill);
   return { hemisphere, sunlight, fill };
@@ -38,11 +35,12 @@ export function selfIsScared(state) {
 
 /** Restore the canonical scene lights after a room owns them temporarily. */
 export function resetBoardLights({ hemisphere, sunlight, fill }) {
-  hemisphere.color.set("#fff2d5");
-  hemisphere.groundColor.set("#496e69");
-  sunlight.color.set("#ffe6bb");
+  const day = LIGHTING_PRESETS.day;
+  hemisphere.color.set(day.hemisphereSky);
+  hemisphere.groundColor.set(day.hemisphereGround);
+  sunlight.color.set(day.sun);
   sunlight.position.set(-5, 12, 7);
-  fill.color.set("#bce2df");
+  fill.color.set(day.fillColor);
 }
 
 /** Offset a room group by an erratic, high-frequency shake (no-op when settled). */

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { DARK_SPRITE_LIGHTING, lightingTint, lightingTintKey } from "./board-lighting.js";
+import { lightingTint, lightingTintKey } from "./board-lighting.js";
 import { boardPosition } from "./board-helpers.js";
 import { loadSharedTexture, sharedTexture } from "./board-resources.js";
 import { decalCanvas, stinkCanvas } from "../decals.js";
@@ -38,13 +38,8 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     record.sprite.scale.set(record.baseScale[0], record.baseScale[1], 1);
   }
 
-  function currentTint(record) {
-    if (record.dark) return DARK_SPRITE_LIGHTING;
-    return record.lighting || { color: "#ffffff", opacity: 1 };
-  }
-
   function applyTint(record) {
-    const tint = currentTint(record);
+    const tint = record.lighting || { color: "#ffffff", opacity: 1 };
     if (!record.reaction) record.material.color.set(tint.color);
     record.material.opacity = tint.opacity;
     for (const overlay of [record.decalOverlay, record.stinkOverlay]) {
@@ -113,7 +108,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     });
   }
 
-  function add(entry, actor, dark) {
+  function add(entry, actor) {
     const id = String(actor.id);
     const material = new THREE.SpriteMaterial({
       transparent: true,
@@ -131,7 +126,6 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       target: targetPosition(actor.spritePosition),
       url: "",
       failed: false,
-      dark: Boolean(dark),
       lighting: null,
       lightingKey: "",
       baseScale: [SPRITE_HEIGHT, SPRITE_HEIGHT],
@@ -227,14 +221,9 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     invalidate();
   }
 
-  function update(entry, record, actor, dark) {
+  function update(entry, record, actor) {
     record.actor = actor;
     record.target.copy(targetPosition(actor.spritePosition));
-    if (record.dark !== Boolean(dark)) {
-      record.dark = Boolean(dark);
-      applyTint(record);
-      record.material.needsUpdate = true;
-    }
     const url = String(actor.stickerUrl || "");
     if (url !== record.url) {
       record.failed = false;
@@ -248,7 +237,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     syncStinkOverlay(entry, record, actor);
   }
 
-  function sync(entry, actors, dark = false, spriteScale = 1) {
+  function sync(entry, actors, spriteScale = 1) {
     const nextScale = Number(spriteScale) > 0 ? Number(spriteScale) : 1;
     if (entry.spriteScale !== nextScale) {
       entry.spriteScale = nextScale;
@@ -267,9 +256,9 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     }
     for (const [id, actor] of wanted) {
       const existing = entry.sprites.get(id);
-      if (existing) update(entry, existing, actor, dark);
+      if (existing) update(entry, existing, actor);
       else {
-        const record = add(entry, actor, dark);
+        const record = add(entry, actor);
         syncDecalOverlay(entry, record, actor);
         syncStinkOverlay(entry, record, actor);
       }

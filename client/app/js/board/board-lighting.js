@@ -50,6 +50,22 @@ export const LIGHTING_PRESETS = {
   },
 };
 
+// Minimap shading is a client presentation detail; the server only sends the
+// environment name. These match the old server-side preset colors exactly.
+const MINIMAP_TINTS = {
+  darkness: { color: "#000000", level: 0 },
+  night: { color: "#33456e", level: 0.35 },
+  dusk: { color: "#c98a6b", level: 0.65 },
+  day: { color: "#fff3d9", level: 1 },
+  dawn: { color: "#f7c9a0", level: 0.75 },
+  fluorescent: { color: "#d8c86a", level: 0.55 },
+};
+
+/** Color/level pair used to shade one minimap tile. */
+export function minimapTint(name) {
+  return MINIMAP_TINTS[name] || { color: "#ffffff", level: 1 };
+}
+
 /** Dark-room tint shared by peep sprites, room cards, and the darkness preset. */
 export const DARK_SPRITE_LIGHTING = Object.freeze({
   color: LIGHTING_PRESETS.darkness.spriteColor,
@@ -71,9 +87,10 @@ const AMBIENT_MAX_TOTAL = 2.0;
 export function resolveRoomLighting(room) {
   const preset = room?.environment?.lighting_preset;
   const hasPreset = typeof preset?.name === "string" && LIGHTING_PRESETS[preset.name];
-  // The board's effective darkness wins: a room darkened at runtime serializes
-  // its props as dark, so a stale or mismatched preset must not light the scene.
-  const name = room?.board?.dark ? "darkness" : (hasPreset ? preset.name : "day");
+  // The normalized board flag is updated immediately when runtime lighting or
+  // its expiry timer changes, so it wins over a possibly stale snapshot preset.
+  const dark = Boolean(room?.board?.dark ?? preset?.dark);
+  const name = dark ? "darkness" : (hasPreset ? preset.name : "day");
   return { name, ...LIGHTING_PRESETS[name] };
 }
 

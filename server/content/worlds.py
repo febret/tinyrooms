@@ -28,7 +28,7 @@ from server.content.cutscenes import (
 )
 from server.content.fx import load_effect_catalog
 from server.content.room_activities import RoomActivityDefinition, load_room_activities
-from server.content.lighting import DEFAULT_LIGHTING_ENVIRONMENT, validate_lighting_name
+from server.content.lighting import validate_lighting_name
 from server.content.prop_definitions import (
     DEFAULT_PROP_PRICE,
     FREE_PROPSET_SOURCES,
@@ -76,7 +76,8 @@ from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS
 
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
-BOARD_TYPES = frozenset({"basic", "diorama"})
+DIORAMA_BOARD_TYPE = "diorama"
+BOARD_TYPES = frozenset({"basic", DIORAMA_BOARD_TYPE})
 BOARD_DESIGN_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 BOARD_DESIGN_OPTION_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 DEFAULT_EXIT_TRANSITION = "crossfade"
@@ -247,13 +248,9 @@ class WorldDefinition:
     image_path: Path | None = None
     stylesheet_name: str = ""
     stylesheet_path: Path | None = None
-    global_environment: str = "day"
-    # The explicit world.yaml ``environment`` value, or None when the author
-    # left it out. Unlike ``global_environment`` (which defaults to "day"),
-    # this distinguishes "author pinned the whole world" from "no opinion",
-    # so LightingService can let an explicit world override freeze the
-    # day-night cycle while omitted worlds keep cycling.
-    global_environment_override: str | None = None
+    # An explicit world.yaml ``environment`` value pins every inheriting room.
+    # None means the world follows the shared day-night cycle.
+    environment: str | None = None
 
 
 def apply_room_grid(
@@ -668,10 +665,9 @@ def load_world_definition(
             raise ContentError(f"World '{world_id}' references missing stylesheet '{stylesheet_name}'.")
         stylesheet_path = candidate
     requires_mods = tuple(str(entry).strip() for entry in world_payload.get("requires_mods", []) or [])
-    explicit_global_environment = validate_lighting_name(
+    world_environment = validate_lighting_name(
         world_payload.get("environment"), f"World '{world_id}' environment"
     )
-    global_environment = explicit_global_environment or DEFAULT_LIGHTING_ENVIRONMENT
     if enabled_mods is not None:
         missing_mods = sorted(set(requires_mods) - set(enabled_mods))
         if missing_mods:
@@ -1085,6 +1081,5 @@ def load_world_definition(
     image_path=world_image_path,
     stylesheet_name=stylesheet_name,
     stylesheet_path=stylesheet_path,
-    global_environment=global_environment,
-    global_environment_override=explicit_global_environment,
+    environment=world_environment,
 )

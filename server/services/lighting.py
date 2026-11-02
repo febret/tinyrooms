@@ -5,15 +5,12 @@ from __future__ import annotations
 import time
 
 from server.content.lighting import (
-    DAY_NIGHT_CYCLE_SECONDS,
     DEFAULT_LIGHTING_ENVIRONMENT,
+    cycle_payload,
     cycle_phase,
     phase_to_environment,
-    preset_for,
-    serialize_preset,
 )
-from server.content.worlds import WorldDefinition
-
+from server.content.worlds import DIORAMA_BOARD_TYPE, WorldDefinition
 
 WINDOW_TAG = "window"
 FIXTURE_TAGS = frozenset({"lighting", "lamp", "lantern", "sconce"})
@@ -56,7 +53,7 @@ class LightingService:
        override that freezes the cycle for the whole world; worlds that omit
        the key keep cycling)
     4. live day-night cycle bucket for the shared wall-clock phase
-    5. ``world.global_environment`` / default ``"day"`` safety net
+    5. default ``"day"`` safety net for missing rooms
     """
 
     def __init__(self, world: WorldDefinition) -> None:
@@ -80,25 +77,29 @@ class LightingService:
     def follows_cycle(self, room_id: str) -> bool:
         """Return whether a room tracks the live day-night cycle.
 
-        Rooms with an authored ``dark`` flag, a per-room ``environment``, or
-        an explicit world ``environment`` are pinned and never follow the
-        cycle. Everything else inherits the current cycle bucket.
+        Rooms with an authored ``dark`` flag, a per-room ``environment``, an
+        explicit world ``environment``, or a diorama board (which owns its
+        lighting) are pinned and never follow the cycle.
         """
 
         room = self._world.rooms.get(room_id)
         if room is None or room.dark or room.environment:
             return False
-        return getattr(self._world, "global_environment_override", None) is None
+        if getattr(room, "board_type", "") == DIORAMA_BOARD_TYPE:
+            return False
+        return getattr(self._world, "environment", None) is None
+
+    def mode(self, room_id: str) -> str:
+        """Return ``cycle`` when the room follows the shared clock, else ``fixed``."""
+
+        return "cycle" if self.follows_cycle(room_id) else "fixed"
 
     def poll_cycle_change(self) -> list[str] | None:
         """Return cycle-following rooms when the cycle bucket changed.
 
-        Compares the current bucket against the last notified one, so the
-        ticker hook and the TinyTown mod driver can share one instance
-        without double-broadcasting: the first caller consumes the change
-        and later callers see ``None`` until the next bucket flip. Returns
-        ``None`` when the bucket is unchanged (or on the very first call,
-        which only arms the baseline without fanning out).
+        Compares the current bucket against the last notified one, so repeated
+        polls consume each bucket flip once. Returns ``None`` when the bucket
+        is unchanged (or on the very first call, which only arms the baseline).
         """
 
         current = self.cycle_environment()
@@ -125,22 +126,30 @@ class LightingService:
             return "darkness"
         if room is not None and room.environment:
             return room.environment
-        override = getattr(self._world, "global_environment_override", None)
-        if isinstance(override, str) and override:
-            return override
+        world_environment = getattr(self._world, "environment", None)
+        if isinstance(world_environment, str) and world_environment:
+            return world_environment
         if room is None:
-            return getattr(self._world, "global_environment", DEFAULT_LIGHTING_ENVIRONMENT)
+            return DEFAULT_LIGHTING_ENVIRONMENT
         return self.cycle_environment()
 
     def snapshot_payload(self, room_id: str, *, dark: bool | None = None) -> dict[str, object]:
-        """Serialize the resolved lighting plus the shared cycle phase.
+        """Serialize the single resolved lighting state for a room.
 
-        *dark* is the effective room darkness (for example from a dynamic
-        lighting override). When omitted, the authored ``room.dark`` flag is
-        used, preserving the previous behavior.
+        Every room carries the same shape: the effective preset plus whether it
+        follows the shared clock, the shared cycle phase, and effective
+        darkness. Diorama boards read the phase from here too, so there is no
+        second top-level copy of the clock.
         """
 
-        payload = serialize_preset(preset_for(self.environment_name(room_id, dark)))
-        payload["time_of_day"] = round(self.phase_now(), 6)
-        payload["day_cycle_seconds"] = DAY_NIGHT_CYCLE_SECONDS
+        room = self._world.rooms.get(room_id)
+        if dark is None:
+            dark = room is not None and room.dark
+        payload: dict[str, object] = {
+            "name": self.environment_name(room_id, dark),
+            **cycle_payload(time.time()),
+            "mode": self.mode(room_id),
+            "dark": bool(dark),
+            "base_dark": bool(room is not None and room.dark),
+        }
         return payload

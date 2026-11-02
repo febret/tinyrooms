@@ -2,19 +2,27 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-import logging
-import sqlite3
 
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
 from server.content.exit_props import EXIT_STYLES_BY_KIND, default_exit_finish
-from server.content.lighting import preset_for, serialize_preset
 from server.content.room_grid import direction_between
 from server.content.sounds import sounds_payload
 from server.content.surface_props import DEFAULT_SIGN_STYLE, validate_sign_style
-from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
+from server.content.worlds import (
+    DIORAMA_BOARD_TYPE,
+    ExitDefinition,
+    PeepDefinition,
+    PropDefinition,
+    PropInstanceDefinition,
+    QuickAction,
+    RoomDefinition,
+    WorldDefinition,
+    prop_model_url,
+)
 from server.gameplay_options import DEFAULT_GAMEPLAY_OPTIONS, GameplayOptions
 from server.profiles import AccountRecord, ProfileRepository
 from server.protocol import (
@@ -26,7 +34,6 @@ from server.protocol import (
 )
 from server.services.activities import ActivityService
 from server.services.cards import CardService
-from server.services.environment import DIORAMA_BOARD_TYPE, diorama_environment
 from server.services.lighting import (
     FIXTURE_LIGHT_COLOR,
     WINDOW_NIGHT_COLOR,
@@ -37,6 +44,8 @@ from server.services.lighting import (
 from server.services.npc_movement import NpcMove, resolve_npc_move
 from server.services.prop_actions import (
     exit_command as make_exit_command,
+)
+from server.services.prop_actions import (
     merged_prop_actions,
     normalize_quick_action,
     surface_actions,
@@ -49,7 +58,6 @@ from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
 from server.state.npc_peep_states import NpcPeepStateRepository
 from server.state.world_state import WorldStateRepository
-
 
 LOGGER = logging.getLogger("tinyrooms.rooms")
 
@@ -203,7 +211,7 @@ class RoomService:
             return {account.id: account.username_display for account in accounts}
         try:
             return titles.display_labels(accounts)
-        except Exception:  # noqa: BLE001 - labels must not break room serialization
+        except Exception:
             LOGGER.exception("room.title_labels_failed")
             return {account.id: account.username_display for account in accounts}
 
@@ -675,7 +683,7 @@ class RoomService:
                 continue
             try:
                 extra = hook(peep, resolved_room_id)
-            except Exception:  # noqa: BLE001 - mod decoration must not break snapshots
+            except Exception:
                 LOGGER.exception("room.mod_npc_payload_failed")
                 continue
             if isinstance(extra, dict):
@@ -774,7 +782,7 @@ class RoomService:
                 continue
             try:
                 problem = validate(account, room_id, x, y)
-            except Exception:  # noqa: BLE001 - movement validators must not break rooms
+            except Exception:
                 LOGGER.exception("room.mod_sprite_validation_failed")
                 continue
             if problem:
@@ -822,7 +830,7 @@ class RoomService:
                     str(effective.get("board_image_style") or room.board_image_style),
                     list(effective.get("palette") or room.palette),
                 )
-            except Exception:  # noqa: BLE001 - minimap must fall back to authored floors
+            except Exception:
                 LOGGER.exception("room.minimap_board_failed")
         return room.board_image_name, room.board_image_style, list(room.palette)
 
@@ -841,7 +849,12 @@ class RoomService:
             if z != current_z or abs(x - current_x) > radius or abs(y - current_y) > radius:
                 continue
             board_image, board_style, palette = self._minimap_board(candidate)
-            environment_name = self._lighting.environment_name(candidate.id)
+            dark = (
+                self._environment.lighting(candidate.id) == "dark"
+                if self._environment is not None
+                else candidate.dark
+            )
+            lighting = self._lighting.snapshot_payload(candidate.id, dark=dark)
             tiles.append(
                 {
                     "id": candidate.id,
@@ -850,8 +863,8 @@ class RoomService:
                     "image_url": f"/assets/world/{self._world.id}/rooms/{board_image}",
                     "image_style": board_style,
                     "palette": palette,
-                    "dark": candidate.dark,
-                    "lighting": serialize_preset(preset_for(environment_name)),
+                    "dark": bool(lighting["dark"]),
+                    "lighting": lighting,
                 }
             )
         tiles.sort(key=lambda tile: (tile["position"][1], tile["position"][0]))
@@ -925,7 +938,7 @@ class RoomService:
                     continue
                 try:
                     personal = personal_actions(account, prop)
-                except Exception:  # noqa: BLE001 - mod actions must not break props
+                except Exception:
                     LOGGER.exception("room.mod_personal_actions_failed")
                     continue
                 if personal:
@@ -1064,21 +1077,20 @@ class RoomService:
         else:
             dark = room.dark
         if room.board_type == DIORAMA_BOARD_TYPE:
-            environment = diorama_environment(environment)
             for state in self._mod_states:
                 hook = getattr(state, "diorama_payload", None)
                 if hook is None:
                     continue
                 try:
                     extra = hook(account, room)
-                except Exception:  # noqa: BLE001 - mod decoration must not break snapshots
+                except Exception:
                     LOGGER.exception("room.mod_diorama_payload_failed")
                     continue
                 if isinstance(extra, dict):
                     environment = {**environment, "diorama": extra}
-        # Single resolver for the effective preset: LightingService applies
-        # dark > room YAML > world YAML > live cycle, so snapshots stay in
-        # step with the ticker without any per-room cached state.
+        # One resolved lighting state serves every board type. It carries the
+        # effective preset, cycle mode, shared phase, and darkness, so the
+        # client never has to stitch together two snapshot shapes.
         lighting_payload = self._lighting.snapshot_payload(room_id, dark=dark)
         environment = {**environment, "lighting_preset": lighting_payload}
         viewer_view = occupant_views.get(account.id)
@@ -1136,8 +1148,6 @@ class RoomService:
                 "image_url": f"/assets/world/{self._world.id}/rooms/{board_image}",
                 "image_style": board_style,
                 "palette": board_palette,
-                "dark": dark,
-                "base_dark": room.dark,
                 "sprites_enabled": room.sprites_enabled,
                 "sprite_scale": room.sprite_scale,
             },
@@ -1186,7 +1196,7 @@ class RoomService:
                 continue
             try:
                 contributed = hook(account, room) or ()
-            except Exception:  # noqa: BLE001 - mod actions must not break rooms
+            except Exception:
                 LOGGER.exception("room.mod_room_actions_failed")
                 continue
             for action in contributed:
