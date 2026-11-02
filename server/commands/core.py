@@ -397,6 +397,13 @@ async def drop_command(context: CommandContext, command: ParsedCommand) -> Comma
         except ValueError as exc:
             raise CommandError(str(exc)) from exc
         account = context.profiles.get_account_by_id(context.account.id) or context.account
+        events = [{"type": "toast", "tone": "success", "text": f"Stored {deposit.label}."}]
+        if deposit.discarded_label is not None:
+            if deposit.discarded_quantity > 1:
+                discarded = f"Trashcan was full; discarded {deposit.discarded_quantity}× {deposit.discarded_label}."
+            else:
+                discarded = f"Trashcan was full; discarded {deposit.discarded_label}."
+            events.append({"type": "toast", "tone": "info", "text": discarded})
         return CommandOutcome(
             message=f"Stored {quantity}× {deposit.label}." if quantity > 1 else f"Stored {deposit.label}.",
             payload={
@@ -404,9 +411,7 @@ async def drop_command(context: CommandContext, command: ParsedCommand) -> Comma
                 "user": context.serialize_user(account),
                 "container": context.containers.contents(room_id, prop.id),
             },
-            private_events=[
-                {"type": "toast", "tone": "success", "text": f"Stored {deposit.label}."}
-            ],
+            private_events=events,
         )
     position = _parse_drop_position(command.args)
     mutation = context.cards.drop(context.account, room_id, target.value, quantity, pos=position)

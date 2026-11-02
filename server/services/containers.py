@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -16,6 +17,14 @@ if TYPE_CHECKING:
     from server.content.cards import CardCatalog
     from server.services.cards import CardService
 
+#: Maximum number of distinct card stacks one container prop can hold. Adding
+#: more copies of a card already inside merges with its stack and never counts
+#: against this limit.
+DEFAULT_CONTAINER_CAPACITY = 16
+#: Prop-definition tag that switches full containers from rejecting new card
+#: types to destroying one random existing stack to make room.
+TRASHCAN_TAG = "trashcan"
+
 
 @dataclass(frozen=True, slots=True)
 class ContainerDepositResult:
@@ -25,6 +34,9 @@ class ContainerDepositResult:
     label: str
     stacks: tuple[InventoryStack, ...]
     contents: tuple[dict[str, object], ...]
+    discarded_card_id: str | None = None
+    discarded_label: str | None = None
+    discarded_quantity: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +64,7 @@ class ContainerService:
         equipped_caps: dict[int, int] | None = None,
         environment: object | None = None,
         layout: object | None = None,
+        rng: random.Random | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -62,6 +75,7 @@ class ContainerService:
         self._equipped_caps = equipped_caps or {}
         self._environment = environment
         self._layout = layout
+        self._rng = rng or random.Random()
 
     def _container(self, room_id: str, prop_instance_id: str) -> PropInstanceDefinition:
         room = self._world.rooms.get(room_id)
@@ -118,6 +132,7 @@ class ContainerService:
         if quantity < 1:
             raise ValueError("Invalid quantity for that container.")
         prop = self._container(room_id, prop_instance_id)
+        definition = self._world.props[prop.prop_id]
         with self._hub.transaction() as connection:
             stack, _deleted = self._profiles.remove_inventory_quantity(
                 connection,
@@ -126,6 +141,22 @@ class ContainerService:
                 stack_id=stack_id,
                 quantity=quantity,
             )
+            stored = self._world_state.list_container_cards(room_id, prop.id)
+            if not any(entry.card_def_id == stack.card_def_id for entry in stored) and len(
+                stored
+            ) >= DEFAULT_CONTAINER_CAPACITY:
+                if TRASHCAN_TAG not in definition.tags:
+                    raise ValueError("That container is full.")
+                evicted = self._rng.choice(stored)
+                self._world_state.take_container_card(
+                    connection,
+                    room_id=room_id,
+                    instance_id=prop.id,
+                    stack_id=evicted.stack_id,
+                    quantity=evicted.quantity,
+                )
+            else:
+                evicted = None
             self._world_state.add_container_card(
                 connection,
                 room_id=room_id,
@@ -136,12 +167,26 @@ class ContainerService:
             )
             rows = tuple(self._profiles.list_inventory(account.id, self._world.id))
             stored = self._world_state.list_container_cards(room_id, prop.id)
-        definition = self._cards.definition(stack.card_def_id)
+        card_definition = self._cards.definition(stack.card_def_id)
+        discarded_card_id: str | None = None
+        discarded_label: str | None = None
+        discarded_quantity = 0
+        if evicted is not None:
+            discarded_card_id = evicted.card_def_id
+            discarded_quantity = evicted.quantity
+            discarded_label = (
+                self._cards.definition(evicted.card_def_id).label
+                if self._cards.has_definition(evicted.card_def_id)
+                else evicted.card_def_id
+            )
         return ContainerDepositResult(
             card_id=stack.card_def_id,
-            label=definition.label,
+            label=card_definition.label,
             stacks=rows,
             contents=tuple(self._cards.serialize_container_stacks(stored)),
+            discarded_card_id=discarded_card_id,
+            discarded_label=discarded_label,
+            discarded_quantity=discarded_quantity,
         )
 
     def take(

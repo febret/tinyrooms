@@ -207,6 +207,13 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
                 )
             except ValueError as exc:
                 raise CommandError(str(exc)) from exc
+            events = [{"type": "toast", "tone": "success", "text": f"Stored {deposit.label}."}]
+            if deposit.discarded_label is not None:
+                if deposit.discarded_quantity > 1:
+                    discarded = f"Trashcan was full; discarded {deposit.discarded_quantity}× {deposit.discarded_label}."
+                else:
+                    discarded = f"Trashcan was full; discarded {deposit.discarded_label}."
+                events.append({"type": "toast", "tone": "info", "text": discarded})
             return CommandOutcome(
                 message=f"Stored {deposit.label}.",
                 payload={
@@ -214,9 +221,7 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
                     "user": _user_payload(context),
                     "container": context.containers.contents(room_id, prop_target.instance_id),
                 },
-                private_events=[
-                    {"type": "toast", "tone": "success", "text": f"Stored {deposit.label}."}
-                ],
+                private_events=events,
             )
         result = context.actions.use_card(
             context.account,
