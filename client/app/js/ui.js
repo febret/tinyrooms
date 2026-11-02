@@ -13,6 +13,7 @@ import { enterFullscreen, exitFullscreen, fullscreenSupported, isFullscreen, onF
 import { syncPeepsChrome } from "./peeps/peeps-chrome.js";
 import { createPhoneMusic } from "./phone-music.js";
 import { handlePhoneMessagesAction, refreshPhoneMessages } from "./phone-actions.js";
+import { loadGuestInvite } from "./phone-invite.js";
 import { createRoomPicker } from "./room-picker.js";
 import { createContainerPanel } from "./container-panel.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards/cards.js";
@@ -657,8 +658,20 @@ async function handleAction(action, { silentSound = false } = {}) {
       path: store.getState().ui.phoneMusic.path,
       query: store.getState().ui.phoneMusic.query,
     });
+    if (action.app === "guest-invite") await loadGuestInvite({ api, store, onError: showError });
   } else if (action.type === "phone-home") {
     store.dispatch({ type: "phone-home" });
+  } else if (action.type === "phone-invite") {
+    if (action.action === "refresh") {
+      await loadGuestInvite({ api, store, onError: showError });
+    } else if (action.action === "copy") {
+      try {
+        await navigator.clipboard.writeText(action.url);
+        toast("Invite link copied.", "info");
+      } catch (error) {
+        toast("Select the link on screen to copy it.", "info");
+      }
+    }
   } else if (action.type === "phone-key") {
     if (action.key === "music-prev") phoneMusic.previous();
     else if (action.key === "music-toggle") phoneMusic.toggleOrPlay();

@@ -757,6 +757,10 @@ function initialPhoneMusic() {
   };
 }
 
+function initialPhoneInvite() {
+  return { loading: false, error: "", invite: null };
+}
+
 function createInitialState() {
   return {
     sessionChecked: false,
@@ -772,7 +776,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), inventoryCompact: savedInventoryCompact(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, containerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", idCardSide: "self", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMessages: initialPhoneMessages(), phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false, titlesOpen: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), inventoryCompact: savedInventoryCompact(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, containerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", idCardSide: "self", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMessages: initialPhoneMessages(), phoneMusic: initialPhoneMusic(), phoneInvite: initialPhoneInvite(), targeting: null, dropTargeting: null, sellMode: false, titlesOpen: false },
     commandCatalog: [],
     describedEntity: null,
     container: null,
@@ -795,7 +799,7 @@ function reduce(state, action) {
       room: action.loggedIn ? state.room : null,
       activities: user?.activity ? [user.activity] : [],
       multiverse: action.loggedIn ? state.multiverse : initialMultiverse(),
-      ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false, phoneApp: action.loggedIn ? state.ui.phoneApp : "apps", phoneMusic: action.loggedIn ? state.ui.phoneMusic : { ...initialPhoneMusic(), enabled: false }, dropTargeting: action.loggedIn ? state.ui.dropTargeting : null },
+      ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false, phoneApp: action.loggedIn ? state.ui.phoneApp : "apps", phoneMusic: action.loggedIn ? state.ui.phoneMusic : { ...initialPhoneMusic(), enabled: false }, phoneInvite: action.loggedIn ? state.ui.phoneInvite : initialPhoneInvite(), dropTargeting: action.loggedIn ? state.ui.dropTargeting : null },
       views: { auth: !action.loggedIn, main: null, commandPalette: false, skillStackId: null, skillPickerSlot: null },
       auth: { ...state.auth, busy: false, error: "" },
       selection: action.loggedIn ? state.selection : { kind: "none", id: "" },
@@ -949,6 +953,9 @@ function reduce(state, action) {
   }
   if (action.type === "phone-app") return { ...state, selection: { kind: "core", id: "phone" }, views: { ...state.views, main: "phone" }, ui: { ...state.ui, phoneApp: action.app || "apps", phoneFriendIndex: 0, phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false }, emoteMenuOpen: false, roomPickerOpen: false, dropTargeting: null } };
   if (action.type === "phone-home") return { ...state, ui: { ...state.ui, phoneApp: "apps", phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false } } };
+  if (action.type === "guest-invite-loading") return { ...state, ui: { ...state.ui, phoneInvite: { ...(state.ui.phoneInvite || initialPhoneInvite()), loading: true, error: "" } } };
+  if (action.type === "guest-invite-loaded") return { ...state, ui: { ...state.ui, phoneInvite: { loading: false, error: "", invite: action.invite || null } } };
+  if (action.type === "guest-invite-error") return { ...state, ui: { ...state.ui, phoneInvite: { ...(state.ui.phoneInvite || initialPhoneInvite()), loading: false, error: String(action.error || "The invite could not be created.") } } };
   if (action.type === "phone-messages-select") return { ...state, ui: { ...state.ui, phoneMessages: { ...state.ui.phoneMessages, threadKey: String(action.threadKey || ""), picking: false, messages: [] } } };
   if (action.type === "phone-messages-new") return { ...state, ui: { ...state.ui, phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: true } } };
   if (action.type === "phone-messages-back") return { ...state, ui: { ...state.ui, phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false } } };

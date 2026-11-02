@@ -165,6 +165,8 @@ class AccountRecord:
     active_session_generation: int
     created_at: str
     updated_at: str
+    is_guest: bool = False
+    guest_fingerprint: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -354,6 +356,8 @@ class ProfileRepository:
             active_session_generation=int(row["active_session_generation"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+            is_guest=bool(row["is_guest"]),
+            guest_fingerprint=row["guest_fingerprint"],
         )
 
     def _stack_from_row(self, row: sqlite3.Row) -> InventoryStack:
@@ -412,6 +416,16 @@ class ProfileRepository:
         _, username_key = normalize_username(username)
         with self._hub.locked() as connection:
             row = connection.execute("SELECT * FROM accounts WHERE username_key = ?", (username_key,)).fetchone()
+        return None if row is None else self._account_from_row(row)
+
+    def find_guest_by_fingerprint(self, fingerprint: str) -> AccountRecord | None:
+        """Fetch the guest account bound to a device fingerprint."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT * FROM accounts WHERE guest_fingerprint = ? AND is_guest = 1",
+                (fingerprint,),
+            ).fetchone()
         return None if row is None else self._account_from_row(row)
 
     def resolve_account(self, identifier: str) -> AccountRecord | None:
@@ -518,6 +532,10 @@ class ProfileRepository:
         *,
         starting_energy: int | None = None,
         starting_counters: dict[str, object] | None = None,
+        is_guest: bool = False,
+        guest_fingerprint: str | None = None,
+        sticker: str | None = None,
+        initial_sticker_complete: bool = False,
     ) -> AccountRecord:
         """Create an account with default or configured starting state."""
 
@@ -550,18 +568,23 @@ class ProfileRepository:
                     id, username_display, username_key, password_hash, sticker,
                     initial_sticker_complete, level, kudos, bops,
                     shared_energy, last_energy_at, last_daily_claim,
-                    active_session_generation, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, NULL, 0, 0, 0, 10, ?, ?, NULL, 0, ?, ?)
+                    active_session_generation, created_at, updated_at,
+                    is_guest, guest_fingerprint
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 10, ?, ?, NULL, 0, ?, ?, ?, ?)
                 """,
                 (
                     account_id,
                     display_name,
                     username_key,
                     password_digest,
+                    sticker,
+                    1 if initial_sticker_complete else 0,
                     energy,
                     now,
                     now,
                     now,
+                    1 if is_guest else 0,
+                    guest_fingerprint,
                 ),
             )
             for card_id in STARTING_GLOBAL_CARDS:

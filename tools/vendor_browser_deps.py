@@ -9,6 +9,7 @@ NODE_MODULES = ROOT / "node_modules"
 TARGET = ROOT / "client" / "app" / "vendor"
 THREE = NODE_MODULES / "three"
 DRAWFLOW = NODE_MODULES / "drawflow"
+UQR = NODE_MODULES / "uqr"
 
 FILES = {
     THREE / "build" / "three.module.js": TARGET / "three" / "three.module.js",
@@ -22,6 +23,8 @@ FILES = {
     DRAWFLOW / "dist" / "drawflow.min.js": TARGET / "drawflow" / "drawflow.min.js",
     DRAWFLOW / "dist" / "drawflow.min.css": TARGET / "drawflow" / "drawflow.min.css",
     DRAWFLOW / "LICENSE": TARGET / "drawflow" / "LICENSE",
+    UQR / "dist" / "index.mjs": TARGET / "uqr" / "index.mjs",
+    UQR / "LICENSE": TARGET / "uqr" / "LICENSE",
 }
 
 for font in ("helvetiker_regular", "optimer_regular", "gentilis_regular"):
@@ -30,7 +33,7 @@ for font in ("helvetiker_regular", "optimer_regular", "gentilis_regular"):
 
 
 def main() -> None:
-    for package in (THREE, DRAWFLOW):
+    for package in (THREE, DRAWFLOW, UQR):
         if not package.exists():
             raise SystemExit(
                 f"Missing node_modules\\{package.name}. Run `npm install` before vendoring browser dependencies."

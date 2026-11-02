@@ -36,6 +36,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "sticker_design": decode_design(account.sticker_design),
         # Persistent onboarding gate: world entry requires first sticker confirmation.
         "initial_sticker_complete": account.initial_sticker_complete,
+        "is_guest": account.is_guest,
         # Ownership comes from the account-wide user profile, not room presence.
         "owned_rooms": list(user_profile.owned_rooms),
         "unlocked_props": sorted(runtime.prop_shop.unlocked(account.id)),

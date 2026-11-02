@@ -17,7 +17,7 @@ from server.state.phone_messages_schema import (
 )
 
 
-PROFILE_SCHEMA_VERSION = 14
+PROFILE_SCHEMA_VERSION = 15
 WORLD_SCHEMA_VERSION = 19
 
 
@@ -72,8 +72,14 @@ CREATE TABLE IF NOT EXISTS accounts (
     muted_until TEXT,
     muted_by TEXT,
     -- Optional JSON design recipe for re-editing a custom sticker, not rendered image data.
-    sticker_design TEXT
+    sticker_design TEXT,
+    -- Guest accounts are reusable invite-created identities; regular accounts stay 0.
+    is_guest INTEGER NOT NULL DEFAULT 0 CHECK (is_guest IN (0, 1)),
+    -- SHA-256 of the client device fingerprint; NULL for regular accounts.
+    guest_fingerprint TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_guest_fingerprint
+    ON accounts(guest_fingerprint) WHERE guest_fingerprint IS NOT NULL;
 CREATE TABLE IF NOT EXISTS sessions (
     -- SHA-256 of the opaque token; only the HttpOnly tr_session cookie holds plaintext.
     token_hash TEXT PRIMARY KEY,
@@ -275,6 +281,10 @@ COMMIT;
 _PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
     "PRAGMA user_version = 12;",
     PHONE_MESSAGES_FRESH_SQL + "\nPRAGMA user_version = 14;",
+)
+_PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
+    "PRAGMA user_version = 14;",
+    "PRAGMA user_version = 15;",
 )
 
 _WORLD_SCHEMA_SQL = """
@@ -668,6 +678,16 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 14;
     COMMIT;
     """,
+    15: """
+    BEGIN;
+    ALTER TABLE accounts ADD COLUMN is_guest INTEGER NOT NULL DEFAULT 0
+        CHECK (is_guest IN (0, 1));
+    ALTER TABLE accounts ADD COLUMN guest_fingerprint TEXT;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_guest_fingerprint
+        ON accounts(guest_fingerprint) WHERE guest_fingerprint IS NOT NULL;
+    PRAGMA user_version = 15;
+    COMMIT;
+    """,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {
@@ -905,6 +925,8 @@ _ACCOUNTS_COLUMNS = (
     "muted_until",
     "muted_by",
     "sticker_design",
+    "is_guest",
+    "guest_fingerprint",
 )
 
 _SESSIONS_COLUMNS = (
@@ -1146,6 +1168,8 @@ def ensure_profile_database(path: Path) -> None:
         extra_indexes=(
             *PHONE_MESSAGES_INDEXES,
             "CREATE INDEX IF NOT EXISTS idx_dynamic_card_defs_base ON dynamic_card_defs(base_card_id)",
+            ("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_guest_fingerprint "
+             "ON accounts(guest_fingerprint) WHERE guest_fingerprint IS NOT NULL"),
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope)",

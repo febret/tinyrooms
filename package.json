@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "drawflow": "^0.0.60",
-    "three": "^0.179.1"
+    "three": "^0.179.1",
+    "uqr": "^0.1.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"

@@ -954,3 +954,91 @@
     animation: none;
   }
 }
+
+.phone-guest-invite {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.phone-qr {
+  width: min(100%, 220px);
+  padding: 8px;
+  border-radius: 6px;
+  background: #f7f1dc;
+  border: 2px solid #10242b;
+  box-shadow: inset 0 0 0 2px #d8cda8;
+}
+
+.phone-qr .qr-code {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.phone-qr-url {
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: #0c1e24;
+  color: #cfe9df;
+  font-size: .72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.phone-invite-details {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  margin: 0;
+  font-size: .72rem;
+}
+
+.phone-invite-details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px dashed #28454e;
+  padding-bottom: 3px;
+}
+
+.phone-invite-details dt {
+  color: #8fb3ab;
+  letter-spacing: .06em;
+}
+
+.phone-invite-details dd {
+  margin: 0;
+  color: #f4ecd2;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.phone-invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.phone-invite-button {
+  padding: 5px 10px;
+  border: 1px solid #7c4924;
+  border-radius: 4px;
+  background: linear-gradient(#f0c785, #c98d4b);
+  color: #3c2414;
+  font: inherit;
+  font-size: .72rem;
+  letter-spacing: .05em;
+  cursor: pointer;
+}
+
+.phone-invite-button.quiet {
+  background: linear-gradient(#d7e4dc, #9fb7ad);
+  border-color: #526b63;
+  color: #1d322e;
+}

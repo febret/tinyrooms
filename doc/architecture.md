@@ -288,6 +288,19 @@ the next app open. TinyTown roommates generate their own hourly texts from
 [roommate_messages.py](../mods/tinytown/roommate_messages.py), called from the
 household sim, and answer player texts with one canned reply each.
 
+The Phone's Guest Invite app asks the world server for a capability link and
+renders its URL as a QR code. Links are host/base-path scoped to the source
+world and resolve inviter, world, instance, and room from an in-memory token
+map rather than trusting URL claims. A link may be reused until it expires or
+the world process restarts. Redemption joins an existing session as itself;
+otherwise the server derives a device fingerprint from a client-generated id,
+user agent, language, and source address, reuses the matching flagged guest
+account, or creates a random-name, random-sticker guest that skips sticker
+onboarding and starts in the inviter's live room (falling back to the captured
+room). Guests cannot create further invites, and guest creation keeps the
+existing instance cap. See [guest_invites service](../server/services/guest_invites.py)
+and [routes](../server/routes/guest_invites.py).
+
 Cutscenes remain available without a subsystem feature flag; reduced motion
 suppresses playback. Presentation cannot determine gameplay rewards or whether
 a transaction succeeded, and the server does not await playback acknowledgement.

@@ -15,6 +15,7 @@ export const PATHS = {
   chiptuneBrowse: "/api/chiptune/browse",
   chiptuneStarred: "/api/chiptune/starred",
   chiptuneSuggestions: "/api/chiptune/suggestions",
+  guestInvite: "/api/guest-invites",
   websocket: "/ws",
 };
 
@@ -76,6 +77,13 @@ export function createApiClient() {
     async getBootstrap() {
       const body = await requestJson(PATHS.bootstrap);
       return body;
+    },
+    async createGuestInvite() {
+      const body = await requestJson(PATHS.guestInvite, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      return body.invite || null;
     },
     async listStickers() {
       const body = await requestJson(PATHS.stickers);

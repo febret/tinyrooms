@@ -525,6 +525,7 @@ export function normalizeUser(user) {
         }
       : null,
     initialStickerComplete: Boolean(user.initial_sticker_complete),
+    isGuest: Boolean(user.is_guest),
     inventory: Array.isArray(user.inventory) ? user.inventory.map(normalizeInventoryStack) : [],
     coreCards: Object.fromEntries(normalizedCore.map(definition => [definition.id, definition])),
     coreOrder: normalizedCore

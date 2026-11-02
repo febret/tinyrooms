@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tinyrooms guest invite</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center;
+         background: #10242b; color: #f1e6c9; font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 26rem; padding: 2rem; text-align: center; }
+  h1 { font-size: 1.4rem; margin: 0 0 .75rem; }
+  #status { margin: 0; }
+  #status.error { color: #ffb4a8; }
+  a { color: #9fe3da; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tinyrooms</h1>
+  <p id="status">Joining the room...</p>
+  <noscript><p>Enable JavaScript to join this guest invite.</p></noscript>
+</main>
+<script>
+(function () {
+  var BASE = window.__TR_BASE__ || "";
+  var status = document.getElementById("status");
+
+  function fail(message) {
+    status.className = "error";
+    status.textContent = message || "This invite could not be joined.";
+  }
+
+  function readCookie(name) {
+    var prefix = name + "=";
+    var parts = document.cookie ? document.cookie.split("; ") : [];
+    for (var i = 0; i < parts.length; i += 1) {
+      if (parts[i].indexOf(prefix) === 0) {
+        return decodeURIComponent(parts[i].slice(prefix.length));
+      }
+    }
+    return "";
+  }
+
+  function writeCookie(name, value) {
+    var secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = name + "=" + encodeURIComponent(value)
+      + "; Path=/; Max-Age=31536000; SameSite=Lax" + secure;
+  }
+
+  function randomId() {
+    try {
+      var bytes = new Uint8Array(16);
+      window.crypto.getRandomValues(bytes);
+      var text = "";
+      for (var i = 0; i < bytes.length; i += 1) {
+        text += ("0" + bytes[i].toString(16)).slice(-2);
+      }
+      return text;
+    } catch (error) {
+      return String(Date.now()) + Math.random().toString(16).slice(2);
+    }
+  }
+
+  function inviteToken() {
+    var path = window.location.pathname.replace(/\/+$/, "");
+    var token = path.slice(path.lastIndexOf("/") + 1);
+    try {
+      return decodeURIComponent(token);
+    } catch (error) {
+      return token;
+    }
+  }
+
+  var token = inviteToken();
+  if (!token) {
+    fail("This invite link is not valid.");
+    return;
+  }
+
+  var deviceId = "";
+  try { deviceId = window.localStorage.getItem("tr_device_id") || ""; } catch (error) {}
+  if (!deviceId) {
+    deviceId = readCookie("tr_device") || randomId();
+  }
+  try { window.localStorage.setItem("tr_device_id", deviceId); } catch (error) {}
+  writeCookie("tr_device", deviceId);
+
+  var headers = { "Content-Type": "application/json" };
+  var csrf = readCookie("tr_csrf");
+  if (csrf) headers["X-CSRF-Token"] = csrf;
+
+  window.fetch(BASE + "/api/guest-invites/redeem", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: headers,
+    body: JSON.stringify({ token: token, device_id: deviceId })
+  }).then(function (response) {
+    return response.json().catch(function () { return {}; }).then(function (body) {
+      return { ok: response.ok, body: body };
+    });
+  }).then(function (result) {
+    var body = result.body || {};
+    if (!result.ok || body.ok === false) {
+      fail(body.message || body.detail || "This invite could not be joined.");
+      return;
+    }
+    window.location.replace(body.redirect_url || BASE + "/");
+  }).catch(function () {
+    fail("The invite could not be joined. Check the connection and try again.");
+  });
+})();
+</script>
+</body>
+</html>

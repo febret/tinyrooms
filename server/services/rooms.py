@@ -841,11 +841,7 @@ class RoomService:
             if z != current_z or abs(x - current_x) > radius or abs(y - current_y) > radius:
                 continue
             board_image, board_style, palette = self._minimap_board(candidate)
-            environment_name = (
-                "darkness"
-                if candidate.dark
-                else candidate.environment or self._world.global_environment
-            )
+            environment_name = self._lighting.environment_name(candidate.id)
             tiles.append(
                 {
                     "id": candidate.id,
@@ -1079,6 +1075,9 @@ class RoomService:
                     continue
                 if isinstance(extra, dict):
                     environment = {**environment, "diorama": extra}
+        # Single resolver for the effective preset: LightingService applies
+        # dark > room YAML > world YAML > live cycle, so snapshots stay in
+        # step with the ticker without any per-room cached state.
         lighting_payload = self._lighting.snapshot_payload(room_id, dark=dark)
         environment = {**environment, "lighting_preset": lighting_payload}
         viewer_view = occupant_views.get(account.id)

@@ -49,6 +49,7 @@ from server.routes import chiptune as chiptune_routes
 from server.routes import asset_bakery as asset_bakery_routes
 from server.routes import cutscene_catalog as cutscene_catalog_routes
 from server.routes import cutscenes as cutscene_routes
+from server.routes import guest_invites as guest_invite_routes
 from server.routes import prop_editor as prop_editor_routes
 from server.routes import room_layout as room_layout_routes
 from server.routes import surfaces as surface_routes
@@ -92,6 +93,7 @@ from server.services.dispensers import DispenserService
 from server.services.dynamic_cards import DynamicCardDrops
 from server.services.environment import EnvironmentService
 from server.services.friends import FriendsService
+from server.services.guest_invites import GuestInviteService
 from server.services.inventory import InventoryService
 from server.services.lighting import LightingService
 from server.services.memories import MemoryService
@@ -197,6 +199,7 @@ class RuntimeState:
     progression: ProgressionService
     actions: ActionsService
     friends: FriendsService
+    guest_invites: GuestInviteService
     phone_messages: PhoneMessageService
     chiptune_stars: ChiptuneStarService
     shop: ShopService
@@ -354,10 +357,12 @@ class RuntimeState:
                 "profiles",
                 "world_state",
                 "connections",
+                "guest_invites",
                 "mutation_lock",
             }:
                 continue
             setattr(self, runtime_field.name, getattr(rebuilt, runtime_field.name))
+        self.guest_invites.rebind(rebuilt.world, rebuilt.rooms)
         self.start_tickers()
         self.start_mod_runtimes()
         await self._broadcast_world_reloaded(old_world)
@@ -382,23 +387,13 @@ def _json_error(status_code: int, code: str, message: str) -> JSONResponse:
 
 
 def _set_session_cookies(response: Response, *, token: str, csrf_token: str, expires_at: str) -> None:
-    response.set_cookie(
-        SESSION_COOKIE,
-        token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        expires=expires_at,
-        path="/",
-    )
-    response.set_cookie(
-        CSRF_COOKIE,
-        csrf_token,
-        httponly=False,
-        secure=True,
-        samesite="lax",
-        expires=expires_at,
-        path="/",
+    from server.routes.common import set_session_cookies as _shared_set_session_cookies
+
+    _shared_set_session_cookies(
+        response,
+        token=token,
+        csrf_token=csrf_token,
+        expires_at=expires_at,
     )
 
 
@@ -559,7 +554,6 @@ def _build_runtime(
     room_effects = RoomEffectService()
     prop_states = PropStateService()
     lighting = LightingService(world)
-    lighting.apply_cycle()
     prop_lights = PropLightService()
     layout = RoomLayoutService(
         hub, world, world_state, ownership, environment, prop_shop, room_effects, prop_states, surfaces
@@ -630,6 +624,15 @@ def _build_runtime(
         options=options,
     )
     peep_states.set_room_change_listener(rooms.sprites.forget_npc)
+    guest_invites = GuestInviteService(
+        config,
+        hub,
+        profiles,
+        accounts,
+        connections,
+        rooms,
+        world,
+    )
     dialogs = DialogService(
         hub=hub,
         profiles=profiles,
@@ -715,6 +718,7 @@ def _build_runtime(
         progression=progression,
         actions=actions,
         friends=friends,
+        guest_invites=guest_invites,
         phone_messages=phone_messages,
         chiptune_stars=chiptune_stars,
         shop=shop,
@@ -763,12 +767,15 @@ def _build_runtime(
 
     def _lighting_cycle_tick(room_id: str) -> list[PendingRoomBroadcast]:
         del room_id
+        changed = lighting.poll_cycle_change()
+        if not changed:
+            return []
         return [
             PendingRoomBroadcast(
                 room_id=changed_room,
                 event={"type": "room.refresh", "room_id": changed_room},
             )
-            for changed_room in lighting.apply_cycle()
+            for changed_room in changed
         ]
 
     ticker.add_tick_hook(_lighting_cycle_tick)
@@ -1292,6 +1299,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             )
 
     register_static_routes(app)
+    app.include_router(guest_invite_routes.router)
 
     app.include_router(world_editor_routes.router)
     app.include_router(card_database_routes.router)

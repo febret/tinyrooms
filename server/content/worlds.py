@@ -243,6 +243,12 @@ class WorldDefinition:
     stylesheet_name: str = ""
     stylesheet_path: Path | None = None
     global_environment: str = "day"
+    # The explicit world.yaml ``environment`` value, or None when the author
+    # left it out. Unlike ``global_environment`` (which defaults to "day"),
+    # this distinguishes "author pinned the whole world" from "no opinion",
+    # so LightingService can let an explicit world override freeze the
+    # day-night cycle while omitted worlds keep cycling.
+    global_environment_override: str | None = None
 
 
 def apply_room_grid(
@@ -624,9 +630,10 @@ def load_world_definition(
             raise ContentError(f"World '{world_id}' references missing stylesheet '{stylesheet_name}'.")
         stylesheet_path = candidate
     requires_mods = tuple(str(entry).strip() for entry in world_payload.get("requires_mods", []) or [])
-    global_environment = validate_lighting_name(
+    explicit_global_environment = validate_lighting_name(
         world_payload.get("environment"), f"World '{world_id}' environment"
-    ) or DEFAULT_LIGHTING_ENVIRONMENT
+    )
+    global_environment = explicit_global_environment or DEFAULT_LIGHTING_ENVIRONMENT
     if enabled_mods is not None:
         missing_mods = sorted(set(requires_mods) - set(enabled_mods))
         if missing_mods:
@@ -1017,4 +1024,5 @@ def load_world_definition(
     stylesheet_name=stylesheet_name,
     stylesheet_path=stylesheet_path,
     global_environment=global_environment,
+    global_environment_override=explicit_global_environment,
 )

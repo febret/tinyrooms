@@ -208,6 +208,13 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-phone-messages-action]").forEach(button => {
     button.onclick = () => onAction({ type: "phone-messages", action: button.dataset.phoneMessagesAction, threadKey: button.dataset.threadKey || "" });
   });
+  root.querySelectorAll("[data-phone-invite-action]").forEach(button => {
+    button.onclick = () => onAction({
+      type: "phone-invite",
+      action: button.dataset.phoneInviteAction,
+      url: button.dataset.inviteUrl || "",
+    });
+  });
   root.querySelectorAll("form[data-phone-messages-compose]").forEach(form => {
     form.onsubmit = event => {
       event.preventDefault();

@@ -15,7 +15,7 @@ from server.services.rooms import RoomService
 from tests.common import REPO_ROOT, load_test_world
 
 
-def _stub_world() -> object:
+def _stub_world(**world_overrides: object) -> object:
     from types import SimpleNamespace
 
     def room(room_id: str, **overrides: object) -> SimpleNamespace:
@@ -23,15 +23,25 @@ def _stub_world() -> object:
         base.update(overrides)
         return SimpleNamespace(**base)
 
-    return SimpleNamespace(
-        id="stub",
-        global_environment="day",
-        rooms={
+    base_world = {
+        "id": "stub",
+        "global_environment": "day",
+        "global_environment_override": None,
+        "rooms": {
             "open": room("open"),
             "moody": room("moody", environment="night"),
             "cellar": room("cellar", dark=True),
         },
-    )
+    }
+    base_world.update(world_overrides)
+    return SimpleNamespace(**base_world)
+
+
+def _cycled(service: LightingService, name: str) -> LightingService:
+    """Pin a service's live cycle bucket for deterministic assertions."""
+
+    service.cycle_environment = lambda: name  # type: ignore[method-assign]
+    return service
 
 
 class LightingContentTests(unittest.TestCase):
@@ -46,27 +56,66 @@ class LightingContentTests(unittest.TestCase):
 
 
 class LightingResolutionTests(unittest.TestCase):
-    def test_room_falls_back_to_global_environment(self) -> None:
-        service = LightingService(_stub_world())
-        self.assertEqual(service.snapshot_payload("open")["name"], "day")
+    def test_room_without_override_follows_live_cycle(self) -> None:
+        service = _cycled(LightingService(_stub_world()), "dusk")
+        self.assertEqual(service.snapshot_payload("open")["name"], "dusk")
 
-    def test_room_override_wins_over_global(self) -> None:
-        service = LightingService(_stub_world())
+    def test_room_override_wins_over_cycle(self) -> None:
+        service = _cycled(LightingService(_stub_world()), "dusk")
+        self.assertEqual(service.snapshot_payload("moody")["name"], "night")
+
+    def test_world_override_freezes_cycle(self) -> None:
+        service = _cycled(
+            LightingService(_stub_world(global_environment="night", global_environment_override="night")),
+            "dusk",
+        )
+        self.assertEqual(service.snapshot_payload("open")["name"], "night")
+        self.assertFalse(service.follows_cycle("open"))
+
+    def test_room_override_wins_over_world_override(self) -> None:
+        service = _cycled(
+            LightingService(_stub_world(global_environment="night", global_environment_override="night")),
+            "dusk",
+        )
         self.assertEqual(service.snapshot_payload("moody")["name"], "night")
 
     def test_dark_rooms_always_resolve_to_darkness(self) -> None:
-        service = LightingService(_stub_world())
+        service = _cycled(
+            LightingService(_stub_world(global_environment="night", global_environment_override="night")),
+            "dusk",
+        )
         payload = service.snapshot_payload("cellar")
         self.assertEqual(payload["name"], "darkness")
         self.assertEqual(float(payload["level"]), 0.0)
 
-    def test_apply_cycle_skips_specific_and_dark_rooms(self) -> None:
+    def test_runtime_dark_override_wins_over_yaml(self) -> None:
+        service = _cycled(LightingService(_stub_world()), "dusk")
+        self.assertEqual(service.snapshot_payload("moody", dark=True)["name"], "darkness")
+
+    def test_follows_cycle_only_for_inheriting_rooms(self) -> None:
         service = LightingService(_stub_world())
-        expected = service.cycle_environment()
-        changed = service.apply_cycle()
-        self.assertEqual(changed, {"open": expected})
-        self.assertEqual(service.snapshot_payload("moody")["name"], "night")
-        self.assertEqual(service.snapshot_payload("cellar")["name"], "darkness")
+        self.assertTrue(service.follows_cycle("open"))
+        self.assertFalse(service.follows_cycle("moody"))
+        self.assertFalse(service.follows_cycle("cellar"))
+        self.assertFalse(service.follows_cycle("missing"))
+
+    def test_poll_cycle_change_arms_then_reports_followers(self) -> None:
+        service = LightingService(_stub_world())
+        buckets = iter(["dusk", "dusk", "dawn", "dawn"])
+        service.cycle_environment = lambda: next(buckets)  # type: ignore[method-assign]
+        self.assertIsNone(service.poll_cycle_change())
+        self.assertIsNone(service.poll_cycle_change())
+        self.assertEqual(service.poll_cycle_change(), ["open"])
+        self.assertIsNone(service.poll_cycle_change())
+
+    def test_poll_cycle_change_empty_when_world_pinned(self) -> None:
+        service = LightingService(
+            _stub_world(global_environment="night", global_environment_override="night")
+        )
+        buckets = iter(["dusk", "dawn"])
+        service.cycle_environment = lambda: next(buckets)  # type: ignore[method-assign]
+        self.assertIsNone(service.poll_cycle_change())
+        self.assertEqual(service.poll_cycle_change(), [])
 
 
 class PropLightServiceTests(unittest.TestCase):

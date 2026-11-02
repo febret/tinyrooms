@@ -26,7 +26,7 @@ class DayNightCycle:
         self._task: object | None = None
 
     def start(self) -> None:
-        """Pin the current cycle and begin the background band watcher."""
+        """Begin the background band watcher."""
 
         if self._task is not None and not getattr(self._task, "done", lambda: True)():
             return
@@ -38,7 +38,6 @@ class DayNightCycle:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             return
-        self._apply()
         self._task = loop.create_task(self._loop())
 
     def stop(self) -> None:
@@ -62,7 +61,10 @@ class DayNightCycle:
         lighting = getattr(self._runtime, "lighting", None)
         if lighting is None:
             return
-        changed = lighting.apply_cycle()
+        # Shared poll state with the core ticker hook: the first caller per
+        # bucket flip consumes the change, so tinytown never double-broadcasts
+        # a refresh the core tick already emitted.
+        changed = lighting.poll_cycle_change()
         if not changed:
             return
         try:
@@ -71,7 +73,7 @@ class DayNightCycle:
             return
         loop.create_task(self._broadcast(changed))
 
-    async def _broadcast(self, changed: dict[str, str]) -> None:
+    async def _broadcast(self, changed: list[str]) -> None:
         from server.broadcast import broadcast_room_event
 
         for room_id in changed:

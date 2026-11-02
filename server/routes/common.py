@@ -42,6 +42,29 @@ def enforce_authenticated_post(runtime, request: Request, session: SessionRecord
     require_matching_csrf(session.csrf_token, csrf_cookie)
 
 
+def set_session_cookies(response: Response, *, token: str, csrf_token: str, expires_at: str) -> None:
+    """Attach the browser session cookies used by the world server."""
+
+    response.set_cookie(
+        SESSION_COOKIE,
+        token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        expires=expires_at,
+        path="/",
+    )
+    response.set_cookie(
+        CSRF_COOKIE,
+        csrf_token,
+        httponly=False,
+        secure=True,
+        samesite="lax",
+        expires=expires_at,
+        path="/",
+    )
+
+
 def feature_enabled(config: AppConfig, feature: str) -> bool:
     """Return whether a feature flag is enabled."""
 

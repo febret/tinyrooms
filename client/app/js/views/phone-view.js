@@ -3,13 +3,15 @@ import { phoneGotoTarget } from "../phone-goto.js";
 import { escapeHtml } from "../presentation.js";
 import { parentPath, songForItem, starredSongs, trackLabel } from "../phone-music.js";
 import { friendsAppMarkup } from "./friends-view.js";
+import { guestInviteAppMarkup } from "./guest-invite-view.js";
 import { messagesAppMarkup } from "./messages-view.js";
 
-const APP_LABELS = { apps: "Menu", friends: "Friends", messages: "Messages", chiptune: "Chiptune" };
+const APP_LABELS = { apps: "Menu", friends: "Friends", messages: "Messages", chiptune: "Chiptune", "guest-invite": "Guest Invite" };
 const APP_ICONS = {
   friends: "/app/assets/phone/phone-icon-friends.png",
   messages: "/app/assets/phone/phone-icon-messages.png",
   chiptune: "/app/assets/phone/phone-icon-chiptune.png",
+  "guest-invite": "/app/assets/phone/phone-icon-guest.svg",
 };
 const MUSIC_TABS = [
   { id: "suggestions", label: "Top" },
@@ -64,6 +66,11 @@ function homeMarkup(state) {
         <span class="phone-app-name">CHIPTUNE</span>
         <span class="phone-app-meta">${starred} starred</span>
       </button>
+      ${state.user?.isGuest ? "" : `<button type="button" class="phone-app" role="listitem" data-phone-app="guest-invite" aria-label="Open Guest Invite app">
+        <img class="phone-app-icon" src="${withBase(APP_ICONS["guest-invite"])}" alt="" width="40" height="40">
+        <span class="phone-app-name">GUEST INVITE</span>
+        <span class="phone-app-meta">QR code</span>
+      </button>`}
     </div>
   </div>`;
 }
@@ -157,6 +164,7 @@ function appMarkup(state) {
   if (app === "friends") return friendsAppMarkup(state);
   if (app === "messages") return messagesAppMarkup(state);
   if (app === "chiptune") return chiptuneMarkup(state);
+  if (app === "guest-invite") return guestInviteAppMarkup(state);
   return homeMarkup(state);
 }
 
