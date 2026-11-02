@@ -1168,8 +1168,6 @@ def ensure_profile_database(path: Path) -> None:
         extra_indexes=(
             *PHONE_MESSAGES_INDEXES,
             "CREATE INDEX IF NOT EXISTS idx_dynamic_card_defs_base ON dynamic_card_defs(base_card_id)",
-            ("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_guest_fingerprint "
-             "ON accounts(guest_fingerprint) WHERE guest_fingerprint IS NOT NULL"),
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope)",

@@ -54,9 +54,10 @@ export function makeGroundTexture() {
 
 export function makeDetailTexture() {
   return makeCanvasTexture(256, 256, (context, width, height) => {
+    const random = seededRandom(9127);
     const image = context.createImageData(width, height);
     for (let index = 0; index < image.data.length; index += 4) {
-      const value = 112 + Math.floor(Math.random() * 46);
+      const value = 112 + Math.floor(random() * 46);
       image.data[index] = value;
       image.data[index + 1] = value;
       image.data[index + 2] = value;

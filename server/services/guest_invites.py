@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 from server.accounts import AccountService
+from server.base_path import with_base
 from server.config import AppConfig
 from server.connections import ConnectionRegistry
 from server.content.worlds import WorldDefinition
@@ -230,14 +231,14 @@ class GuestInviteService:
         )
 
     def _prune(self, now: datetime) -> None:
-        counts: dict[str, int] = {}
+        by_inviter: dict[str, list[str]] = {}
         for token, record in list(self._invites.items()):
             if record.expires_at <= now:
                 self._invites.pop(token, None)
                 continue
-            count = counts.get(record.inviter_account_id, 0) + 1
-            counts[record.inviter_account_id] = count
-            if count > GUEST_INVITES_PER_ACCOUNT:
+            by_inviter.setdefault(record.inviter_account_id, []).append(token)
+        for tokens in by_inviter.values():
+            for token in tokens[:-GUEST_INVITES_PER_ACCOUNT]:
                 self._invites.pop(token, None)
 
     async def _target_room(self, inviter_account_id: str, invite_room_id: str) -> str:
@@ -316,5 +317,4 @@ class GuestInviteService:
         return hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
 
     def _redirect_url(self) -> str:
-        base_path = self._config.base_path
-        return f"{base_path}/" if base_path else "/"
+        return with_base(self._config.base_path, "/")

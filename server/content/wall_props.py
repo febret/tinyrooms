@@ -26,21 +26,6 @@ WALL_TEXTURES = (
     ("beadboard", "Beadboard"),
     ("bone", "Whale bone"),
 )
-WALL_TEXTURE_FILES = {
-    "plaster": "wall-plaster.png",
-    "wallpaper": "wall-wallpaper.png",
-    "brick": "wall-brick.png",
-    "whitewashed-brick": "wall-brick-whitewashed.png",
-    "stone": "wall-stone.png",
-    "river-rock": "wall-river-rock.png",
-    "concrete": "wall-concrete.png",
-    "wood": "wall-wood.png",
-    "bamboo": "wall-bamboo.png",
-    "subway-tile": "wall-subway-tile.png",
-    "beadboard": "wall-beadboard.png",
-    "bone": "wall-bone.png",
-}
-
 WALL_FINISHES = (
     ("none", "Clean edge"),
     ("baseboard", "Baseboard"),
@@ -71,11 +56,7 @@ def wall_style_options() -> dict[str, object]:
 
     return {
         "textures": [
-            {
-                "id": texture_id,
-                "label": label,
-                **({"file": WALL_TEXTURE_FILES[texture_id]} if texture_id in WALL_TEXTURE_FILES else {}),
-            }
+            {"id": texture_id, "label": label}
             for texture_id, label in WALL_TEXTURES
         ],
         "finishes": [{"id": finish_id, "label": label} for finish_id, label in WALL_FINISHES],

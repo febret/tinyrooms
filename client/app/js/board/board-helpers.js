@@ -236,7 +236,7 @@ export async function loadPropModel(prop, loader) {
   if (isWallProp(prop)) {
     const style = resolveWallStyle(prop);
     const texture = await loadWallTexture(style.texture);
-    const scene = createWallProp(prop, texture ? { [style.texture]: texture } : {}, prop.scale);
+    const scene = createWallProp(prop, texture ? { [style.texture]: texture } : {});
     return { scene, scenes: [scene], animations: [] };
   }
   return loader.loadAsync(withBase(prop.modelUrl));

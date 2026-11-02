@@ -1,8 +1,8 @@
 """World-authored Paintball Arena rules for The Arcade.
 
 The arena is a 2D top-down shooter. The server owns round timing, obstacle
-layouts, participants, projectiles, scores, vending, counters, and podium
-rewards. Activity clients render that state and send movement/aim input.
+layouts, participants, projectiles, scores, and counters. Activity clients
+render that state and send movement/aim input.
 """
 
 from __future__ import annotations
@@ -500,7 +500,8 @@ def _public_hits(state: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _public(state: dict[str, Any], now: datetime, config: dict[str, Any] | None = None, *, seq: int = 0, t: int = 0) -> dict[str, Any]:
     participants = _public_participants(state)
-    shop_config = config if isinstance(config, dict) else {}
+    if not isinstance(config, dict):
+        config = {}
     return {
         "seq": int(seq),
         "t": int(t),
@@ -513,17 +514,17 @@ def _public(state: dict[str, Any], now: datetime, config: dict[str, Any] | None 
         "arena": state.get("arena"),
         "tuning": {
             "player_radius": DEFAULT_PLAYER_RADIUS,
-            "player_speed": _config_float(shop_config, "player_speed", DEFAULT_PLAYER_SPEED),
-            "bot_speed": _config_float(shop_config, "bot_speed", DEFAULT_BOT_SPEED),
-            "projectile_speed": _config_float(shop_config, "projectile_speed", DEFAULT_PROJECTILE_SPEED),
-            "projectile_lifetime": _config_float(shop_config, "projectile_lifetime", DEFAULT_PROJECTILE_LIFETIME),
-            "projectile_boost": _config_float(shop_config, "projectile_boost", DEFAULT_PROJECTILE_BOOST),
-            "projectile_drag": _config_float(shop_config, "projectile_drag", DEFAULT_PROJECTILE_DRAG),
-            "move_accel": _config_float(shop_config, "move_accel", DEFAULT_MOVE_ACCEL),
-            "move_friction": _config_float(shop_config, "move_friction", DEFAULT_MOVE_FRICTION),
-            "fire_cooldown": _config_float(shop_config, "fire_cooldown", DEFAULT_FIRE_COOLDOWN),
-            "shot_energy_cost": _shot_energy_cost(shop_config),
-            "immunity_seconds": _immunity_seconds(shop_config),
+            "player_speed": _config_float(config, "player_speed", DEFAULT_PLAYER_SPEED),
+            "bot_speed": _config_float(config, "bot_speed", DEFAULT_BOT_SPEED),
+            "projectile_speed": _config_float(config, "projectile_speed", DEFAULT_PROJECTILE_SPEED),
+            "projectile_lifetime": _config_float(config, "projectile_lifetime", DEFAULT_PROJECTILE_LIFETIME),
+            "projectile_boost": _config_float(config, "projectile_boost", DEFAULT_PROJECTILE_BOOST),
+            "projectile_drag": _config_float(config, "projectile_drag", DEFAULT_PROJECTILE_DRAG),
+            "move_accel": _config_float(config, "move_accel", DEFAULT_MOVE_ACCEL),
+            "move_friction": _config_float(config, "move_friction", DEFAULT_MOVE_FRICTION),
+            "fire_cooldown": _config_float(config, "fire_cooldown", DEFAULT_FIRE_COOLDOWN),
+            "shot_energy_cost": _shot_energy_cost(config),
+            "immunity_seconds": _immunity_seconds(config),
         },
         "field": str(state.get("field", "") or ""),
         "obstacles": list(state.get("obstacles", [])),
@@ -1086,7 +1087,7 @@ def _update_bot(
     _move_body(bot, desired_x, desired_y, step=step, arena=arena, obstacles=obstacles, accel=accel, friction=friction)
     bot_config = _bot_config(config)
     next_shot = _parse_timestamp(bot.get("next_shot_at"))
-    if target is not None and not _is_immune(bot, now) and (next_shot is None or now >= next_shot):
+    if target is not None and (next_shot is None or now >= next_shot):
         fired = _fire_projectile(
             context,
             state,

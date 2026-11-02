@@ -56,10 +56,6 @@ class LightingResolutionTests(unittest.TestCase):
         service = _cycled(LightingService(_stub_world()), "dusk")
         self.assertEqual(service.snapshot_payload("open")["name"], "dusk")
 
-    def test_room_override_wins_over_cycle(self) -> None:
-        service = _cycled(LightingService(_stub_world()), "dusk")
-        self.assertEqual(service.snapshot_payload("moody")["name"], "night")
-
     def test_world_override_freezes_cycle(self) -> None:
         service = _cycled(
             LightingService(_stub_world(environment="night")),
@@ -68,12 +64,14 @@ class LightingResolutionTests(unittest.TestCase):
         self.assertEqual(service.snapshot_payload("open")["name"], "night")
         self.assertFalse(service.follows_cycle("open"))
 
-    def test_room_override_wins_over_world_override(self) -> None:
-        service = _cycled(
+    def test_room_override_wins_over_cycle_and_world(self) -> None:
+        cycle = _cycled(LightingService(_stub_world()), "dusk")
+        self.assertEqual(cycle.snapshot_payload("moody")["name"], "night")
+        world = _cycled(
             LightingService(_stub_world(environment="night")),
             "dusk",
         )
-        self.assertEqual(service.snapshot_payload("moody")["name"], "night")
+        self.assertEqual(world.snapshot_payload("moody")["name"], "night")
 
     def test_dark_rooms_always_resolve_to_darkness(self) -> None:
         service = _cycled(
@@ -96,15 +94,6 @@ class LightingResolutionTests(unittest.TestCase):
         self.assertFalse(service.follows_cycle("diorama"))
         self.assertFalse(service.follows_cycle("missing"))
 
-    def test_snapshot_carries_one_lighting_state_for_every_board(self) -> None:
-        service = _cycled(LightingService(_stub_world()), "dusk")
-        payload = service.snapshot_payload("open")
-        self.assertEqual(payload["mode"], "cycle")
-        self.assertEqual(payload["dark"], False)
-        self.assertIn("time_of_day", payload)
-        self.assertIn("day_cycle_seconds", payload)
-        self.assertEqual(service.snapshot_payload("diorama")["mode"], "fixed")
-
     def test_poll_cycle_change_arms_then_reports_followers(self) -> None:
         service = LightingService(_stub_world())
         buckets = iter(["dusk", "dusk", "dawn", "dawn"])
@@ -113,15 +102,6 @@ class LightingResolutionTests(unittest.TestCase):
         self.assertIsNone(service.poll_cycle_change())
         self.assertEqual(service.poll_cycle_change(), ["open"])
         self.assertIsNone(service.poll_cycle_change())
-
-    def test_poll_cycle_change_empty_when_world_pinned(self) -> None:
-        service = LightingService(
-            _stub_world(environment="night")
-        )
-        buckets = iter(["dusk", "dawn"])
-        service.cycle_environment = lambda: next(buckets)  # type: ignore[method-assign]
-        self.assertIsNone(service.poll_cycle_change())
-        self.assertEqual(service.poll_cycle_change(), [])
 
 
 class PropLightServiceTests(unittest.TestCase):

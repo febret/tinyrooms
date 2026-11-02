@@ -217,13 +217,9 @@ function createParticleLayer(spec, count, colors, dotTexture, sizeScale) {
 
 export function createGalaxyVortexBoard({
   board = {},
-  environment = {},
   options = {},
-  requestShadow = () => {},
   setExposure = () => {},
 } = {}) {
-  void environment;
-  void requestShadow;
   const group = new THREE.Group();
   group.name = "galaxy-vortex";
 

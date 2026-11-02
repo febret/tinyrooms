@@ -44,14 +44,6 @@ export function getBoardDesign(name) {
   return designs.get(String(name || "").trim()) || null;
 }
 
-export function hasBoardDesign(name) {
-  return designs.has(String(name || "").trim());
-}
-
-export function listBoardDesigns() {
-  return [...designs.keys()];
-}
-
 /**
  * Pick the design for a room. An explicit room/world design wins, then a mod
  * may supply one through its diorama environment payload, then the first

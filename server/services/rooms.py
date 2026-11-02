@@ -45,8 +45,6 @@ from server.services.lighting import (
 from server.services.npc_movement import NpcMove, resolve_npc_move
 from server.services.prop_actions import (
     exit_command as make_exit_command,
-)
-from server.services.prop_actions import (
     merged_prop_actions,
     normalize_quick_action,
     surface_actions,

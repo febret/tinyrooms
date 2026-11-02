@@ -89,11 +89,6 @@ class LightingService:
             return False
         return getattr(self._world, "environment", None) is None
 
-    def mode(self, room_id: str) -> str:
-        """Return ``cycle`` when the room follows the shared clock, else ``fixed``."""
-
-        return "cycle" if self.follows_cycle(room_id) else "fixed"
-
     def poll_cycle_change(self) -> list[str] | None:
         """Return cycle-following rooms when the cycle bucket changed.
 
@@ -136,10 +131,9 @@ class LightingService:
     def snapshot_payload(self, room_id: str, *, dark: bool | None = None) -> dict[str, object]:
         """Serialize the single resolved lighting state for a room.
 
-        Every room carries the same shape: the effective preset plus whether it
-        follows the shared clock, the shared cycle phase, and effective
-        darkness. Diorama boards read the phase from here too, so there is no
-        second top-level copy of the clock.
+        Every room carries the same shape: the effective preset, the shared
+        cycle phase, and effective darkness. Diorama boards read the phase from
+        here too, so there is no second top-level copy of the clock.
         """
 
         room = self._world.rooms.get(room_id)
@@ -148,7 +142,6 @@ class LightingService:
         payload: dict[str, object] = {
             "name": self.environment_name(room_id, dark),
             **cycle_payload(time.time()),
-            "mode": self.mode(room_id),
             "dark": bool(dark),
             "base_dark": bool(room is not None and room.dark),
         }

@@ -53,7 +53,6 @@ import { playPropAnimation } from "./board-animations.js";
 import {
   DIORAMA_BOARD_TYPE,
   getBoardDesign,
-  listBoardDesigns,
   resolveBoardDesign,
 } from "./board-designs/registry.js";
 import { applyFade, collectFadeMaterials, restoreFade } from "./board-fade.js";
@@ -691,8 +690,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     const group = new THREE.Group();
     register(entry, group, "prop", prop.id, prop.position);
     group.rotation.set(...propRotationRadians(prop.rotation));
-    if (isWallProp(prop)) applyWallLength(group, prop.scale);
-    else group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
+    if (!isWallProp(prop)) group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
     const record = {
       id: prop.id, group, prop, modelKey: propModelKey(prop), positionKey: positionKey(prop.position),
       model: null, clips: [], animation: prop.animation || "", animationActive: false, mixers: [], animTimers: [], scenes: [],
@@ -878,10 +876,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     }
     canvas.dataset.boardType = board.type || "";
     canvas.dataset.diorama = board.type === DIORAMA_BOARD_TYPE ? "true" : "false";
-    canvas.dataset.boardDesign = board.type === DIORAMA_BOARD_TYPE ? resolveBoardDesign(board, room.environment) : "";
+    const design = board.type === DIORAMA_BOARD_TYPE ? resolveBoardDesign(board, room.environment) : "";
+    canvas.dataset.boardDesign = design;
     if (board.type === DIORAMA_BOARD_TYPE) {
-      const design = resolveBoardDesign(board, room.environment);
-      const factory = getBoardDesign(design) || getBoardDesign(listBoardDesigns()[0]);
+      const factory = getBoardDesign(design);
       if (!factory) {
         entry.diorama = null;
         const { group, floor, dispose } = makeFloor(board);

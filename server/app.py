@@ -55,6 +55,11 @@ from server.routes import room_layout as room_layout_routes
 from server.routes import surfaces as surface_routes
 from server.routes import world_editor as world_editor_routes
 from server.routes.activity_bridge import handle_activity_result
+from server.routes.common import (
+    enforce_authenticated_post as _shared_enforce_post,
+    require_session as _shared_require_session,
+    set_session_cookies as _shared_set_session_cookies,
+)
 from server.routes.static_files import register_static_routes
 from server.protocol import (
     PROTOCOL_VERSION,
@@ -387,8 +392,6 @@ def _json_error(status_code: int, code: str, message: str) -> JSONResponse:
 
 
 def _set_session_cookies(response: Response, *, token: str, csrf_token: str, expires_at: str) -> None:
-    from server.routes.common import set_session_cookies as _shared_set_session_cookies
-
     _shared_set_session_cookies(
         response,
         token=token,
@@ -423,14 +426,10 @@ def _session_from_request(runtime: RuntimeState, request: Request) -> SessionRec
 
 
 def _require_session(runtime: RuntimeState, request: Request) -> SessionRecord:
-    from server.routes.common import require_session as _shared_require_session
-
     return _shared_require_session(runtime, request)
 
 
 def _enforce_authenticated_post(runtime: RuntimeState, request: Request, session: SessionRecord) -> None:
-    from server.routes.common import enforce_authenticated_post as _shared_enforce_post
-
     _shared_enforce_post(runtime, request, session)
 
 

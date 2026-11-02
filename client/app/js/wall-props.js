@@ -4,8 +4,8 @@ import { withBase } from "./base-path.js";
 const WALL_RENDER_KIND = "wall";
 const TEXTURE_ROOT = "/app/assets/textures";
 
-export const WALL_LENGTH = 3.0;
-export const WALL_HEIGHT = 2.7;
+const WALL_LENGTH = 3.0;
+const WALL_HEIGHT = 2.7;
 const WALL_THICKNESS = 0.12;
 const TRIM_DEPTH = WALL_THICKNESS + 0.05;
 
@@ -148,7 +148,7 @@ export function applyWallLength(group, lengthScale) {
  * Build a procedural wall panel, grounded on y=0 with its long axis on local X.
  * `textures` maps texture ids to loaded THREE textures (or null).
  */
-export function createWallProp(prop, textures = {}, lengthScale = 1) {
+export function createWallProp(prop, textures = {}) {
   const style = resolveWallStyle(prop);
   const group = new THREE.Group();
   const geometry = new THREE.BoxGeometry(WALL_LENGTH, WALL_HEIGHT, WALL_THICKNESS);
@@ -157,8 +157,5 @@ export function createWallProp(prop, textures = {}, lengthScale = 1) {
   panel.userData.wallBaseUv = Float32Array.from(geometry.attributes.uv.array);
   group.add(panel);
   applyFinish(group, style);
-  // The board scales the record group; keep this inner group at unit scale so
-  // the length multiplier is not applied twice. UVs still tile from the start.
-  updatePanelUvs(panel, lengthScale);
   return group;
 }

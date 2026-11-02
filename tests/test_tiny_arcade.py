@@ -82,7 +82,7 @@ class PaintballArenaTests(unittest.TestCase):
         self.assertTrue(3 <= len(obstacles) <= 5)
         for obstacle in obstacles:
             self.assertEqual(obstacle["kind"], "circle")
-        for slot in self.paintball.SPAWN_SLOTS:
+        for slot in self.paintball._spawn_slots((100.0, 100.0)):
             for obstacle in obstacles:
                 self.assertGreaterEqual(
                     ((slot[0] - obstacle["x"]) ** 2 + (slot[1] - obstacle["y"]) ** 2) ** 0.5,
@@ -96,13 +96,9 @@ class PaintballArenaTests(unittest.TestCase):
             def __init__(self) -> None:
                 self.room = {"activities": {"paintball": {"reset_powers": [], "config": {}}}}
                 self.grants = []
-                self.cutscenes = []
 
             def grant(self, **payload) -> None:
                 self.grants.append(payload)
-
-            def cutscene(self, cutscene_id, *, audience=None, params=None) -> None:
-                self.cutscenes.append((cutscene_id, audience, params))
 
             def room_feedback(self, *args, **kwargs) -> None:
                 raise AssertionError("paintball must not broadcast room toasts")

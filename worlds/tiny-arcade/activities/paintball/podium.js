@@ -4,11 +4,7 @@ const RANKS = [
   { key: "third", place: "third", slot: 2, height: "3.8rem", medal: "3", color: "#e08a4a" },
 ];
 
-export function podiumImageFor() {
-  return "";
-}
-
-export function renderPodium(root, { top = [], round = 0, seconds = 0, imageFor = podiumImageFor, reducedMotion = false } = {}) {
+export function renderPodium(root, { top = [], round = 0, seconds = 0, imageFor = () => "", reducedMotion = false } = {}) {
   if (!root) return;
   root.textContent = "";
   const minutes = Math.floor(Math.max(0, Number(seconds) || 0) / 60);
