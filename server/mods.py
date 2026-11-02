@@ -2,9 +2,9 @@
 
 A mod is a directory under the mods path containing a ``mod.yaml`` manifest.
 It may contribute world content (``content/``), a single props set
-(``props/props.yaml``, like a world), activity iframes (``activities/``), and
-Python behaviour via an entrypoint (``mod.py`` by default) exposing
-``register(api)``.
+(``props/props.yaml``, like a world), activity iframes (``activities/``),
+client board renderers (``boards/``), and Python behaviour via an entrypoint
+(``mod.py`` by default) exposing ``register(api)``.
 
 Enabled mods come from ``TRSERVER_MODS`` (comma-separated names, or ``*`` for
 every installed mod); the search root comes from ``TRSERVER_MODS_PATH``
@@ -14,9 +14,10 @@ every installed mod); the search root comes from ``TRSERVER_MODS_PATH``
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 import importlib.util
+from pathlib import PurePosixPath
 import re
 import sys
 from pathlib import Path
@@ -30,6 +31,15 @@ from server.content.sounds import load_sound_names
 
 
 _MOD_ID = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+_BOARD_DESIGN_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+@dataclass(frozen=True, slots=True)
+class BoardDesignModule:
+    """A client board renderer contributed by a mod."""
+
+    name: str
+    module: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +52,7 @@ class ModDefinition:
     requires: tuple[str, ...] = ()
     entrypoint: str = "mod.py"
     entrypoint_explicit: bool = False
+    board_designs: tuple[BoardDesignModule, ...] = ()
 
     @property
     def activities_path(self) -> Path:
@@ -200,6 +211,7 @@ def _load_manifest(manifest: Path) -> ModDefinition:
         if name not in requires:
             requires.append(name)
     entrypoint = str(payload.get("entrypoint", "mod.py")).strip() or "mod.py"
+    board_designs = _load_board_designs(payload.get("boards"), mod_id)
     return ModDefinition(
         id=mod_id,
         label=str(payload.get("label", mod_id)).strip() or mod_id,
@@ -207,7 +219,49 @@ def _load_manifest(manifest: Path) -> ModDefinition:
         requires=tuple(requires),
         entrypoint=entrypoint,
         entrypoint_explicit="entrypoint" in payload,
+        board_designs=board_designs,
     )
+
+
+def _load_board_designs(raw_value: object, mod_id: str) -> tuple[BoardDesignModule, ...]:
+    """Parse a mod's optional ``boards`` name -> client module mapping."""
+
+    if raw_value is None:
+        return ()
+    if not isinstance(raw_value, Mapping):
+        raise ContentError(f"Mod '{mod_id}' boards must be a mapping.")
+    designs: list[BoardDesignModule] = []
+    for raw_name, raw_module in raw_value.items():
+        name = str(raw_name).strip()
+        if not _BOARD_DESIGN_ID.match(name):
+            raise ContentError(f"Mod '{mod_id}' has an invalid board design name '{raw_name}'.")
+        module = str(raw_module).strip().replace("\\", "/")
+        parts = PurePosixPath(module).parts
+        if (
+            not module
+            or PurePosixPath(module).is_absolute()
+            or ".." in parts
+            or not module.endswith(".js")
+        ):
+            raise ContentError(
+                f"Mod '{mod_id}' board '{name}' module must be a relative .js path."
+            )
+        designs.append(BoardDesignModule(name=name, module=module))
+    return tuple(designs)
+
+
+def board_designs_payload(definitions: Iterable[ModDefinition]) -> list[dict[str, str]]:
+    """Return the client board renderer manifest for enabled mods."""
+
+    return [
+        {
+            "name": design.name,
+            "mod_id": mod.id,
+            "module_url": f"/assets/mods/{mod.id}/boards/{design.module}",
+        }
+        for mod in definitions
+        for design in mod.board_designs
+    ]
 
 
 def resolve_mods(config: AppConfig) -> tuple[ModDefinition, ...]:
@@ -310,6 +364,7 @@ def load_mods(config: AppConfig) -> LoadedMods:
     """Resolve, import, and register every enabled mod."""
 
     definitions = resolve_mods(config)
+    _validate_board_design_names(definitions)
     apis: list[ModAPI] = []
     for mod in definitions:
         api = ModAPI(mod)
@@ -333,3 +388,15 @@ def load_mods(config: AppConfig) -> LoadedMods:
             known_sounds=load_sound_names(config.sounds_path),
         ),
     )
+
+
+def _validate_board_design_names(definitions: Iterable[ModDefinition]) -> None:
+    seen: dict[str, str] = {}
+    for mod in definitions:
+        for design in mod.board_designs:
+            owner = seen.get(design.name)
+            if owner is not None:
+                raise ContentError(
+                    f"Board design '{design.name}' is contributed by both '{owner}' and '{mod.id}'."
+                )
+            seen[design.name] = mod.id

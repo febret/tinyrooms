@@ -247,6 +247,23 @@ def register_static_routes(app: FastAPI) -> None:
                 return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Mod prop asset not found.")
 
+    @app.get("/assets/mods/{mod_id}/boards/{requested_path:path}")
+    async def mod_board_asset(mod_id: str, requested_path: str, request: Request) -> Response:
+        runtime = get_runtime(request)
+        if not requested_path.lower().endswith(".js"):
+            raise HTTPException(status_code=404, detail="Mod board asset not found.")
+        for mod in runtime.mod_definitions:
+            if mod.id != mod_id:
+                continue
+            candidate = _safe_path(mod.path / "boards", requested_path)
+            if candidate.is_file():
+                return FileResponse(
+                    candidate,
+                    media_type="text/javascript",
+                    headers={"Cache-Control": "no-cache"},
+                )
+        raise HTTPException(status_code=404, detail="Mod board asset not found.")
+
     @app.get("/assets/world/{world_id}/{bucket}/{filename}")
     async def world_asset(world_id: str, bucket: str, filename: str, request: Request) -> Response:
         runtime = get_runtime(request)

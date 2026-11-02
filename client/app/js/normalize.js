@@ -165,6 +165,7 @@ export function normalizeProp(prop) {
     rotation: Array.isArray(prop?.rotation) ? prop.rotation : [0, 0, 0],
     scale: Number(prop?.scale || 1),
     resizable: prop?.resizable !== false,
+    castShadow: prop?.cast_shadow !== false,
     behavior: String(prop?.behavior || ""),
     modelUrl: assetOrEmpty(prop?.model_url),
     renderKind: String(prop?.render_kind || "model"),
@@ -770,6 +771,10 @@ export function normalizeRoom(room, previousRoom = null) {
     baseDescription: String(room.description || ""),
     board: {
       type: String(room.board?.type || ""),
+      design: room.board?.design ? String(room.board.design) : null,
+      designOptions: room.board?.design_options && typeof room.board.design_options === "object"
+        ? { ...room.board.design_options }
+        : {},
       imageUrl: assetOrEmpty(room.board?.image_url),
       imageStyle: String(room.board?.image_style || ""),
       palette: Array.isArray(room.board?.palette) ? [...room.board.palette] : [],

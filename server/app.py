@@ -41,7 +41,7 @@ from server.content.worlds import WorldDefinition
 from server.logging_ring import install_log_ring, remove_log_ring
 from server.mc_api import router as mc_router
 from server.mc_client import McClient
-from server.mods import ModDefinition, LoadedMods, load_mods
+from server.mods import ModDefinition, LoadedMods, board_designs_payload, load_mods
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.serialization import serialize_account as _serialize_account
 from server.routes import card_database as card_database_routes
@@ -1003,6 +1003,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             "ok": True,
             "user": payload,
             "rtc": {"ice_servers": runtime.config.ice_servers},
+            "board_designs": board_designs_payload(runtime.mod_definitions),
         }
 
     @app.get("/api/activities/current")

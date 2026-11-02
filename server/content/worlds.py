@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+import re
 from typing import Any
 
 from server.content.activities import (
@@ -76,6 +77,8 @@ from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
 BOARD_TYPES = frozenset({"basic", "diorama"})
+BOARD_DESIGN_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+BOARD_DESIGN_OPTION_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 DEFAULT_EXIT_TRANSITION = "crossfade"
 EXIT_TRANSITION_TYPES = frozenset({
     "crossfade",
@@ -144,6 +147,8 @@ class RoomDefinition:
     sprite_scale: float = 1.0
     activities: dict[str, RoomActivityDefinition] = field(default_factory=dict)
     environment: str | None = None
+    board_design: str | None = None
+    board_design_options: dict[str, object] = field(default_factory=dict)
 
     @property
     def activity(self) -> RoomActivityDefinition | None:
@@ -528,6 +533,39 @@ def _load_sprite_scale(raw_value: Any, room_id: str) -> float:
     return scale
 
 
+def _load_board_design_options(raw_value: Any, room_id: str) -> dict[str, object]:
+    """Parse JSON-safe options passed through to a diorama board design."""
+
+    if raw_value is None:
+        return {}
+    if not isinstance(raw_value, Mapping):
+        raise ContentError(f"Room '{room_id}' board_design_options must be a mapping.")
+    options: dict[str, object] = {}
+    for raw_key, raw_option in raw_value.items():
+        key = str(raw_key).strip()
+        if not BOARD_DESIGN_OPTION_KEY_RE.match(key):
+            raise ContentError(
+                f"Room '{room_id}' has invalid board_design_options key '{raw_key}'."
+            )
+        options[key] = _load_board_design_option_value(raw_option, room_id, key)
+    return options
+
+
+def _load_board_design_option_value(raw_value: Any, room_id: str, key: str) -> object:
+    if raw_value is None or isinstance(raw_value, (bool, int, float, str)):
+        return raw_value
+    if isinstance(raw_value, list):
+        return [_load_board_design_option_value(item, room_id, key) for item in raw_value]
+    if isinstance(raw_value, Mapping):
+        return {
+            str(nested_key): _load_board_design_option_value(nested_value, room_id, key)
+            for nested_key, nested_value in raw_value.items()
+        }
+    raise ContentError(
+        f"Room '{room_id}' board_design_options '{key}' must be a JSON-safe value."
+    )
+
+
 def _as_paths(value: Path | Sequence[Path] | None) -> list[Path]:
     """Normalize an optional single path or path sequence into a list."""
 
@@ -732,6 +770,28 @@ def load_world_definition(
                 f"Room '{room_id}' has unknown board_image_style '{board_image_style}'. "
                 f"Expected one of {', '.join(sorted(BOARD_IMAGE_STYLES))}."
             )
+        raw_design = raw_room.get("board_design", None)
+        if raw_design is None or (isinstance(raw_design, str) and not raw_design.strip()):
+            board_design: str | None = None
+        elif not isinstance(raw_design, str) or not BOARD_DESIGN_RE.match(raw_design.strip()):
+            raise ContentError(
+                f"Room '{room_id}' has unknown board_design '{raw_design}'. "
+                "Expected a lowercase slug like 'tinytown' or 'galaxy-vortex'."
+            )
+        else:
+            board_design = raw_design.strip()
+        if board_design is not None and board_type != "diorama":
+            raise ContentError(
+                f"Room '{room_id}' sets board_design '{board_design}' "
+                "but board_design requires board_type 'diorama'."
+            )
+        board_design_options = _load_board_design_options(
+            raw_room.get("board_design_options"), room_id
+        )
+        if board_design_options and board_design is None:
+            raise ContentError(
+                f"Room '{room_id}' sets board_design_options without a board_design."
+            )
         raw_props = raw_room.get("props", {}) or {}
         if not isinstance(raw_props, dict):
             raise ContentError(f"Room '{room_id}' props must be a mapping.")
@@ -926,6 +986,8 @@ def load_world_definition(
             environment=validate_lighting_name(
                 raw_room.get("environment"), f"Room '{room_id}' environment"
             ),
+            board_design=board_design,
+            board_design_options=board_design_options,
         )
 
     apply_room_grid(rooms, pending_directional_targets=pending_directional_targets)

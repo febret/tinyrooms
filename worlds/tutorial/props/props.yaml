@@ -1,5 +1,5 @@
 CONFIG:
-  scale_adjust: 2.0
+  scale_adjust: 2
 portal:
   label: A Glowing Portal
   description: A familiar doorway shimmering with possibilities. Somebody definitely
@@ -24,6 +24,11 @@ dollhouse:
     inside and become emotionally responsible for it.
   model: dollhouse.glb
   decorative: false
+  cast_shadow: false
+  effects:
+    idle:
+    - galaxy-float
+  active_effect: idle
 shower:
   label: Sunflower Shower
   description: A warm shower washes away grime and restores Cleanliness. It will not

@@ -8,6 +8,7 @@ import {
   validateDraft,
 } from "./api.js";
 import { createBoardView } from "./board-view.js";
+import { loadBoardDesigns } from "../../app/js/board/board-designs/registry.js";
 import { createStore } from "./store.js";
 import { escapeHtml, parseCsv, parseJson, numberOr, textToActions, uniqueId } from "./util.js";
 import { roomQualityReport } from "./quality.js";
@@ -931,6 +932,7 @@ function showConfirm(body) {
 async function refresh() {
   dialogs.closeAll();
   const body = await loadDraft();
+  await loadBoardDesigns(body.catalog?.board_designs);
   store.init({
     draft: body.draft,
     catalog: body.catalog,

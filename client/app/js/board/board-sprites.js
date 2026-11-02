@@ -18,6 +18,10 @@ const FALLBACK_ASPECT = 0.78;
  * the authoritative `[x%, y%]` position the server assigns.
  */
 export function createBoardSprites({ textureLoader, invalidate }) {
+  function contentRoot(entry) {
+    return entry?.content || entry?.root;
+  }
+
   function targetPosition(position) {
     const target = new THREE.Vector3(...boardPosition(position));
     target.y += TOP;
@@ -71,7 +75,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     sprite.position.copy(record.target);
     sprite.visible = false;
     sprite.userData = { kind: "peep", id: record.id };
-    entry.root.add(sprite);
+    contentRoot(entry).add(sprite);
     record.sprite = sprite;
     applyScale(entry, record, record.material.map);
   }
@@ -148,7 +152,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
   function disposeOverlay(entry, record, kind) {
     const overlay = kind === "stink" ? record.stinkOverlay : record.decalOverlay;
     if (!overlay) return;
-    entry.root.remove(overlay);
+    contentRoot(entry).remove(overlay);
     overlay.material.map?.dispose();
     overlay.material.dispose();
     if (kind === "stink") {
@@ -174,7 +178,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     overlay.position.copy(record.sprite.position);
     overlay.scale.copy(record.sprite.scale);
     overlay.renderOrder = kind === "stink" ? 2 : 1;
-    entry.root.add(overlay);
+    contentRoot(entry).add(overlay);
     if (kind === "stink") record.stinkOverlay = overlay;
     else record.decalOverlay = overlay;
     applyTint(record);
@@ -215,7 +219,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     if (!record) return;
     clearDecalOverlay(entry, record);
     clearStinkOverlay(entry, record);
-    entry.root.remove(record.sprite);
+    contentRoot(entry).remove(record.sprite);
     const index = entry.pickables.indexOf(record.sprite);
     if (index >= 0) entry.pickables.splice(index, 1);
     record.material.dispose();

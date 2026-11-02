@@ -3,6 +3,7 @@ town:
   description: 'A living tabletop town: a harbour, hills, downtown rooftops, and suburbs
     that glow as the ten-minute day turns to night.'
   board_type: diorama
+  board_design: tinytown
   board_image: town-map.png
   board_image_style: stretch
   palette:

@@ -90,6 +90,7 @@ class PropDefinition:
     hidden: bool = False
     requires_light: bool = False
     resizable: bool = False
+    cast_shadow: bool = True
     model_missing: bool = False
     # Set names select ordered lists of catalog effect ids, not gameplay effects.
     # This active_effect is the authored default; RoomService can override it per
@@ -563,6 +564,7 @@ def load_prop_definition(
     hidden = bool(raw_prop.get("hidden", False))
     requires_light = bool(raw_prop.get("requires_light", False))
     resizable = bool(raw_prop.get("resizable", False))
+    cast_shadow = bool(raw_prop.get("cast_shadow", True))
     behavior = _load_optional_prop_name(raw_prop.get("behavior"), prop_id, "behavior")
     if behavior is None:
         tag_set = set(tags)
@@ -615,6 +617,7 @@ def load_prop_definition(
         hidden=hidden,
         requires_light=requires_light,
         resizable=resizable,
+        cast_shadow=cast_shadow,
         effect_sets=effect_sets,
         active_effect=active_effect,
         render_kind=render_kind,

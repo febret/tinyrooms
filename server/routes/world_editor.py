@@ -18,6 +18,7 @@ from server.content.exit_props import exit_style_options
 from server.content.surface_props import DEFAULT_SIGN_STYLE, sign_options, whiteboard_options
 from server.content.text_props import text_options
 from server.content.worlds import BOARD_IMAGE_STYLES, POWER_NAMES, prop_model_url
+from server.mods import board_designs_payload
 from server.routes.common import (
     enforce_authenticated_post,
     get_runtime,
@@ -92,6 +93,7 @@ def _catalog_payload(runtime) -> dict[str, object]:
             "editor_scale_min": definition.editor_scale_min,
             "editor_scale_max": definition.editor_scale_max,
             "resizable": definition.resizable,
+            "cast_shadow": definition.cast_shadow,
             "tags": list(definition.tags),
             "price": definition.price,
             "locked": definition.locked,
@@ -130,6 +132,7 @@ def _catalog_payload(runtime) -> dict[str, object]:
         "board_images": _image_names(world.root_path / "rooms"),
         "peep_images": _image_names(world.root_path / "peeps"),
         "board_image_styles": sorted(BOARD_IMAGE_STYLES),
+        "board_designs": board_designs_payload(runtime.mod_definitions),
         "powers": list(POWER_NAMES),
     }
 

@@ -1,0 +1,13 @@
+# Dollhouse hover for the galaxy-vortex hub: gentle vertical wobble plus a slow
+# turn about Y so the house reads as floating at the eye of the vortex.
+id: galaxy-float
+label: Galaxy Float
+layers:
+  - type: transform
+    motion: bob
+    amplitude: 0.09
+    period: 2.8
+  - type: transform
+    motion: spin
+    period: 16.0
+    axis: [0, 1, 0]

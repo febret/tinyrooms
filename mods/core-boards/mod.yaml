@@ -1,0 +1,5 @@
+id: core-boards
+label: Core Boards
+requires: []
+boards:
+  galaxy-vortex: galaxy-vortex.js

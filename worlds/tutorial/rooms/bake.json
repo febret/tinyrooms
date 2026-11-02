@@ -1,0 +1,16 @@
+{
+  "tasks": [
+    {
+      "label": "galaxy-backdrop",
+      "tool": "image",
+      "prompt": "top-down deep space nebula, dark near-black void with soft swirling clouds of warm cream, terracotta orange, and muted teal gas, spiral galaxy arms radiating from a bright warm core, no stars, no planets, no text, no logos, edges fading to black",
+      "output": "worlds/tutorial/rooms/galaxy-backdrop.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 41771,
+        "steps": 32
+      }
+    }
+  ]
+}

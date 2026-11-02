@@ -136,6 +136,7 @@ def load_test_world(world_path: Path, card_ids: set[str] | None = None, *, allow
         known_features=KNOWN_FEATURES,
         propsets_root=load_world_propsets(),
         mod_props=load_world_mod_props(),
+        enabled_mods=frozenset(repo_mods()),
         fx_root=REPO_ROOT / "data" / "fx",
         extra_recipes=catalog.recipes,
         allow_legacy_whiteboards=allow_legacy_whiteboards,
@@ -228,7 +229,7 @@ class RuntimeTestCase(unittest.TestCase):
 
     features = "dev_sample_activity"
     legacy_features = ""
-    mods = "classrooms"
+    mods = "classrooms,core-boards"
     world_path: Path | None = None
 
     def setUp(self) -> None:

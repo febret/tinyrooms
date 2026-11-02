@@ -21,6 +21,7 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
         rotation: Array.isArray(instance.rot) ? instance.rot : [0, 0, 0],
         scale: (definition.resizable ? Number(instance.scale ?? 1) : 1) * Number(definition.scale ?? 1),
         resizable: Boolean(definition.resizable),
+        castShadow: definition.cast_shadow !== false,
         modelUrl: withBase(definition.model_url || ""),
         renderKind: definition.render_kind || "model",
         ...(instance.text ? { text: { ...instance.text } } : {}),
@@ -49,6 +50,10 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
     label: room.label || roomId,
     board: {
       type: room.board_type || "basic",
+      design: room.board_design || null,
+      designOptions: room.board_design_options && typeof room.board_design_options === "object"
+        ? { ...room.board_design_options }
+        : {},
       imageUrl: withBase(`/assets/world/${worldId}/rooms/${room.board_image}`),
       imageStyle: room.board_image_style || "stretch",
       palette: Array.isArray(room.palette) ? room.palette : [],

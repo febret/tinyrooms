@@ -955,6 +955,7 @@ class RoomService:
             "rotation": list(prop.rot),
             "scale": prop.scale * prop_definition.scale,
             "resizable": prop_definition.resizable,
+            "cast_shadow": prop_definition.cast_shadow,
             "behavior": None if dark else prop_definition.behavior,
             "model_url": prop_model_url(self._world.id, prop_definition, active_state),
             "render_kind": prop_definition.render_kind,
@@ -1130,6 +1131,8 @@ class RoomService:
             "description": description,
             "board": {
                 "type": room.board_type,
+                "design": room.board_design,
+                "design_options": dict(room.board_design_options),
                 "image_url": f"/assets/world/{self._world.id}/rooms/{board_image}",
                 "image_style": board_style,
                 "palette": board_palette,

@@ -53,6 +53,7 @@ function roomPanel(state) {
       ${field("Description", textarea(room.description, `data-room-field="description"`, 2))}
       <div class="field-row">
         ${field("Board type", textInput(room.board_type || "basic", `data-room-field="board_type"`))}
+        ${field("Board design", textInput(room.board_design || "", `data-room-field="board_design"`))}
         ${field("Board image", `<select data-room-field="board_image">${selectOptions(catalog?.board_images || [], room.board_image)}</select>`)}
       </div>
       <div class="check-row">

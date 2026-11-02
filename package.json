@@ -2,6 +2,9 @@
   "name": "tinyrooms-noon-browser-client",
   "private": true,
   "type": "module",
+  "imports": {
+    "#tinyrooms/*": "./client/app/js/*"
+  },
   "scripts": {
     "vendor": "python tools\\vendor_browser_deps.py",
     "test": "npm run test:client && npm run test:browser",

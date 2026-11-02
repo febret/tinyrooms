@@ -241,7 +241,7 @@ export function makeFloor(board) {
 }
 
 export function floorKey(board) {
-  return JSON.stringify([board.type, board.imageUrl, board.imageStyle, board.palette, board.dark]);
+  return JSON.stringify([board.type, board.design, board.imageUrl, board.imageStyle, board.palette, board.dark]);
 }
 
 /** Apply the room's board image style by wrapping and repeating the floor texture. */

@@ -108,6 +108,28 @@ world-authored floor textures; layout updates carry the new image URL alongside
 palette and tiling. Pre-image vector whiteboards are only converted when the
 server is started with `--legacy-features svg-boards`.
 
+Diorama rooms (`board_type: diorama`) select their look with `board_design`
+(`tinytown`, `galaxy-vortex`, or any design declared by an enabled mod).
+Optional JSON-safe `board_design_options` (for example a baked backdrop file,
+particle budget, or size multiplier) are validated by
+[worlds.py](../server/content/worlds.py) and passed to the design factory. A mod
+declares renderers in its manifest:
+
+```yaml
+boards:
+  galaxy-vortex: galaxy-vortex.js
+```
+
+The server serves these modules under
+`/assets/mods/<mod_id>/boards/...` and lists them in `/api/bootstrap` and the
+World Editor catalog. The client imports them once at login through
+[the design registry](../client/app/js/board/board-designs/registry.js); each
+module registers a factory, and core only routes diorama frames to it. A mod may
+also choose the design through `environment.diorama.design` in its
+`diorama_payload` when the room leaves `board_design` unset; an explicit room
+definition always wins. The tutorial world requires `core-boards`, while
+TinyTown's island renderer ships in the `tinytown` mod.
+
 Mods may expose `start()`/`stop()` lifecycle hooks for background work. TinyTown
 uses this for autonomous household NPCs while its private multi-room houses,
 house purchases, visits, roommate classifieds, and community art sales live in

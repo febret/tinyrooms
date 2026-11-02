@@ -226,9 +226,10 @@ Do not expose the internal world port range (`10000–10999`) publicly.
 ## Mods
 
 Mods under `mods/` (override `TRSERVER_MODS_PATH`) use a `mod.yaml` manifest and
-may contribute content, props, activity iframes, and Python `register(api)`
-behavior. Enable comma-separated names or `*` through `TRSERVER_MODS`. Worlds
-declare `requires_mods`; the scammon-academia world requires `classrooms`.
+may contribute content, props, activity iframes, board renderers, and Python
+`register(api)` behavior. Enable comma-separated names or `*` through
+`TRSERVER_MODS`. Worlds declare `requires_mods`; the scammon-academia world
+requires `classrooms`, and the tutorial world requires `core-boards`.
 
 ## Editors
 

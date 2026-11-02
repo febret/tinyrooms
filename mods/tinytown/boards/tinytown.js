@@ -5,15 +5,16 @@
 // and the residents' GLB house models served per viewer.
 
 import * as THREE from "three";
-import { GLTFLoader } from "../../vendor/three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-import { withBase } from "../base-path.js";
-import { disposeBoardTree } from "./board-helpers.js";
+import { registerBoardDesign } from "#tinyrooms/board/board-designs/registry.js";
+import { withBase } from "#tinyrooms/base-path.js";
+import { disposeBoardTree } from "#tinyrooms/board/board-helpers.js";
 import {
   cyclePhaseAt,
   daylightForPhase,
   normalizeDayCycle,
-} from "./board-diorama-daylight.js";
+} from "./daylight.js";
 import {
   HALF_DEPTH,
   HALF_WIDTH,
@@ -24,7 +25,7 @@ import {
   makeRibbon,
   seededRandom,
   terrainHeightAt,
-} from "./board-diorama-terrain.js";
+} from "./terrain.js";
 import {
   makeCobbleTexture,
   makeDetailTexture,
@@ -33,9 +34,8 @@ import {
   makePlaqueTexture,
   makeStarTexture,
   makeWoodTexture,
-} from "./board-diorama-textures.js";
+} from "./textures.js";
 
-export const DIORAMA_BOARD_TYPE = "diorama";
 const GROUP_LIFT = 0.045;
 const LAMP_GLOW = "#ffd58a";
 
@@ -753,7 +753,7 @@ function addFountain(parent, materials) {
   return group;
 }
 
-export function createDioramaBoard({
+export function createTinytownBoard({
   environment = {},
   requestShadow = () => {},
   setExposure = () => {},
@@ -1045,3 +1045,5 @@ export function createDioramaBoard({
     },
   };
 }
+
+registerBoardDesign("tinytown", createTinytownBoard);

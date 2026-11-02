@@ -1,7 +1,7 @@
 id: tutorial
 label: The Little House
-description: A dollhouse home where the chores have opinions and the basement is
-  definitely keeping score.
+description: A dollhouse home where the chores have opinions and the basement is definitely
+  keeping score.
 entry_room: hub
 image: rooms/hub.jpg
 css: cutscenes.css
@@ -10,5 +10,6 @@ palette:
 - '#dd755e'
 - '#78ae99'
 - '#4d6887'
-requires_mods: []
+requires_mods:
+- core-boards
 powers: {}

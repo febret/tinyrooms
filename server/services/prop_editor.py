@@ -141,6 +141,7 @@ class PropEditorService:
             "locked": definition.locked,
             "hidden": definition.hidden,
             "resizable": definition.resizable,
+            "cast_shadow": definition.cast_shadow,
             "editor_scale_min": definition.editor_scale_min,
             "editor_scale_max": definition.editor_scale_max,
             "states": {

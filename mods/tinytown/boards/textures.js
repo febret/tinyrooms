@@ -1,11 +1,11 @@
 // Procedural canvas textures for the TinyTown tabletop diorama.
 //
-// Kept separate from board-diorama.js so the board file stays focused on
+// Kept separate from tinytown.js so the board assembly stays focused on
 // scene assembly. All noise uses seeded randomness for a stable look.
 
 import * as THREE from "three";
 
-import { seededRandom } from "./board-diorama-terrain.js";
+import { seededRandom } from "./terrain.js";
 
 export function makeCanvasTexture(width, height, draw, { repeatX = 1, repeatY = 1 } = {}) {
   const canvas = document.createElement("canvas");

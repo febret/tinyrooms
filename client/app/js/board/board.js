@@ -47,7 +47,12 @@ import { createBoardCards } from "./board-cards.js";
 import { createBoardScheduler } from "./board-scheduler.js";
 import { createBoardRecovery } from "./board-recovery.js";
 import { playPropAnimation } from "./board-animations.js";
-import { DIORAMA_BOARD_TYPE, createDioramaBoard } from "./board-diorama.js";
+import {
+  DIORAMA_BOARD_TYPE,
+  getBoardDesign,
+  listBoardDesigns,
+  resolveBoardDesign,
+} from "./board-designs/registry.js";
 import { applyFade, collectFadeMaterials, restoreFade } from "./board-fade.js";
 import { ROOM_TRANSITION_MS, transitionFrame, usesFade } from "./board-transitions.js";
 const TOP = 0.045;
@@ -305,11 +310,12 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
 
   function updateSelection() {
     let changed = false;
+    const transitioning = Boolean(roomTransition);
     const previousSelectionObject = selectionObject;
     selectionRing.visible = false;
     selectionObject = null;
     for (const object of current?.pickables || []) {
-      if (roomDark || object.userData.kind !== selection?.kind || object.userData.id !== selection?.id) continue;
+      if (transitioning || roomDark || object.userData.kind !== selection?.kind || object.userData.id !== selection?.id) continue;
       selectionObject = object;
       if (object.userData.kind !== "prop") {
         selectionRing.position.set(object.position.x, object.position.y + 0.06, object.position.z);
@@ -319,16 +325,16 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       break;
     }
     if (selectionObject !== previousSelectionObject) changed = true;
-    const showProps = !editEnabled && !roomDark;
+    const showProps = !transitioning && !editEnabled && !roomDark;
     for (const record of current?.props.values() || []) {
       if (outlines.update(record, showProps && selection?.kind === "prop" && selection.id === record.id, showProps && showActiveProps)) changed = true;
     }
     const previousEditSelection = editSelectionObject;
-    editSelectionObject = editEnabled && editSelectionId
+    editSelectionObject = !transitioning && editEnabled && editSelectionId
       ? (current?.pickables || []).find(object => object.userData.kind === "prop" && object.userData.id === editSelectionId)
       : null;
     if (editSelectionObject !== previousEditSelection) changed = true;
-    const showGizmo = Boolean(editSelectionObject && !editSelectionLocked());
+    const showGizmo = Boolean(!transitioning && editSelectionObject && !editSelectionLocked());
     if (typeof gizmo.setResizable === "function") gizmo.setResizable(editSelectionResizable());
     if (showGizmo) {
       gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
@@ -362,7 +368,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   }
 
   function screenToBoardPosition(clientX, clientY) {
-    if (disposed || recovery.renderFailed || !current || blocked) return null;
+    if (disposed || recovery.renderFailed || !current || blocked || roomTransition) return null;
     const bounds = canvasBounds();
     if (!bounds) return null;
     if (clientX < bounds.left || clientX > bounds.right || clientY < bounds.top || clientY > bounds.bottom) return null;
@@ -389,7 +395,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
 
   function setDropHint(position) {
     invalidate();
-    if (!position || disposed || blocked || current?.diorama) {
+    if (!position || disposed || blocked || roomTransition || current?.diorama) {
       dropHint.visible = false;
       return;
     }
@@ -554,7 +560,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     object.position.set(...boardPosition(position));
     object.position.y += TOP;
     object.userData = { kind, id };
-    entry.root.add(object);
+    entry.content.add(object);
     entry.pickables.push(object);
   }
 
@@ -698,8 +704,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       }
       const model = gltf.scene;
       // Models load without shadow flags, so without this props cast no shadow.
+      // Authored props may opt out (e.g. a floating hub centerpiece).
       model.traverse(node => {
-        if (node.isMesh) node.castShadow = node.receiveShadow = true;
+        if (!node.isMesh) return;
+        node.castShadow = prop.castShadow !== false;
+        node.receiveShadow = true;
       });
       const bounds = new THREE.Box3().setFromObject(model);
       if (bounds.isEmpty() || ![...bounds.min.toArray(), ...bounds.max.toArray()].every(Number.isFinite)) {
@@ -840,7 +849,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function applyFloor(entry, room) {
     const board = room.board || {};
     const dioramaData = room.environment?.diorama || null;
-    const key = `${floorKey(board)}|${JSON.stringify(dioramaData)}`;
+    const key = `${floorKey(board)}|${JSON.stringify(board.designOptions || {})}|${JSON.stringify(dioramaData)}`;
     if (entry.floor && entry.floor.key === key) return;
     invalidateScene();
     if (entry.floor) {
@@ -854,10 +863,21 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     }
     canvas.dataset.boardType = board.type || "";
     canvas.dataset.diorama = board.type === DIORAMA_BOARD_TYPE ? "true" : "false";
+    canvas.dataset.boardDesign = board.type === DIORAMA_BOARD_TYPE ? resolveBoardDesign(board, room.environment) : "";
     if (board.type === DIORAMA_BOARD_TYPE) {
-      const diorama = createDioramaBoard({
+      const design = resolveBoardDesign(board, room.environment);
+      const factory = getBoardDesign(design) || getBoardDesign(listBoardDesigns()[0]);
+      if (!factory) {
+        entry.diorama = null;
+        const { group, floor, dispose } = makeFloor(board);
+        entry.root.add(group);
+        entry.floor = { group, floor, dispose, key };
+        return;
+      }
+      const diorama = factory({
         board,
         environment: room.environment,
+        options: board.designOptions || {},
         requestShadow() {
           shadowInvalidations += 1;
           renderer.shadowMap.needsUpdate = true;
@@ -913,6 +933,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     root.scale.set(baseScale.x * scale, baseScale.y * scale, baseScale.z * scale);
   }
 
+  /** Transition frames show only the board base, never props, cards, or sprites. */
+  function setEntryContentVisible(entry, visible) {
+    if (entry?.content) entry.content.visible = Boolean(visible);
+  }
+
   function startRoomTransition(previous, next, type) {
     const oldBase = previous.root.position.clone();
     const newBase = next.root.position.clone();
@@ -931,8 +956,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       oldEntry: previous, newEntry: next, view: transitionViewExtents(),
       oldBase, newBase, oldScale, newScale, fade,
     };
+    setEntryContentVisible(previous, false);
+    setEntryContentVisible(next, false);
     controls.enabled = false;
     canvas.dataset.roomTransition = type;
+    updateSelection();
     advanceRoomTransition(0);
     invalidateScene();
   }
@@ -944,9 +972,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     if (transition.fade) restoreFade(transition.fade);
     transition.newEntry.root.position.copy(transition.newBase);
     transition.newEntry.root.scale.copy(transition.newScale);
+    setEntryContentVisible(transition.newEntry, true);
     disposeEntry(transition.oldEntry);
     canvas.dataset.roomTransition = "";
     controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed;
+    updateSelection();
     if (!userAdjusted) fit(false);
     invalidateScene();
   }
@@ -960,9 +990,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     if (transition.fade) restoreFade(transition.fade);
     transition.newEntry.root.position.copy(transition.newBase);
     transition.newEntry.root.scale.copy(transition.newScale);
+    setEntryContentVisible(transition.newEntry, true);
     disposeEntry(transition.oldEntry);
     canvas.dataset.roomTransition = "";
     controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed;
+    updateSelection();
     invalidateScene();
   }
 
@@ -1001,14 +1033,17 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     roomId = room.id;
     spritesEnabled = Boolean(room.board?.spritesEnabled);
     userAdjusted = false;
+    const content = new THREE.Group();
+    content.name = "room-content";
     const entry = {
-      root: new THREE.Group(), revision, pickables: [],
+      root: new THREE.Group(), content, revision, pickables: [],
       props: new Map(), cards: new Map(), sprites: new Map(), floor: null, diorama: null,
       pending: 0, errors: new Set(), label: room.label,
     };
     current = entry;
     boardLift = 0;
     scene.add(entry.root);
+    entry.root.add(content);
     syncBoardLift();
     invalidateScene();
     applyFloor(entry, room);
@@ -1124,7 +1159,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   }
 
   function pointerDown(event) {
-    if (blocked || event.button !== 0) return;
+    if (blocked || roomTransition || event.button !== 0) return;
     if (editEnabled) {
       const mode = pickEditMode(event);
       if (mode) {

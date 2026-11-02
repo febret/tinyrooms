@@ -7,6 +7,7 @@ import { createChatHistory } from "./chat-history.js";
 import { playSound, preloadSounds } from "./audio.js";
 import { actionSound, installButtonSoundHandler, playActionSound, playRoomSound, playSelectionSound, playToastSound } from "./ui-sounds.js";
 import { createBoard } from "./board/board.js";
+import { loadBoardDesigns } from "./board/board-designs/registry.js";
 import { createPropActionButton } from "./props/prop-action-button.js";
 import { syncEmoteChrome } from "./emote-chrome.js";
 import { enterFullscreen, exitFullscreen, fullscreenSupported, isFullscreen, onFullscreenChange } from "./fullscreen.js";
@@ -398,7 +399,8 @@ function connectSocket() {
     onRtcSignal(envelope) { void voice.handleSignal(envelope); },
     onProfileResync() {
       api.getBootstrap()
-        .then(bootstrap => {
+        .then(async bootstrap => {
+          await loadBoardDesigns(bootstrap.board_designs);
           store.dispatch({ type: "bootstrap", user: bootstrap.user, rtc: bootstrap.rtc });
           toast("Profile data refreshed.");
         })
@@ -459,6 +461,7 @@ function connectSocket() {
 
 async function refreshBootstrapAndConnect() {
   const bootstrap = await api.getBootstrap();
+  await loadBoardDesigns(bootstrap.board_designs);
   store.dispatch({ type: "bootstrap", user: bootstrap.user, rtc: bootstrap.rtc });
   if (store.getState().user?.initialStickerComplete) connectSocket();
 }
