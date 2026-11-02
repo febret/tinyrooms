@@ -523,11 +523,8 @@ function renderLook(state) {
   const description = describeSelection(state);
   const preview = lookPreview(state, description);
   const look = $("#look-bar");
-  if (updateMarkup(look, `${preview.markup}<div class="look-copy">
-    <strong class="look-name" title="${escapeHtml(description.title)}">${escapeHtml(description.title)}</strong>
-    <button type="button" class="look-description" data-focus-key="description" title="${escapeHtml(description.description)}" aria-label="Read full description">${escapeHtml(description.description)}</button>
-    </div>`)) {
-    look.querySelector(".look-description").onclick = () => dialogs.description(description.title, description.description, description.imageUrl || "");
+  if (updateMarkup(look, `${preview.markup}<button type="button" class="look-name" data-focus-key="look-name" title="Read full description" aria-label="Read full description of ${escapeHtml(description.title)}">${escapeHtml(description.title)}</button>`)) {
+    look.querySelector(".look-name").onclick = () => dialogs.description(description.title, description.description, description.imageUrl || "");
   }
   const inspect = look.querySelector("[data-look-inspect]");
   if (inspect) inspect.onclick = () => {

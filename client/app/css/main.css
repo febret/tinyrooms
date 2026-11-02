@@ -24,7 +24,7 @@
   --tray-height: 152px;
   --hand-icon-size: 60px;
   --preview-lane-width: 144px;
-  --dock-height: calc(156px + env(safe-area-inset-bottom, 0px));
+  --dock-height: calc(108px + env(safe-area-inset-bottom, 0px));
   font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
 }
 * { box-sizing: border-box; }
@@ -157,11 +157,10 @@ h3 { font-size: 18px; }
 .bottom-stack { position: absolute; inset: auto 0 0; z-index: 40; pointer-events: none; }
 .card-hand { height: var(--tray-height); padding: 6px 14px 0 var(--preview-lane-width); display: flex; align-items: flex-end; justify-content: flex-end; pointer-events: none; }
 .card-hand button { pointer-events: auto; }
-.interaction-dock { position: relative; z-index: 1; height: var(--dock-height); display: grid; grid-template-rows: 44px 44px 44px; gap: 4px; padding: 6px 10px calc(10px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(#02090cef, #030b0e); pointer-events: auto; }
-.look-bar { position: relative; min-width: 0; }
-.look-copy { display: flex; align-items: center; gap: 10px; min-width: 0; height: 100%; }
-.look-name { flex-shrink: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f2b489; font-size: 22px; text-shadow: 0 0 5px #9c582c80; }
-.look-description { display: -webkit-box; flex: 1 1 auto; min-width: 0; min-height: 0; max-height: 2.4em; overflow: hidden; color: var(--ink); font-size: 17px; line-height: 1.2; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; white-space: normal; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.interaction-dock { position: relative; z-index: 1; height: var(--dock-height); display: grid; grid-template-rows: 44px 44px; gap: 4px; padding: 6px 10px calc(10px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(#02090cef, #030b0e); pointer-events: auto; }
+.look-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.look-bar { position: relative; flex: 0 1 auto; min-width: 0; max-width: 45%; }
+.look-name { min-width: 0; min-height: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: #f2b489; font-size: 22px; line-height: 1.2; text-align: left; text-shadow: 0 0 5px #9c582c80; }
 .look-preview { position: absolute; bottom: calc(100% + 14px); left: 4px; width: 90px; height: 115px; object-fit: contain; filter: drop-shadow(0 0 5px #8acb87); pointer-events: none; }
 .look-preview-peep { width: fit-content; max-width: var(--sidebar-width); height: min(48dvh, calc(100dvh - var(--topbar-height) - var(--dock-height) - var(--tray-height) - 140px), 460px); min-height: 160px; object-position: 50% 100%; overflow: visible; }
 .look-preview-peep img { display: block; width: auto; max-width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
@@ -196,12 +195,12 @@ h3 { font-size: 18px; }
 .mini-floor { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .mini-shade { position: absolute; inset: 0; pointer-events: none; }
 .look-dialog-bubble { z-index: 3; left: 4px; bottom: calc(100% + 114px); min-width: 90px; --bubble-arrow-left: 45px; }
-.actions-bar { display: flex; align-items: center; gap: 5px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.actions-bar { display: flex; flex: 1 1 auto; align-items: center; gap: 5px; min-width: 0; overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.actions-bar::-webkit-scrollbar { display: none; }
 .actions-bar button { flex-shrink: 0; min-width: 0; min-height: 36px; padding: 4px 10px; border-radius: 9px; box-shadow: 0 1px 2px #0006; font-size: 14px; }
 .actions-bar button.icon-action { min-width: 36px; padding: 0; }
 .actions-bar button.icon-action img { width: 22px; height: 22px; object-fit: contain; pointer-events: none; }
 .actions-bar .neutral { background: var(--button-bg); }
-.actions-empty { color: var(--muted); font-size: 13px; }
 .chat-bar { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; }
 .emote-button img { width: 26px; height: 26px; object-fit: contain; }
 .emote-button.active, .talk-button[aria-pressed="true"] { background: linear-gradient(#2f8f57, #176b3a); border-color: #7de07d; }
@@ -359,7 +358,7 @@ h3 { font-size: 18px; }
   .peep-group-count { right: 0; bottom: 0; min-width: 0; padding: 0 2px; font-size: 8px; line-height: 1.3; }
 }
 @media (max-width: 780px), (orientation: portrait) {
-  :root { --topbar-height: 50px; --tray-height: 112px; --toolbar-icon-size: 34px; --toolbar-gap: 6px; --status-button-width: 48px; --peep-gap: 6px; --peep-marker-width: 20px; --peep-marker-height: 29px; --peep-self-width: 24px; --peep-self-height: 34px; --preview-lane-width: 100px; --hand-icon-size: 50px; --dock-height: calc(136px + env(safe-area-inset-bottom, 0px)); }
+  :root { --topbar-height: 50px; --tray-height: 112px; --toolbar-icon-size: 34px; --toolbar-gap: 6px; --status-button-width: 48px; --peep-gap: 6px; --peep-marker-width: 20px; --peep-marker-height: 29px; --peep-self-width: 24px; --peep-self-height: 34px; --preview-lane-width: 100px; --hand-icon-size: 50px; --dock-height: calc(101px + env(safe-area-inset-bottom, 0px)); }
   .sidebar { padding: 0 1px 4px; top: calc(var(--topbar-height) + 4px); }
   .peep-list { gap: var(--peep-gap); }
   .peep-chip.self { padding-bottom: 2px; }
@@ -378,10 +377,10 @@ h3 { font-size: 18px; }
   .emote-menu { max-width: calc(100vw - 16px); padding: 8px 10px; }
   .emote-option { width: 46px; height: 46px; }
   .emote-menu-track { gap: 12px; }
-  .interaction-dock { grid-template-rows: 42px 32px 44px; gap: 3px; padding: 4px 6px calc(8px + env(safe-area-inset-bottom, 0px)); }
-  .look-copy { gap: 7px; }
-  .look-name { max-width: 38%; font-size: 17px; }
-  .look-description { max-height: 2.4em; font-size: 13px; line-height: 1.2; }
+  .interaction-dock { grid-template-rows: 42px 44px; gap: 3px; padding: 4px 6px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .look-row { gap: 7px; }
+  .look-bar { max-width: 38%; }
+  .look-name { font-size: 17px; }
   .look-preview { width: 54px; height: 68px; left: 6px; }
   .look-minimap { left: 6px; --mini-cell: 15px; }
   .mini-exit { width: 29px; height: 29px; min-width: 29px; min-height: 29px; font-size: 13px; }
@@ -403,7 +402,7 @@ h3 { font-size: 18px; }
   .global-dialog { max-height: calc(100dvh - 24px); padding: 20px; }
 }
 @media (max-height: 550px) {
-  :root { --topbar-height: 48px; --tray-height: 84px; --toolbar-icon-size: 32px; --toolbar-gap: 6px; --status-button-width: 46px; --peep-gap: 5px; --peep-marker-width: 20px; --peep-marker-height: 27px; --peep-self-width: 24px; --peep-self-height: 32px; --dock-height: calc(146px + env(safe-area-inset-bottom, 0px)); }
+  :root { --topbar-height: 48px; --tray-height: 84px; --toolbar-icon-size: 32px; --toolbar-gap: 6px; --status-button-width: 46px; --peep-gap: 5px; --peep-marker-width: 20px; --peep-marker-height: 27px; --peep-self-width: 24px; --peep-self-height: 32px; --dock-height: calc(100px + env(safe-area-inset-bottom, 0px)); }
   .topbar { padding: 3px 6px; }
   .topbar .settings summary { font-size: 18px; }
   .interaction-dock { gap: 2px; padding-top: 2px; padding-bottom: 8px; }

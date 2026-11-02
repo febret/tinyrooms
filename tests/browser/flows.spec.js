@@ -107,6 +107,15 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await expect(page.locator(".mini-exit-west")).toBeEnabled();
   await page.locator(".mini-exit-west").click();
   await expect(page.locator("#look-bar")).toContainText("The Kitchen");
+  const lookLabel = page.locator("#look-bar .look-name");
+  await expect(lookLabel).toHaveText("The Kitchen");
+  await expect(page.locator("#look-bar .look-description")).toHaveCount(0);
+  await lookLabel.click();
+  const roomDetails = page.getByRole("dialog", { name: "The Kitchen", exact: true });
+  await expect(roomDetails).toBeVisible();
+  await expect(roomDetails.locator(".entity-details-description")).not.toBeEmpty();
+  await page.keyboard.press("Escape");
+  await expect(roomDetails).toBeHidden();
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
   await pickerToggle.click();
   const roomCard = picker.locator('[data-stack-id][data-scope="room"]').first();

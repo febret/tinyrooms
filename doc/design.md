@@ -376,8 +376,8 @@ to fit longer messages.
 ### Selecting Peeps and Props
 ![Selected Peep](./images/selected-peep.png)
 Clicking on a peep on the sidebar selects it. Selected peeps have a glowing background
-and their name, short description and available quick actions are shown in the 
-Look Bar and Quick Actions Bar. The sprite for the peep is also displayed 
+and their name and available quick actions are shown on the Look Bar line. Clicking
+the name opens the full description. The sprite for the peep is also displayed
 above the Look Bar.
 
 ![Selected Prop](./images/selected-prop.png)

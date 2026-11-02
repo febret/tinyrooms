@@ -12,9 +12,7 @@ export function actionsBarMarkup(state, dialogActions, selectionActions, actionS
       <button type="button" class="cancel" data-action-index="-1" data-sound="click">Cancel</button>`;
   }
   const actions = state.room?.dialog ? dialogActions(state) : selectionActions(state);
-  if (!actions.length) {
-    return `<span class="actions-empty">${state.room ? "Select a card or peep to see its actions." : "Welcome to Tinyrooms."}</span>`;
-  }
+  if (!actions.length) return "";
   return actions.map((action, index) => {
     const tone = action.label === "Inspect" || action.label.startsWith("Open") ? "neutral" : action.label === "Close" ? "cancel" : action.tone || "neutral";
     const label = escapeHtml(action.label);
