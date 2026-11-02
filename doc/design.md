@@ -657,7 +657,10 @@ rate as while connected, restoring Energy for elapsed time up to its maximum.
 **Juice** refers to consumable refills for the Energy counter: juice cards (like
 the `Juicy Drink` card) can be used to refill Energy faster than the passive
 recharge. Some cards can also grant temporary (daily) increases to the maximum
-Energy value, applied as buffs.
+Energy value, applied as buffs. When a refill would restore more Energy than
+the remaining headroom, half of the unused amount is recovered as Health
+instead (so eating food at full Energy still heals). A refill card cannot be
+used when both Energy and Health are already full.
 
 When the Energy counter reaches 0, the peep becomes Tired. Energy-consuming actions
 remain blocked until Energy returns to at least 10% of its maximum value. Tired

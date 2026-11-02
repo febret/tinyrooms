@@ -23,6 +23,17 @@ LIGHT_EFFECT = "light"
 MULTIVERSE_EFFECT = "multiverse"
 CORE_EFFECTS = frozenset({HEALTH_EFFECT, ENERGY_EFFECT, LIGHT_EFFECT, MULTIVERSE_EFFECT})
 
+ENERGY_OVERFLOW_HEALTH_FRACTION = 0.5
+
+
+def _format_stat(value: float) -> str:
+    """Format a counter gain without trailing zeros (for example 25 or 7.5)."""
+
+    rounded = round(float(value), 1)
+    if rounded == int(rounded):
+        return str(int(rounded))
+    return f"{rounded:.1f}"
+
 
 @dataclass(frozen=True, slots=True)
 class PropTarget:
@@ -151,14 +162,24 @@ class ActionsService:
                     raise ValueError(f"{definition.label} can only be used on yourself.")
                 amount = float(definition.amount or 0)
                 before = self._stats.reconcile_in_transaction(connection, account.id)
-                if before.energy >= before.effective.max_energy:
-                    raise ValueError("Your Energy is already full.")
-                snapshot = self._stats.apply_in_transaction(connection, account.id, energy_delta=amount)
+                missing_energy = max(0.0, float(before.effective.max_energy) - before.energy)
+                if missing_energy <= 0 and before.health >= before.effective.max_health:
+                    raise ValueError("Your Energy and Health are already full.")
+                energy_gain = min(amount, missing_energy)
+                overflow = max(0.0, amount - energy_gain)
+                snapshot = self._stats.apply_in_transaction(
+                    connection,
+                    account.id,
+                    energy_delta=energy_gain,
+                    health_delta=overflow * ENERGY_OVERFLOW_HEALTH_FRACTION,
+                )
                 gained = snapshot.energy - before.energy
+                healed = snapshot.health - before.health
                 effects.append(
                     ActionEffect(
                         target_account_id=account.id,
                         target_label=account.username_display,
+                        health_delta=healed,
                         energy_delta=gained,
                         statuses=snapshot.statuses,
                         health=snapshot.health,
@@ -167,7 +188,18 @@ class ActionsService:
                         max_energy=snapshot.effective.max_energy,
                     )
                 )
-                message = f"{account.username_display} drank a {definition.label} (+{gained:.0f} Energy)."
+                if gained > 0 and healed > 0:
+                    message = (
+                        f"{account.username_display} used {definition.label} "
+                        f"(+{_format_stat(gained)} Energy, +{_format_stat(healed)} Health)."
+                    )
+                elif healed > 0:
+                    message = (
+                        f"{account.username_display} used {definition.label} "
+                        f"(+{_format_stat(healed)} Health)."
+                    )
+                else:
+                    message = f"{account.username_display} drank a {definition.label} (+{_format_stat(gained)} Energy)."
                 actor = snapshot
             elif definition.effect == HEALTH_EFFECT:
                 if target_is_npc:
