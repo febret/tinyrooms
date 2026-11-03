@@ -10,7 +10,7 @@ const SCALE_FACTOR_MIN = 0.5;
 const SCALE_FACTOR_MAX = 2;
 
 /** Degrees the prop turns per pixel the rotate handle is dragged horizontally. */
-export const ROTATE_DRAG_DEG_PER_PX = 0.02;
+export const ROTATE_DRAG_DEG_PER_PX = 0.2;
 
 /** Authoritative elevation units gained per pixel the top handle is dragged upward. */
 export const ELEVATE_DRAG_UNITS_PER_PX = 0.1;

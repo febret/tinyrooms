@@ -5,7 +5,7 @@ italian-settee:
   description: A linen settee with olive-wood legs.
   model: italian-settee.glb
   decorative: true
-  scale: 1.4
+  scale: 1.6
   resizable: true
   tags:
   - seating
@@ -175,7 +175,7 @@ italian-amphora:
   description: An amphora vase, strictly decorative and proud of it.
   model: italian-amphora.glb
   decorative: true
-  scale: 0.8
+  scale: 1.1
   resizable: true
   tags:
   - decoration

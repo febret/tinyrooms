@@ -128,7 +128,7 @@ home-living:
       scale: 0.9
       rot:
       - 0
-      - -0.3
+      - -17.19
       - 0
     living-rug:
       prop: persian-medallion-rug
@@ -212,7 +212,7 @@ home-kitchen:
       scale: 0.8
       rot:
       - 0
-      - -0.25
+      - -14.32
       - 0
     kitchen-mixer:
       prop: supermarket-mixer

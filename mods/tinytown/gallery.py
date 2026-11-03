@@ -69,8 +69,9 @@ GALLERY_ART_ORDER = (
     "paper-boats",
 )
 DOOR_STYLE = {"style": "arch", "main": "#7a5230", "accent": "#c9a45c", "texture": "wood"}
-DOOR_ROT_LEFT = (0.0, math.pi / 2, 0.0)
-DOOR_ROT_RIGHT = (0.0, -math.pi / 2, 0.0)
+# Instance rotations are authored in degrees, matching the client board renderer.
+DOOR_ROT_LEFT = (0.0, 90.0, 0.0)
+DOOR_ROT_RIGHT = (0.0, -90.0, 0.0)
 
 ART_LAYOUTS = {
     1: ((50.0, 0.80),),
@@ -97,7 +98,7 @@ DECOR_VARIANTS = (
     (
         ("marble-lion", 22.0, 58.0, 0.55, 0.0),
         ("marble-lion", 78.0, 58.0, 0.55, 0.0),
-        ("marble-bust", 50.0, 38.0, 0.60, math.pi),
+        ("marble-bust", 50.0, 38.0, 0.60, 180.0),
         ("italian-settee", 50.0, 60.0, 0.70, 0.0),
         ("italian-lemon-pot", 18.0, 86.0, 0.78, 0.0),
         ("italian-lemon-pot", 82.0, 86.0, 0.78, 0.0),
@@ -106,8 +107,8 @@ DECOR_VARIANTS = (
     ),
     (
         ("italian-settee", 50.0, 68.0, 0.70, 0.0),
-        ("marble-discobolus", 22.0, 56.0, 0.60, -math.pi / 2),
-        ("marble-discobolus", 78.0, 56.0, 0.60, math.pi / 2),
+        ("marble-discobolus", 22.0, 56.0, 0.60, -90.0),
+        ("marble-discobolus", 78.0, 56.0, 0.60, 90.0),
         ("italian-lemon-pot", 24.0, 88.0, 0.72, 0.0),
         ("italian-lemon-pot", 76.0, 88.0, 0.72, 0.0),
         ("gilt-floor-candlestick", 38.0, 92.0, 0.45, 0.0),
@@ -116,7 +117,7 @@ DECOR_VARIANTS = (
     (
         ("italian-amphora", 22.0, 54.0, 0.55, 0.0),
         ("italian-amphora", 78.0, 54.0, 0.55, 0.0),
-        ("marble-goddess", 50.0, 58.0, 0.55, math.pi),
+        ("marble-goddess", 50.0, 58.0, 0.55, 180.0),
         ("crimson-chaise", 50.0, 78.0, 0.70, 0.0),
         ("italian-lemon-pot", 22.0, 87.0, 0.70, 0.0),
         ("italian-lemon-pot", 78.0, 87.0, 0.70, 0.0),

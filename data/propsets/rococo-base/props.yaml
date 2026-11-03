@@ -15,7 +15,7 @@ crimson-chaise:
   description: A curving velvet chaise draped in tasselled gold fringe.
   model: crimson-chaise.glb
   decorative: true
-  scale: 1.5
+  scale: 1.8
   resizable: true
   tags:
   - sofa
@@ -283,7 +283,7 @@ marble-lion:
   description: A regal marble lion with one paw resting on a sphere.
   model: marble-lion.glb
   decorative: true
-  scale: 1.4
+  scale: 1.8
   resizable: true
   tags:
   - statue
@@ -440,7 +440,7 @@ gilt-floor-candlestick:
   description: A single tall candle on a towering gilded stem.
   model: gilt-floor-candlestick.glb
   decorative: true
-  scale: 1.5
+  scale: 1.8
   resizable: true
   tags:
   - lighting

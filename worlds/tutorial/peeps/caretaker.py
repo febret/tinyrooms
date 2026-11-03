@@ -9,6 +9,8 @@ POOP_STEP_ID = "bag-poop"
 POOP_CARD_ID = "poop-in-a-bag"
 KEY_STEP_ID = "find-key"
 KEY_CARD_ID = "house-key"
+MULTIVERSE_MAP_CARD_ID = "multiverse-map"
+SKIP_TUTORIAL_ACTION = "skip-tutorial"
 
 
 def _stinky_line(context) -> str:
@@ -27,6 +29,21 @@ def _complete_chores_if_holding(context) -> None:
         context.update_task_progress(HOUSE_TOUR_TASK_ID, POOP_STEP_ID)
     if context.has_card(KEY_CARD_ID):
         context.update_task_progress(HOUSE_TOUR_TASK_ID, KEY_STEP_ID)
+
+
+def _skip_tutorial(context) -> None:
+    if context.has_card(MULTIVERSE_MAP_CARD_ID):
+        context.feedback(
+            "You already have the Multiverse Map. Pip pats your pockets anyway, for closure.",
+            "info",
+        )
+        return
+    context.give_card(MULTIVERSE_MAP_CARD_ID)
+    context.npc_say("Fine. Take the map. Try not to break causality; it's load-bearing.")
+    context.feedback(
+        "Pip skips the tutorial and hands over the Multiverse Map. The house looks relieved, or possibly offended.",
+        "success",
+    )
 
 
 def _comment_if_stinky(context, event):
@@ -52,8 +69,11 @@ def on_quick_action(context, event):
 
 
 def on_dialog_action(context, event):
-    """Catch up chore steps when Pip's dialog runs with items already earned."""
+    """Catch up chore steps, or skip the tour and hand over the map."""
 
     if event.data.get("peep_id") != "caretaker":
+        return
+    if event.action == SKIP_TUTORIAL_ACTION:
+        _skip_tutorial(context)
         return
     _complete_chores_if_holding(context)
