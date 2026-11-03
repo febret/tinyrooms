@@ -1094,18 +1094,6 @@ const board = createBoard({
   onDropPoint(position, screen) {
     dropTargeting?.dropAt(position, screen);
   },
-  onMoveSprite(position) {
-    const state = store.getState();
-    if (!state.room?.board?.spritesEnabled || state.views.main
-      || dialogs.active || state.ui.targeting || state.ui.dropTargeting || !state.user?.initialStickerComplete) return;
-    const self = state.room.occupants.find(occupant => occupant.id === state.user.id);
-    if (!self?.spritePosition) return;
-    const x = Number(position?.[0]);
-    const y = Number(position?.[1]);
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-    const clamp = value => Math.min(94, Math.max(6, value));
-    void sendCommand(`.sprite move ${clamp(x)} ${clamp(y)}`).catch(showError);
-  },
   onEditSelect(id) { store.dispatch({ type: "editor-select", id }); },
   onEditBegin() { store.dispatch({ type: "editor-begin" }); },
   onEditTransform({ id, position }) { store.dispatch({ type: "editor-transform", id, position }); },

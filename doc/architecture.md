@@ -154,13 +154,14 @@ listed from an editable home whiteboard, paid at full price to the seller, and
 installed as a locked whiteboard for the buyer. Only the source board stays
 editable, and an owned print can be rehung for free.
 
-Rooms may set `sprites_enabled: true` to draw every present peep as a
-camera-facing 2D sprite on the board. [sprite_rooms.py](../server/services/sprite_rooms.py)
-owns the in-memory, server-authoritative floor positions, keeps them clear of
-authored prop footprints, and re-randomizes on room entry. Behavior scripts can
-read `context.sprites_enabled` and queue `move_sprite`, `move_sprite_random`, or
-`move_peep`; the client projects sprite heads to anchor scaled speech and emote
-bubbles over them.
+Rooms may set `sprites_enabled: true` to draw their NPC peeps as static
+camera-facing 2D sprites on the board. [sprite_rooms.py](../server/services/sprite_rooms.py)
+assigns each NPC one random floor position per room entry, keeps it clear of
+authored prop footprints, and never moves it afterwards. User peeps are not drawn
+in the room, so sprite rooms have no click-to-move interaction. Behavior scripts
+can still queue `move_peep` to change an NPC's room; leaving discards its sprite
+position so the next room assigns a fresh one. The client projects sprite heads to
+anchor scaled speech and emote bubbles over them.
 
 ### 2.2 World-resolved card effects
 

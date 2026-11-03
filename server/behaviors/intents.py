@@ -103,10 +103,6 @@ class BehaviorIntentMixin:
             self._apply_request_move(connection, payload, context, deferred)
         elif kind == "move_through":
             self._apply_move_through(connection, payload, context, result, deferred)
-        elif kind == "move_sprite":
-            self._apply_move_sprite(payload, context, event, result, random_position=False)
-        elif kind == "move_sprite_random":
-            self._apply_move_sprite(payload, context, event, result, random_position=True)
         elif kind == "move_peep":
             self._apply_move_peep(connection, payload, context, result, deferred)
         elif kind == "set_environment":
@@ -988,25 +984,6 @@ class BehaviorIntentMixin:
             self._peep_states.record(target_peep, target_room)
 
         deferred.append(record_move)
-
-    def _apply_move_sprite(
-        self,
-        payload: Mapping[str, object],
-        context: BehaviorContext,
-        event: BehaviorEvent,
-        result: BehaviorResult,
-        *,
-        random_position: bool,
-    ) -> None:
-        sprite_actions.apply_move_sprite(
-            sprites=self._sprites,
-            payload=payload,
-            context=context,
-            event=event,
-            result=result,
-            random_position=random_position,
-            log=self._log,
-        )
 
     def _apply_move_peep(
         self,

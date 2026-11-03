@@ -427,8 +427,8 @@ async def reset_room_command(context: CommandContext, command: ParsedCommand) ->
     if command.args:
         raise CommandError("Use '.reset_room' with no arguments from inside the room to reset.")
     room_id = require_room_id(context)
-    room = context.rooms.room_definition(room_id)
-    stacks = context.world_state.reset_room_cards(room_id, room.initial_cards)
+    context.rooms.room_definition(room_id)
+    stacks = context.world_state.reset_room_cards(room_id)
     serialized = context.cards.serialize_room_stacks(stacks)
     snapshot = await context.rooms.build_snapshot(context.account, room_id)
     return CommandOutcome(
@@ -907,14 +907,6 @@ def build_registry() -> CommandRegistry:
     registry.register("shop", "Open the Shop on its Cards or Props section.", gameplay.shop_command, usage=".shop [cards|props]", toast=False)
     registry.register("skill", "Slot a skill card into an unlocked skill slot.", gameplay.skill_command, usage=".skill @card:<stack_id> <slot>")
     registry.register("split", "Split a stack into a new unequipped stack.", gameplay.split_command, usage=".split @card:<stack_id> <quantity>")
-    registry.register(
-        "sprite",
-        "Move your peep sprite on the room board.",
-        gameplay.sprite_command,
-        usage=".sprite move <x> <y>",
-        toast=False,
-        log=False,
-    )
     registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command, usage=".swap_sticker <sticker>")
     registry.register("talk", "Talk to a peep and open its dialog.", talk_command, usage=".talk <peep>", toast=False, log=False)
     registry.register(

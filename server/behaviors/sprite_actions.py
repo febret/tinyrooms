@@ -1,70 +1,15 @@
-"""Behavior intents that move NPC sprites or change an NPC's room."""
+"""Behavior intents that change an NPC's room."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 import sqlite3
 
-from server.behaviors.context import BehaviorContext
-from server.behaviors.events import BehaviorEvent, PeepRef
 from server.commands.outcomes import PendingRoomBroadcast
 from server.content.worlds import WorldDefinition
 from server.protocol import peep_enter_event, peep_leave_event
 from server.services.sprite_rooms import SpriteService
 from server.state.npc_peep_states import NpcPeepStateRepository
-
-
-def apply_move_sprite(
-    *,
-    sprites: SpriteService | None,
-    payload: Mapping[str, object],
-    context: BehaviorContext,
-    event: BehaviorEvent,
-    result: object,
-    random_position: bool,
-    log: Callable[..., None],
-) -> None:
-    """Apply an NPC sprite move and queue its room broadcast."""
-
-    if sprites is None:
-        log("behavior.intent.skipped", kind="move_sprite", reason="unavailable")
-        return
-    target = context.target
-    if isinstance(target, PeepRef) and target.kind == "npc" and target.peep_id:
-        peep_id = target.peep_id
-    elif context.actor.kind == "npc" and context.actor.peep_id:
-        peep_id = context.actor.peep_id
-    else:
-        log("behavior.intent.skipped", kind="move_sprite", reason="not_npc")
-        return
-    room_id = event.room_id
-    if not isinstance(room_id, str) or not room_id:
-        log("behavior.intent.skipped", kind="move_sprite", reason="no_room")
-        return
-    try:
-        if random_position:
-            position = sprites.random_npc_position(peep_id, room_id)
-        else:
-            raw_position = payload.get("position")
-            if not isinstance(raw_position, list) or len(raw_position) != 2:
-                raise ValueError("invalid position")
-            position = sprites.set_npc_position(
-                peep_id, room_id, float(raw_position[0]), float(raw_position[1])
-            )
-    except (TypeError, ValueError) as exc:
-        log("behavior.intent.skipped", kind="move_sprite", error=str(exc))
-        return
-    result.room_broadcasts.append(
-        PendingRoomBroadcast(
-            room_id=room_id,
-            event={
-                "type": "peep.sprite",
-                "room_id": room_id,
-                "peep_id": peep_id,
-                "position": list(position),
-            },
-        )
-    )
 
 
 def apply_move_peep(

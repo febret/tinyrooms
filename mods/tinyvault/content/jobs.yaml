@@ -82,21 +82,11 @@ jobs:
     routes:
       guard-ledger:
         room: bank-lobby
-        speed: 7.0
-        pause_seconds: 2.0
-        vision_range: 32.0
-        vision_cone: 75.0
-        waypoints: [[30, 52], [50, 52], [70, 52], [70, 36], [50, 36], [30, 36]]
       guard-marble:
         room: bank-offices
-        speed: 7.0
-        pause_seconds: 2.0
-        vision_range: 30.0
-        vision_cone: 70.0
-        waypoints: [[25, 68], [50, 68], [72, 68], [72, 52], [50, 52], [25, 52]]
     cameras:
-    - {room: bank-lobby, prop: lobby-camera, x: 50, y: 10, facing: 90, range: 42, cone: 80}
-    - {room: bank-offices, prop: office-camera, x: 50, y: 10, facing: 90, range: 40, cone: 75}
+    - {room: bank-lobby, prop: lobby-camera}
+    - {room: bank-offices, prop: office-camera}
     lasers: []
     doors:
     - {room: bank-offices, prop: east-vault-door, exit: vault, locked: true, alarm_lock: true}
@@ -138,29 +128,14 @@ jobs:
     routes:
       guard-ledger:
         room: bank-lobby
-        speed: 7.5
-        pause_seconds: 2.0
-        vision_range: 33.0
-        vision_cone: 75.0
-        waypoints: [[28, 52], [50, 52], [72, 52], [72, 36], [50, 36], [28, 36]]
       guard-marble:
         room: bank-offices
-        speed: 7.5
-        pause_seconds: 2.0
-        vision_range: 31.0
-        vision_cone: 72.0
-        waypoints: [[24, 70], [50, 70], [72, 70], [72, 52], [50, 52], [24, 52]]
       guard-slate:
         room: bank-security
-        speed: 7.0
-        pause_seconds: 2.5
-        vision_range: 30.0
-        vision_cone: 70.0
-        waypoints: [[28, 68], [50, 68], [72, 68], [72, 52], [50, 52], [28, 52]]
     cameras:
-    - {room: bank-lobby, prop: lobby-camera, x: 50, y: 10, facing: 90, range: 42, cone: 80}
-    - {room: bank-offices, prop: office-camera, x: 50, y: 10, facing: 90, range: 40, cone: 75}
-    - {room: bank-security, prop: security-camera, x: 86, y: 14, facing: 180, range: 36, cone: 75}
+    - {room: bank-lobby, prop: lobby-camera}
+    - {room: bank-offices, prop: office-camera}
+    - {room: bank-security, prop: security-camera}
     lasers:
     - {room: bank-security, prop: security-laser, exit: vault, locked: true}
     doors:
@@ -204,44 +179,19 @@ jobs:
     routes:
       guard-ledger:
         room: bank-lobby
-        speed: 8.0
-        pause_seconds: 1.8
-        vision_range: 34.0
-        vision_cone: 78.0
-        waypoints: [[28, 52], [50, 52], [72, 52], [72, 36], [50, 36], [28, 36]]
       guard-marble:
         room: bank-offices
-        speed: 8.0
-        pause_seconds: 1.8
-        vision_range: 32.0
-        vision_cone: 74.0
-        waypoints: [[24, 70], [50, 70], [72, 70], [72, 52], [50, 52], [24, 52]]
       guard-slate:
         room: bank-security
-        speed: 7.5
-        pause_seconds: 2.0
-        vision_range: 31.0
-        vision_cone: 72.0
-        waypoints: [[28, 68], [50, 68], [72, 68], [72, 52], [50, 52], [28, 52]]
       guard-onyx:
         room: bank-offices
-        speed: 8.0
-        pause_seconds: 1.5
-        vision_range: 30.0
-        vision_cone: 80.0
-        waypoints: [[30, 60], [70, 60], [70, 72], [30, 72]]
       guard-crane:
         room: bank-alley
-        speed: 9.0
-        pause_seconds: 1.2
-        vision_range: 32.0
-        vision_cone: 75.0
-        waypoints: [[30, 68], [50, 68], [70, 68], [70, 40], [50, 40], [30, 40]]
     cameras:
-    - {room: bank-lobby, prop: lobby-camera, x: 50, y: 10, facing: 90, range: 42, cone: 80}
-    - {room: bank-offices, prop: office-camera, x: 50, y: 10, facing: 90, range: 40, cone: 75}
-    - {room: bank-security, prop: security-camera, x: 86, y: 14, facing: 180, range: 36, cone: 75}
-    - {room: bank-vault, prop: vault-camera, x: 50, y: 8, facing: 90, range: 45, cone: 70}
+    - {room: bank-lobby, prop: lobby-camera}
+    - {room: bank-offices, prop: office-camera}
+    - {room: bank-security, prop: security-camera}
+    - {room: bank-vault, prop: vault-camera}
     lasers:
     - {room: bank-security, prop: security-laser, exit: vault, locked: true}
     - {room: bank-offices, prop: offices-laser, exit: vault, locked: true}
@@ -287,51 +237,21 @@ jobs:
     routes:
       guard-ledger:
         room: bank-lobby
-        speed: 8.5
-        pause_seconds: 1.5
-        vision_range: 35.0
-        vision_cone: 80.0
-        waypoints: [[28, 52], [50, 52], [72, 52], [72, 36], [50, 36], [28, 36]]
       guard-marble:
         room: bank-offices
-        speed: 8.5
-        pause_seconds: 1.5
-        vision_range: 33.0
-        vision_cone: 76.0
-        waypoints: [[24, 70], [50, 70], [72, 70], [72, 52], [50, 52], [24, 52]]
       guard-slate:
         room: bank-security
-        speed: 8.0
-        pause_seconds: 1.8
-        vision_range: 32.0
-        vision_cone: 74.0
-        waypoints: [[28, 68], [50, 68], [72, 68], [72, 52], [50, 52], [28, 52]]
       guard-onyx:
         room: bank-offices
-        speed: 8.5
-        pause_seconds: 1.2
-        vision_range: 31.0
-        vision_cone: 82.0
-        waypoints: [[30, 60], [70, 60], [70, 72], [30, 72]]
       guard-elite:
         room: bank-vault
-        speed: 8.0
-        pause_seconds: 2.5
-        vision_range: 38.0
-        vision_cone: 85.0
-        waypoints: [[30, 30], [50, 30], [70, 30], [70, 40], [50, 40], [30, 40]]
       guard-crane:
         room: bank-alley
-        speed: 9.5
-        pause_seconds: 1.0
-        vision_range: 33.0
-        vision_cone: 78.0
-        waypoints: [[30, 68], [50, 68], [70, 68], [70, 40], [50, 40], [30, 40]]
     cameras:
-    - {room: bank-lobby, prop: lobby-camera, x: 50, y: 10, facing: 90, range: 42, cone: 80}
-    - {room: bank-offices, prop: office-camera, x: 50, y: 10, facing: 90, range: 40, cone: 75}
-    - {room: bank-security, prop: security-camera, x: 86, y: 14, facing: 180, range: 36, cone: 75}
-    - {room: bank-vault, prop: vault-camera, x: 50, y: 8, facing: 90, range: 45, cone: 70}
+    - {room: bank-lobby, prop: lobby-camera}
+    - {room: bank-offices, prop: office-camera}
+    - {room: bank-security, prop: security-camera}
+    - {room: bank-vault, prop: vault-camera}
     lasers:
     - {room: bank-security, prop: security-laser, exit: vault, locked: true}
     - {room: bank-offices, prop: offices-laser, exit: vault, locked: true}

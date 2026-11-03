@@ -10,7 +10,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
-from server.content.worlds import InitialRoomCard, WorldDefinition
+from server.content.worlds import WorldDefinition
 from server.protocol import MAX_HISTORY_MESSAGES
 from server.security import utc_now
 from server.state.migrations import DatabaseHub
@@ -243,29 +243,23 @@ class WorldStateRepository:
                 connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
                 connection.execute("DELETE FROM world.prop_surfaces WHERE room_id = ?", (room_id,))
                 connection.execute("DELETE FROM world.container_cards WHERE room_id = ?", (room_id,))
-                self._insert_seed_cards(connection, room_id, room.initial_cards)
                 self._mark_room_initialized(connection, room_id)
                 self._seed_room_layout(connection, room_id, room, world)
         self.invalidate_room_environment()
 
-    def reset_room_cards(
-        self,
-        room_id: str,
-        initial_cards: tuple[InitialRoomCard, ...],
-    ) -> list[RoomCardStack]:
-        """Replace all live room cards with the definition seed cards."""
+    def reset_room_cards(self, room_id: str) -> list[RoomCardStack]:
+        """Clear all live room cards and mark the room initialized."""
 
         with self._hub.transaction() as connection:
             connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
             self.delete_room_container_cards(connection, room_id)
-            stacks = self._insert_seed_cards(connection, room_id, initial_cards)
             self._mark_room_initialized(connection, room_id)
-        return stacks
+        return []
 
     def reset_room_state(self, world: WorldDefinition, room_id: str) -> int:
         """Restore a room's persisted state to its definition.
 
-        Re-seeds the authored room cards and editable prop layout, clears
+        Clears live room cards and re-seeds the editable prop layout, clears
         environment overrides and room-local prop script state, and bumps the
         layout revision. Ownership, door customization, and player progression
         are preserved.
@@ -278,7 +272,6 @@ class WorldStateRepository:
         with self._hub.transaction() as connection:
             connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
             self.delete_room_container_cards(connection, room_id)
-            self._insert_seed_cards(connection, room_id, room.initial_cards)
             self._mark_room_initialized(connection, room_id)
             self._seed_room_layout(connection, room_id, room, world)
             self._clear_prop_behavior_state(connection, prop_instance_ids)
@@ -323,7 +316,6 @@ class WorldStateRepository:
         with self._hub.transaction() as connection:
             connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
             self.delete_room_container_cards(connection, room_id)
-            self._insert_seed_cards(connection, room_id, room.initial_cards)
             self._mark_room_initialized(connection, room_id)
             self._seed_room_layout(connection, room_id, room, world)
         self.invalidate_room_environment(room_id)
@@ -356,7 +348,6 @@ class WorldStateRepository:
                 """,
                 (room_id, revision),
             )
-            self._insert_seed_cards(connection, room_id, room.initial_cards)
             self._seed_room_layout(connection, room_id, room, world)
         self.invalidate_room_environment(room_id)
 
@@ -387,55 +378,6 @@ class WorldStateRepository:
             "UPDATE world.room_states SET props_json = ? WHERE room_id = ?",
             (json.dumps(props), room_id),
         )
-
-    @staticmethod
-    def _insert_seed_cards(
-        connection: sqlite3.Connection,
-        room_id: str,
-        initial_cards: tuple[InitialRoomCard, ...],
-    ) -> list[RoomCardStack]:
-        """Insert definition seed cards with deterministic stack IDs."""
-
-        now = utc_now().isoformat()
-        stacks: list[RoomCardStack] = []
-        for initial_card in initial_cards:
-            stack_id = f"room:{initial_card.initial_key}"
-            position = (
-                float(initial_card.pos[0]),
-                float(initial_card.pos[1]),
-                float(initial_card.pos[2]),
-            )
-            connection.execute(
-                """
-                INSERT OR IGNORE INTO world.room_cards (
-                    stack_id, room_id, card_def_id, quantity, position_json,
-                    scope, pinned, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, 'room', 0, ?, ?)
-                """,
-                (
-                    stack_id,
-                    room_id,
-                    initial_card.card_id,
-                    initial_card.quantity,
-                    json.dumps(list(position)),
-                    now,
-                    now,
-                ),
-            )
-            stacks.append(
-                RoomCardStack(
-                    stack_id=stack_id,
-                    room_id=room_id,
-                    card_def_id=initial_card.card_id,
-                    quantity=initial_card.quantity,
-                    position=position,
-                    scope="room",
-                    pinned=False,
-                    created_at=now,
-                    updated_at=now,
-                )
-            )
-        return stacks
 
     def list_room_cards(self, room_id: str) -> list[RoomCardStack]:
         """Return persisted room cards for a room."""

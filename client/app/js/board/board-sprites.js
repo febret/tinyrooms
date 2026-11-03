@@ -7,25 +7,44 @@ import { decalCanvas, stinkCanvas } from "../decals.js";
 
 const TOP = 0.045;
 const SPRITE_HEIGHT = 1.8;
-const SPRITE_MOVE_SMOOTHING = 5;
 const FALLBACK_ASPECT = 0.78;
 
 /**
- * Build billboarded 2D peep sprites for sprite-mode rooms.
+ * Build static billboarded 2D NPC sprites for sprite-mode rooms.
  *
  * Sprites use `THREE.Sprite`, so they always face the camera. Their center sits
  * at the bottom edge so the sticker rests directly on the board floor, matching
- * the authoritative `[x%, y%]` position the server assigns.
+ * the authoritative `[x%, y%]` position the server assigns. Sprites never move
+ * within a room.
  */
 export function createBoardSprites({ textureLoader, invalidate }) {
   function contentRoot(entry) {
     return entry?.content || entry?.root;
   }
 
-  function targetPosition(position) {
+  function positionFor(actor) {
+    const position = Array.isArray(actor?.spritePosition) ? actor.spritePosition : null;
+    if (!position || position.length < 2) return null;
     const target = new THREE.Vector3(...boardPosition(position));
     target.y += TOP;
     return target;
+  }
+
+  function syncOverlayTransforms(record) {
+    if (!record.sprite) return;
+    for (const overlay of [record.decalOverlay, record.stinkOverlay]) {
+      if (!overlay) continue;
+      overlay.position.copy(record.sprite.position);
+      overlay.scale.copy(record.sprite.scale);
+    }
+  }
+
+  function applyPosition(record, actor) {
+    const target = positionFor(actor);
+    if (!target) return false;
+    record.sprite.position.copy(target);
+    syncOverlayTransforms(record);
+    return true;
   }
 
   function applyScale(entry, record, map) {
@@ -34,13 +53,13 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     const height = Number(image?.height) || 0;
     const aspect = width > 0 && height > 0 ? width / height : FALLBACK_ASPECT;
     const scale = SPRITE_HEIGHT * (Number(entry.spriteScale) > 0 ? Number(entry.spriteScale) : 1);
-    record.baseScale = [scale * aspect, scale];
-    record.sprite.scale.set(record.baseScale[0], record.baseScale[1], 1);
+    record.sprite.scale.set(scale * aspect, scale, 1);
+    syncOverlayTransforms(record);
   }
 
   function applyTint(record) {
     const tint = record.lighting || { color: "#ffffff", opacity: 1 };
-    if (!record.reaction) record.material.color.set(tint.color);
+    record.material.color.set(tint.color);
     record.material.opacity = tint.opacity;
     for (const overlay of [record.decalOverlay, record.stinkOverlay]) {
       if (!overlay) continue;
@@ -64,14 +83,14 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     return changed;
   }
 
-  function build(record, entry) {
+  function build(record, entry, actor) {
     const sprite = new THREE.Sprite(record.material);
     sprite.center.set(0.5, 0);
-    sprite.position.copy(record.target);
     sprite.visible = false;
     sprite.userData = { kind: "peep", id: record.id };
     contentRoot(entry).add(sprite);
     record.sprite = sprite;
+    applyPosition(record, actor);
     applyScale(entry, record, record.material.map);
   }
 
@@ -123,20 +142,17 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       actor,
       material,
       sprite: null,
-      target: targetPosition(actor.spritePosition),
       url: "",
       failed: false,
       lighting: null,
       lightingKey: "",
-      baseScale: [SPRITE_HEIGHT, SPRITE_HEIGHT],
-      reaction: null,
       decalOverlay: null,
       decalKey: "",
       stinkOverlay: null,
       stinkKey: "",
     };
     entry.sprites.set(id, record);
-    build(record, entry);
+    build(record, entry, actor);
     applyTint(record);
     const url = String(actor.stickerUrl || "");
     if (url) loadTexture(record, entry, url);
@@ -223,7 +239,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
 
   function update(entry, record, actor) {
     record.actor = actor;
-    record.target.copy(targetPosition(actor.spritePosition));
+    applyPosition(record, actor);
     const url = String(actor.stickerUrl || "");
     if (url !== record.url) {
       record.failed = false;
@@ -265,73 +281,10 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     }
   }
 
-  /**
-   * Presentational hit reaction for one sprite.
-   *
-   * The caller passes an authoritative victim id and paint color; this only
-   * tints and pulses the sticker, never decides whether a hit happened.
-   */
-  function react(entry, id, { color = "#ffffff", duration = 0.5 } = {}) {
-    const record = entry?.sprites?.get(String(id));
-    if (!record) return false;
-    record.reaction = {
-      color: String(color || "#ffffff"),
-      remaining: Math.max(0.05, Number(duration) || 0.5),
-      duration: Math.max(0.05, Number(duration) || 0.5),
-    };
-    record.material.color.set(record.reaction.color);
-    record.material.needsUpdate = true;
-    invalidate();
-    return true;
-  }
-
-  function advance(entry, delta, reducedMotion) {
-    const alpha = 1 - Math.exp(-delta * SPRITE_MOVE_SMOOTHING);
-    for (const record of entry.sprites.values()) {
-      const sprite = record.sprite;
-      if (!sprite) continue;
-      if (record.reaction) {
-        record.reaction.remaining -= delta;
-        if (record.reaction.remaining <= 0) {
-          record.reaction = null;
-          applyTint(record);
-          record.material.needsUpdate = true;
-          if (record.baseScale) sprite.scale.set(record.baseScale[0], record.baseScale[1], 1);
-        } else {
-          const progress = 1 - record.reaction.remaining / record.reaction.duration;
-          const punch = 1 + 0.18 * Math.sin(Math.PI * progress);
-          if (record.baseScale) sprite.scale.set(record.baseScale[0] * punch, record.baseScale[1] * punch, 1);
-        }
-      }
-      if (reducedMotion) {
-        sprite.position.copy(record.target);
-      } else if (!sprite.position.equals(record.target)) {
-        sprite.position.lerp(record.target, alpha);
-        if (sprite.position.distanceToSquared(record.target) < 1e-6) sprite.position.copy(record.target);
-      }
-      if (record.decalOverlay) {
-        record.decalOverlay.position.copy(sprite.position);
-        record.decalOverlay.scale.copy(sprite.scale);
-      }
-      if (record.stinkOverlay) {
-        record.stinkOverlay.position.copy(sprite.position);
-        record.stinkOverlay.scale.copy(sprite.scale);
-      }
-    }
-  }
-
-  function isAnimating(entry) {
-    for (const record of entry.sprites.values()) {
-      if (record.reaction) return true;
-      if (record.sprite && !record.sprite.position.equals(record.target)) return true;
-    }
-    return false;
-  }
-
   function clear(entry) {
     if (!entry?.sprites) return;
     for (const id of [...entry.sprites.keys()]) remove(entry, id);
   }
 
-  return { sync, advance, isAnimating, clear, react, applyLighting };
+  return { sync, clear, applyLighting };
 }

@@ -18,7 +18,7 @@ from server.state.phone_messages_schema import (
 
 
 PROFILE_SCHEMA_VERSION = 15
-WORLD_SCHEMA_VERSION = 19
+WORLD_SCHEMA_VERSION = 20
 
 
 def read_behavior_state(
@@ -290,7 +290,7 @@ _PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
 _WORLD_SCHEMA_SQL = """
 BEGIN;
 CREATE TABLE IF NOT EXISTS room_cards (
-    -- room:<seed key> is deterministic; player drops use room:<uuid> command targets.
+    -- Player drops use room:<uuid> command targets.
     -- No seed ledger: restart safety comes from room_states.initialized.
     stack_id TEXT PRIMARY KEY,
     room_id TEXT NOT NULL,
@@ -311,8 +311,8 @@ CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_a
 -- door_json: classroom: rooms store {style:{...},locked:bool,grade:int}; ordinary rooms keep {}.
 -- idx_room_states_player_owner limits classrooms to one per account in this world DB.
 -- initialized: missing/0 makes initialize_world() replace all cards AND reseed YAML props;
--- 1 preserves collected seeds/player drops/layout across restarts and YAML edits.
--- reset_room_cards() replaces all stacks (including drops), sets 1, leaves layout alone.
+-- 1 preserves player drops/layout across restarts and YAML edits.
+-- reset_room_cards() clears all stacks (including drops), sets 1, leaves layout alone.
 -- Authored templates are skipped until materialized as live rooms.
 -- owner_account_id is world-local authority; grants/revokes update the profile mirror.
 -- props_json is an editable prop-instance list; default {} falls back to YAML.
@@ -399,7 +399,7 @@ CREATE TABLE IF NOT EXISTS container_cards (
     UNIQUE (room_id, instance_id, card_def_id)
 );
 CREATE INDEX IF NOT EXISTS idx_container_cards_lookup ON container_cards(room_id, instance_id);
-PRAGMA user_version = 19;
+PRAGMA user_version = 20;
 COMMIT;
 """
 
@@ -815,21 +815,30 @@ _WORLD_MIGRATIONS: dict[int, str] = {
     COMMIT;
     """,
     19: """
-    BEGIN;
-    CREATE TABLE IF NOT EXISTS container_cards (
-        stack_id TEXT PRIMARY KEY,
-        room_id TEXT NOT NULL,
-        instance_id TEXT NOT NULL,
-        card_def_id TEXT NOT NULL,
-        quantity INTEGER NOT NULL CHECK (quantity > 0),
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        placed_by_account_id TEXT,
-        UNIQUE (room_id, instance_id, card_def_id)
-    );
-    CREATE INDEX IF NOT EXISTS idx_container_cards_lookup ON container_cards(room_id, instance_id);
-    PRAGMA user_version = 19;
-    COMMIT;
+BEGIN;
+CREATE TABLE IF NOT EXISTS container_cards (
+    stack_id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL,
+    instance_id TEXT NOT NULL,
+    card_def_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    placed_by_account_id TEXT,
+    UNIQUE (room_id, instance_id, card_def_id)
+);
+CREATE INDEX IF NOT EXISTS idx_container_cards_lookup ON container_cards(room_id, instance_id);
+PRAGMA user_version = 19;
+COMMIT;
+    """,
+    20: """
+BEGIN;
+-- Authored initial room cards were removed: delete old seed stacks. Seed
+-- stack IDs embed the authored key after the room id, so they always carry
+-- more than one colon; player drops are room:<uuid> and are left alone.
+DELETE FROM room_cards WHERE stack_id GLOB 'room:*:*';
+PRAGMA user_version = 20;
+COMMIT;
     """,
 }
 

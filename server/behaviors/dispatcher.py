@@ -410,7 +410,6 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                 static = {
                     "id": room_id,
                     "label": "",
-                    "sprites_enabled": False,
                     "activity": None,
                     "props": [],
                     "peeps": [],
@@ -420,7 +419,6 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                 static = {
                     "id": room.id,
                     "label": room.label,
-                    "sprites_enabled": room.sprites_enabled,
                     "activity": None if not room.activities else {
                         "kind": room.activity.kind,
                         "controller": room.activity.controller,
@@ -477,48 +475,6 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                 }
             )
         return peeps
-
-    async def _room_users_view(self, room_id: str) -> list[dict[str, object]]:
-        """Return live user occupants with sprite positions and effective stats.
-
-        Scripts call this for server-authoritative positional rules (for example
-        a raycast). It is only built on demand so idle ticks stay cheap.
-        """
-
-        if self._connections is None:
-            return []
-        members = await self._connections.list_room(room_id)
-        account_ids = [member.account_id for member in members]
-        if not account_ids:
-            return []
-        try:
-            snapshots = self._stats.views(account_ids)
-        except Exception as exc:  # noqa: BLE001 - a read must not break the room loop
-            self._log("behavior.room_users.error", error=str(exc))
-            return []
-        users: list[dict[str, object]] = []
-        for account_id in account_ids:
-            account = self._profiles.get_account_by_id(account_id)
-            snapshot = snapshots.get(account_id)
-            if account is None or snapshot is None:
-                continue
-            position = None
-            if self._sprites is not None:
-                stored = self._sprites.ensure_user(account_id, room_id)
-                if stored is not None:
-                    position = [float(stored[0]), float(stored[1])]
-            users.append(
-                {
-                    "id": account.id,
-                    "name": account.username_display,
-                    "position": position,
-                    "dexterity": snapshot.effective.stat("dexterity"),
-                    "health": snapshot.health,
-                    "cleanliness": snapshot.cleanliness,
-                    "max_cleanliness": snapshot.effective.max_cleanliness,
-                }
-            )
-        return users
 
     def _build_world_view(self) -> dict[str, object]:
         return {"id": self._world.id, "label": self._world.label}
@@ -606,7 +562,6 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                 card=self._card_view(event),
                 card_lookup=self._card_definition_view,
                 peeps_in=self._peeps_in_view,
-                room_users=self._room_users_view,
                 activity_state=lambda kind, room_id=event.room_id: self._activity_state_view(room_id or "", str(kind)),
                 activity_users=self._activity_users_view,
                 bops=int(actor_view.get("bops") or 0),

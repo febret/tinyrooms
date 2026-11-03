@@ -2,11 +2,12 @@
 
 Publishing replaces definition files. Reconciliation is intentionally minimal:
 deleted rooms have their orphaned live rows removed, and newly defined or
-uninitialized rooms are seeded. Surviving rooms are seed-only: once a room has
-been initialized, later definition edits (props, seed cards, environment) do not
-overwrite its live state. Inventories, progress, ownership, and occupancy are not
-rewritten. A remembered room that no longer exists is coerced to the entry room
-lazily by the room service, so occupants need no eager repair.
+uninitialized rooms are initialized. Surviving rooms keep their live state:
+once a room has been initialized, later definition edits (props, cards,
+environment) do not overwrite it. Inventories, progress, ownership, and
+occupancy are not rewritten. A remembered room that no longer exists is
+coerced to the entry room lazily by the room service, so occupants need no
+eager repair.
 """
 
 from __future__ import annotations
@@ -86,11 +87,11 @@ def reconcile(
     old_world: WorldDefinition,
     new_world: WorldDefinition,
 ) -> ReconcileResult:
-    """Remove orphaned rows for deleted rooms and seed new rooms.
+    """Remove orphaned rows for deleted rooms and initialize new rooms.
 
     Orphaned room card stacks belonging to deleted rooms are deleted outright;
     cards are not returned to their droppers. Rooms that survive keep their live
-    cards, and uninitialized rooms are (re)seeded from the new definition.
+    cards, and uninitialized rooms are initialized from the new definition.
     """
 
     deleted_rooms = sorted(set(old_world.rooms) - set(new_world.rooms))

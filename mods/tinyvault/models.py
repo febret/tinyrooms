@@ -16,10 +16,6 @@ WORLD_ID = "tiny-vault"
 HIDEOUT_ROOM = "hideout"
 HANGAR_ROOM = "guard-hangar"
 META_KEY = "tinyvault_meta"
-MOVE_SPEED_PER_SECOND = 45.0
-MOVE_BURST = 12.0
-CATCH_DISTANCE = 5.0
-ESCAPE_DISTANCE = 8.0
 LOCKDOWN_SECONDS = 90.0
 BRIEFING_SECONDS = 900.0
 SAFECRACK_SECONDS = 75.0
@@ -127,7 +123,7 @@ class ActiveJob:
     disguised_until: dict[str, float] = field(default_factory=dict)
     smoke_until: dict[str, float] = field(default_factory=dict)
     decoy_until: float = 0.0
-    decoy_position: tuple[float, float] | None = None
+    decoy_room: str = ""
     jammer_until: float = 0.0
     jammer_used: bool = False
     console_ready_at: float = 0.0
@@ -152,7 +148,7 @@ class HeistResult:
 
 
 def monotonic_now() -> float:
-    """Return the clock used for patrol, cooldown, and alarm timing."""
+    """Return the clock used for suspicion, cooldown, and alarm timing."""
 
     return time.monotonic()
 

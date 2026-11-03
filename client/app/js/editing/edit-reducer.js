@@ -29,6 +29,7 @@ function normalizeInstance(entry) {
     rotation: Array.isArray(entry?.rotation) ? entry.rotation.map(Number) : [0, 0, 0],
     scale: Number(entry?.scale ?? 1),
     locked: Boolean(entry?.locked),
+    removable: entry?.removable !== false,
     ...(entry?.text ? { text: { ...entry.text } } : {}),
     ...(typeof entry?.sign_style === "string" ? { signStyle: entry.sign_style } : {}),
     ...(entry?.exit_style && typeof entry.exit_style === "object" ? { exitStyle: { ...entry.exit_style } } : {}),
@@ -336,8 +337,10 @@ export function editorReducer(state, action) {
     }
     case "editor-remove": {
       if (!editor) return state;
+      const instance = editor.props.find(entry => entry.id === action.id);
+      if (!instance || instance.removable === false) return state;
       const next = pushUndo(editor);
-      const props = next.props.filter(instance => instance.id !== action.id);
+      const props = next.props.filter(entry => entry.id !== action.id);
       return { ...state, editor: { ...withProps(next, props), selectedId: next.selectedId === action.id ? null : next.selectedId } };
     }
     case "editor-begin":

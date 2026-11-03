@@ -13,15 +13,13 @@ from typing import Any
 
 from mods.tinyvault.content import HeistContent, load_heist_content
 from mods.tinyvault.director import HeistDirector
-from mods.tinyvault.guards import GuardState, angle_to
+from mods.tinyvault.guards import GuardState
 from mods.tinyvault.jobs import describe_generated, generate_job
 from mods.tinyvault.models import (
     CONSOLE_COOLDOWN,
     HIDEOUT_ROOM,
     META_KEY,
     MOD_ID,
-    MOVE_BURST,
-    MOVE_SPEED_PER_SECOND,
     SAFECRACK_MIN_SECONDS,
     SAFECRACK_SECONDS,
     WORLD_ID,
@@ -96,7 +94,6 @@ class HeistService(HeistDirector):
             self.content = HeistContent(tools={}, bots={}, jobs={})
         self.job: ActiveJob | None = None
         self._task: asyncio.Task[None] | None = None
-        self._move_budget: dict[str, tuple[tuple[float, float], float]] = {}
         self._room_last_tick: dict[str, float] = {}
         self._guard_bubble_at: dict[str, float] = {}
         self._security_visual: dict[str, bool] = {}
@@ -136,7 +133,7 @@ class HeistService(HeistDirector):
             self._task = None
 
     async def on_room_tick(self, room_id: str) -> list[object]:
-        """Advance guards, vision, alarms, vault attempts, and escapes."""
+        """Advance guard suspicion, alarms, vault attempts, and escapes."""
 
         if not self.available or self.job is None or room_id not in self.job.template.target_rooms:
             return []
@@ -145,31 +142,6 @@ class HeistService(HeistDirector):
         except Exception:  # noqa: BLE001 - a heist tick must not break rooms
             LOGGER.exception("tinyvault.tick_failed")
             return []
-
-    def validate_sprite_move(self, account: object, room_id: str, x: float, y: float) -> str | None:
-        """Reject heist-room movement beyond a generous server-side speed budget."""
-
-        if not self.available or self.job is None or room_id not in self.job.template.target_rooms:
-            return None
-        member = self.job.crew.get(getattr(account, "id", ""))
-        if member is None or member.status != "active":
-            return None
-        try:
-            target = (float(x), float(y))
-        except (TypeError, ValueError):
-            return "Those sprite coordinates are invalid."
-        stored = self.runtime.rooms.sprites.position_of_user(account.id)
-        now = _now()
-        if stored is None or stored[0] != room_id:
-            self._move_budget[account.id] = (target, now)
-            return None
-        previous, at = self._move_budget.get(account.id, (stored[1], now))
-        elapsed = max(0.0, now - at)
-        distance = math.hypot(target[0] - previous[0], target[1] - previous[1])
-        if elapsed < 5.0 and distance > MOVE_SPEED_PER_SECOND * elapsed + MOVE_BURST:
-            return "That move is too fast for a careful heist."
-        self._move_budget[account.id] = (target, now)
-        return None
 
     def room_quick_actions(self, account: object, room: object) -> tuple[QuickAction, ...]:
         """Return contextual room-wide heist actions for crew members."""
@@ -849,16 +821,9 @@ class HeistService(HeistDirector):
         assert self.job is not None
         guards: dict[str, GuardState] = {}
         for setup in self.job.generated.guards:
-            route = setup.route
             guards[setup.peep_id] = GuardState(
                 peep_id=setup.peep_id,
-                room_id=route.room_id,
-                route=route.waypoints,
-                position=route.waypoints[0],
-                facing=angle_to(route.waypoints[0], route.waypoints[1]) if len(route.waypoints) > 1 else 0.0,
-                speed=route.speed,
-                vision_range=route.vision_range,
-                vision_cone=route.vision_cone,
+                room_id=setup.room_id,
             )
         self.job.guards = guards
         self.job.reinforcements = [setup.peep_id for setup in self.job.generated.reinforcements]
@@ -876,7 +841,6 @@ class HeistService(HeistDirector):
         }
         for guard in self.job.guards.values():
             await self._summon_guard(guard.peep_id, guard.room_id)
-            await self._place_guard(guard)
         if self.job.bot is not None:
             await self._summon_bot()
         for door in self.job.template.doors:
@@ -911,22 +875,6 @@ class HeistService(HeistDirector):
             return
         await broadcast_room_event(self.runtime, room_id=result.source_room_id, event=result.source_event)
         await broadcast_room_event(self.runtime, room_id=result.destination_room_id, event=result.destination_event)
-
-    async def _place_guard(self, guard: GuardState) -> None:
-        try:
-            position = self.runtime.rooms.sprites.set_npc_position(guard.peep_id, guard.room_id, *guard.position)
-        except ValueError:
-            position = self.runtime.rooms.sprites.ensure_npc(guard.peep_id, guard.room_id)
-            if position is None:
-                return
-            guard.position = position
-            return
-        guard.position = position
-        await broadcast_room_event(
-            self.runtime,
-            room_id=guard.room_id,
-            event={"type": "peep.sprite", "room_id": guard.room_id, "peep_id": guard.peep_id, "position": list(position)},
-        )
 
     async def _summon_bot(self) -> None:
         assert self.job is not None and self.job.bot is not None
@@ -1061,17 +1009,13 @@ class HeistService(HeistDirector):
         self, account: object, member: CrewMember, room_id: str, prop_id: str | None, now: float
     ) -> HeistResult:
         assert self.job is not None
-        position = self.runtime.rooms.sprites.position_of_user(account.id)
-        if position is None or position[0] != room_id:
-            raise ValueError("Plant the decoy where you are standing.")
+        del account, member, prop_id
         duration = self.content.tools["heist-decoy"].duration_seconds or 18.0
-        self.job.decoy_position = position[1]
+        self.job.decoy_room = room_id
         self.job.decoy_until = now + duration
         for guard in self.job.guards.values():
             if guard.room_id == room_id and guard.state != "alert":
                 guard.state = "investigate"
-                guard.last_seen = position[1]
-                guard.investigate_until = now + duration
         self.job.alarm_score = min(120.0, self.job.alarm_score + 8.0)
         return HeistResult(message="The decoy chirps. Every nearby guard suddenly has somewhere to be.")
 

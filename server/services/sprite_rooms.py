@@ -1,4 +1,4 @@
-"""Server-authoritative floor placement for peeps in sprite-mode rooms."""
+"""Server-authoritative floor placement for NPC peeps in sprite-mode rooms."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import math
 import random
 from typing import Iterable
 
-from server.content.worlds import PropInstanceDefinition, RoomDefinition, WorldDefinition
+from server.content.worlds import PropInstanceDefinition, WorldDefinition
 
 
 BOARD_X_PER_PERCENT = 0.105
@@ -67,11 +67,11 @@ def _prop_block(
 
 
 class SpriteService:
-    """Assigns and validates 2D sprite positions for NPCs and users.
+    """Assigns static, random 2D sprite positions for NPCs.
 
     Positions are intentionally in memory: entering a room (or restarting the
-    process) gives a fresh random valid spot, and behavior scripts own any
-    subsequent movement. Only this service writes the maps.
+    process) gives a fresh random valid spot. Sprites never move within a room.
+    Only this service writes the map.
     """
 
     def __init__(
@@ -85,21 +85,12 @@ class SpriteService:
         self._layout = layout
         self._rng = rng or random.Random()
         self._npc_positions: dict[str, tuple[str, tuple[float, float]]] = {}
-        self._user_positions: dict[str, tuple[str, tuple[float, float]]] = {}
 
     def enabled(self, room_id: str) -> bool:
         """Return whether *room_id* opts into sprite mode."""
 
         room = self._world.rooms.get(room_id)
         return bool(room is not None and room.sprites_enabled)
-
-    def _room(self, room_id: str) -> RoomDefinition:
-        room = self._world.rooms.get(room_id)
-        if room is None:
-            raise ValueError("That room does not exist.")
-        if not room.sprites_enabled:
-            raise ValueError("That room does not use sprites.")
-        return room
 
     def _props(self, room_id: str) -> list[PropInstanceDefinition]:
         if self._layout is not None and hasattr(self._layout, "effective_props"):
@@ -111,17 +102,11 @@ class SpriteService:
         return [_prop_block(self._world, prop) for prop in self._props(room_id)]
 
     def _positions_in(self, room_id: str) -> list[tuple[float, float]]:
-        positions = [
+        return [
             _world_point(position)
             for stored_room, position in self._npc_positions.values()
             if stored_room == room_id
         ]
-        positions.extend(
-            _world_point(position)
-            for stored_room, position in self._user_positions.values()
-            if stored_room == room_id
-        )
-        return positions
 
     @staticmethod
     def _inside_bounds(x: float, z: float) -> bool:
@@ -137,8 +122,6 @@ class SpriteService:
         z: float,
         blocks: list[SpriteBlock],
         occupied: list[tuple[float, float]],
-        *,
-        ignore: tuple[float, float] | None = None,
     ) -> bool:
         if not self._inside_bounds(x, z):
             return False
@@ -149,13 +132,11 @@ class SpriteService:
             ):
                 return False
         for other_x, other_z in occupied:
-            if ignore is not None and abs(other_x - ignore[0]) < 0.001 and abs(other_z - ignore[1]) < 0.001:
-                continue
             if math.hypot(x - other_x, z - other_z) < SPRITE_SEPARATION:
                 return False
         return True
 
-    def _place(self, room_id: str) -> tuple[float, float]:
+    def _place(self, room_id: str) -> tuple[float, float] | None:
         blocks = self._blocks(room_id)
         occupied = self._positions_in(room_id)
         min_x, _ = _world_point((SPRITE_EDGE_MARGIN, 50.0))
@@ -173,102 +154,23 @@ class SpriteService:
                 x = min_x + (max_x - min_x) * (column + 0.5) / GRID_STEPS
                 if self._valid(x, z, blocks, occupied):
                     return _percent_point(x, z)
-        return (50.0, 50.0)
-
-    def _ensure(
-        self,
-        positions: dict[str, tuple[str, tuple[float, float]]],
-        entity_id: str,
-        room_id: str,
-    ) -> tuple[float, float] | None:
-        if not self.enabled(room_id):
-            return None
-        stored = positions.get(entity_id)
-        if stored is not None and stored[0] == room_id:
-            return stored[1]
-        position = self._place(room_id)
-        positions[entity_id] = (room_id, position)
-        return position
+        return None
 
     def forget_npc(self, peep_id: str) -> None:
         """Discard an NPC's stored position after it changes rooms."""
 
         self._npc_positions.pop(peep_id, None)
 
-    def forget_user(self, account_id: str) -> None:
-        """Discard a user's stored position after it changes rooms."""
-
-        self._user_positions.pop(account_id, None)
-
-    def position_of_user(self, account_id: str) -> tuple[str, tuple[float, float]] | None:
-        """Return a user's stored room and position without assigning one."""
-
-        stored = self._user_positions.get(account_id)
-        return None if stored is None else (stored[0], stored[1])
-
     def ensure_npc(self, peep_id: str, room_id: str) -> tuple[float, float] | None:
-        """Return an NPC's sprite position, assigning one on first entry.
+        """Return an NPC's static sprite position, assigning one on first entry."""
 
-        A peep with an authored ``sprite_home`` starts there when it is in its
-        home room and the spot is free; otherwise placement is random.
-        """
-
+        if not self.enabled(room_id):
+            return None
         stored = self._npc_positions.get(peep_id)
-        if self.enabled(room_id) and (stored is None or stored[0] != room_id):
-            peep = self._world.peeps.get(peep_id)
-            home = getattr(peep, "sprite_home", None)
-            if peep is not None and home is not None and peep.room_id == room_id:
-                try:
-                    position = self._validate_position(room_id, home[0], home[1])
-                except ValueError:
-                    position = None
-                if position is not None:
-                    self._npc_positions[peep_id] = (room_id, position)
-                    return position
-        return self._ensure(self._npc_positions, peep_id, room_id)
-
-    def ensure_user(self, account_id: str, room_id: str) -> tuple[float, float] | None:
-        """Return a user peep's sprite position, assigning one on first entry."""
-
-        return self._ensure(self._user_positions, account_id, room_id)
-
-    def _validate_position(
-        self,
-        room_id: str,
-        x: float,
-        y: float,
-        *,
-        ignore: tuple[float, float] | None = None,
-    ) -> tuple[float, float]:
-        self._room(room_id)
-        world_x, world_z = _world_point((x, y))
-        if not self._valid(world_x, world_z, self._blocks(room_id), self._positions_in(room_id), ignore=ignore):
-            raise ValueError("That spot is not free for a peep.")
-        return (min(100.0, max(0.0, float(x))), min(100.0, max(0.0, float(y))))
-
-    def set_npc_position(self, peep_id: str, room_id: str, x: float, y: float) -> tuple[float, float]:
-        """Move an NPC sprite to an explicit valid position."""
-
-        stored = self._npc_positions.get(peep_id)
-        ignore = _world_point(stored[1]) if stored is not None and stored[0] == room_id else None
-        position = self._validate_position(room_id, x, y, ignore=ignore)
-        self._npc_positions[peep_id] = (room_id, position)
-        return position
-
-    def random_npc_position(self, peep_id: str, room_id: str) -> tuple[float, float]:
-        """Place an NPC sprite at a fresh random valid position."""
-
-        self._room(room_id)
-        self._npc_positions.pop(peep_id, None)
+        if stored is not None and stored[0] == room_id:
+            return stored[1]
         position = self._place(room_id)
+        if position is None:
+            return None
         self._npc_positions[peep_id] = (room_id, position)
-        return position
-
-    def set_user_position(self, account_id: str, room_id: str, x: float, y: float) -> tuple[float, float]:
-        """Move a user sprite to an explicit valid position."""
-
-        stored = self._user_positions.get(account_id)
-        ignore = _world_point(stored[1]) if stored is not None and stored[0] == room_id else None
-        position = self._validate_position(room_id, x, y, ignore=ignore)
-        self._user_positions[account_id] = (room_id, position)
         return position

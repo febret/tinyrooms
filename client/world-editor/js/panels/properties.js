@@ -40,7 +40,6 @@ function roomPanel(state) {
   const room = draft.rooms?.[roomId];
   if (!room) return '<p class="empty-state">Select a room.</p>';
   const environment = room.editor && Array.isArray(room.editor.environment) ? room.editor.environment : [];
-  const initialCards = Array.isArray(room.cards) ? room.cards : [];
   const exits = Object.entries(room.exits || {});
   const roomOptions = Object.keys(draft.rooms || {}).map(id => ({ value: id, label: id }));
   return `
@@ -56,6 +55,10 @@ function roomPanel(state) {
         ${field("Board design", textInput(room.board_design || "", `data-room-field="board_design"`))}
         ${field("Board image", `<select data-room-field="board_image">${selectOptions(catalog?.board_images || [], room.board_image)}</select>`)}
       </div>
+      <div class="field-row">
+        ${field("Sprite scale", numberInput(room.sprite_scale ?? 1, `data-room-field="sprite_scale" min="0.5" max="3"`, "0.05"))}
+        <label class="mini-check">${checkbox(Boolean(room.sprites_enabled), `data-room-field="sprites_enabled"`)} sprites enabled</label>
+      </div>
       <div class="check-row">
         <label class="mini-check">${checkbox(Boolean(room.dark), `data-room-field="dark"`)} dark</label>
         <label class="mini-check">${checkbox(Boolean(room.template), `data-room-field="template"`)} template</label>
@@ -63,7 +66,6 @@ function roomPanel(state) {
         <label class="mini-check">${checkbox(environment.includes("palette"), `data-room-editor-env="palette"`)} palette</label>
         <label class="mini-check">${checkbox(environment.includes("board_image_style"), `data-room-editor-env="board_image_style"`)} board_image_style</label>
       </div>
-      ${field("Initial room cards (comma)", textInput(initialCards.map(card => card.card).join(", "), `data-room-field="cards"`))}
       <fieldset class="subgroup exits-subgroup">
         <legend>Exits</legend>
         ${exits.map(([exitId, exit]) => `
@@ -186,27 +188,6 @@ function peepPanel(state) {
   `;
 }
 
-function cardPanel(state) {
-  const { draft, catalog, selection } = state;
-  const room = draft.rooms?.[selection.id];
-  const index = Number(selection.sub);
-  const card = room?.cards?.[index];
-  if (!room || !card) return '<p class="empty-state">Select an initial card.</p>';
-  const cards = (catalog?.cards || []).map(entry => ({ value: entry.id, label: `${entry.label} (${entry.id})` }));
-  return `
-    ${panelHeader("Initial card", `Room · ${selection.id}`)}
-    <div class="properties-body">
-      ${field("Card", `<select data-card-field="${index}:card">${selectOptions(cards, card.card)}</select>`)}
-      ${field("Quantity", numberInput(card.quantity ?? 1, `data-card-field="${index}:quantity"`, "1"))}
-      <div class="field-row">
-        ${field("X", numberInput((card.pos || [50, 50, 0])[0], `data-card-field="${index}:pos.0"`))}
-        ${field("Y", numberInput((card.pos || [50, 50, 0])[1], `data-card-field="${index}:pos.1"`))}
-      </div>
-      <button type="button" class="negative" data-card-delete="${index}">Delete card</button>
-    </div>
-  `;
-}
-
 export function renderProperties(state) {
   if (!state.draft) return "";
   switch (state.selection.kind) {
@@ -214,8 +195,6 @@ export function renderProperties(state) {
       return propPanel(state);
     case "peep":
       return peepPanel(state);
-    case "card":
-      return cardPanel(state);
     case "exit":
       return exitPanel(state);
     case "room":

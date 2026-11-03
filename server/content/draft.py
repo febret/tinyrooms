@@ -22,7 +22,7 @@ from server.content.room_grid import parse_room_grid
 from server.content.surface_props import validate_sign_style
 from server.content.text_props import validate_text
 from server.content.wall_props import WALL_PROP_ID, WALL_RENDER_KIND, validate_wall_style
-from server.content.worlds import EXIT_TRANSITION_TYPES, PROPS_CONFIG_KEY
+from server.content.worlds import EXIT_TRANSITION_TYPES, MAX_SPRITE_SCALE, MIN_SPRITE_SCALE, PROPS_CONFIG_KEY
 
 
 DRAFT_FORMAT_VERSION = 1
@@ -95,6 +95,17 @@ def draft_yaml_files(draft: dict[str, Any]) -> dict[str, object]:
     files: dict[str, object] = {}
     for section, file_name in _SECTION_FILES:
         payload = draft.get(section)
+        if section == "rooms" and isinstance(payload, dict):
+            # Initial room cards were removed: stale drafts must not write them
+            # back into room definitions on publish.
+            payload = {
+                room_id: (
+                    {key: value for key, value in room.items() if key != "cards"}
+                    if isinstance(room, dict)
+                    else room
+                )
+                for room_id, room in payload.items()
+            }
         files[file_name] = payload if isinstance(payload, dict) else {}
     return files
 
@@ -304,21 +315,19 @@ def _check_rooms(
                     if transition is not None and transition not in EXIT_TRANSITION_TYPES:
                         allowed = ", ".join(sorted(EXIT_TRANSITION_TYPES))
                         _issue(issues, f"{exit_path}.transition", f"Exit transition must be one of: {allowed}.")
-        cards = room.get("cards")
-        if cards is not None:
-            if not isinstance(cards, list):
-                _issue(issues, f"{base}.cards", "Initial room cards must be a list.")
-            else:
-                for index, card in enumerate(cards):
-                    card_path = f"{base}.cards[{index}]"
-                    if not isinstance(card, dict):
-                        _issue(issues, card_path, "Initial room card must be a mapping.")
-                        continue
-                    card_id = card.get("card")
-                    if not isinstance(card_id, str) or not card_id:
-                        _issue(issues, f"{card_path}.card", "Card reference is required.")
-                    elif references.card_ids and card_id not in references.card_ids:
-                        _issue(issues, f"{card_path}.card", f"Unknown card '{card_id}'.")
+        sprites_enabled = room.get("sprites_enabled")
+        if sprites_enabled is not None and not isinstance(sprites_enabled, bool):
+            _issue(issues, f"{base}.sprites_enabled", "Room sprites_enabled must be a boolean.")
+        sprite_scale = room.get("sprite_scale")
+        if sprite_scale is not None:
+            if isinstance(sprite_scale, bool) or not isinstance(sprite_scale, (int, float)):
+                _issue(issues, f"{base}.sprite_scale", "Room sprite_scale must be a number.")
+            elif not MIN_SPRITE_SCALE <= float(sprite_scale) <= MAX_SPRITE_SCALE:
+                _issue(
+                    issues,
+                    f"{base}.sprite_scale",
+                    f"Room sprite_scale must be between {MIN_SPRITE_SCALE} and {MAX_SPRITE_SCALE}.",
+                )
     if position_rooms:
         for point in sorted(position_rooms):
             room_names = sorted(position_rooms[point], key=str)

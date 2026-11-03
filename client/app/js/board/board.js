@@ -86,7 +86,7 @@ function boardPositionFromWorld(point) {
 }
 
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
-export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoint, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
+export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
@@ -216,7 +216,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   let current = null;
   let roomTransition = null;
   let roomId = "";
-  let spritesEnabled = false;
   let selection = null;
   let selectionObject = null;
   let editEnabled = false;
@@ -853,8 +852,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
 
   function syncSprites(entry, room) {
     const enabled = Boolean(room.board?.spritesEnabled);
-    const actors = enabled ? [...(room.occupants || []), ...(room.npcs || [])] : [];
-    const spriteScale = Number(room.board?.spriteScale) > 0 ? Number(room.board?.spriteScale) : 1;
+    const actors = enabled ? (room.npcs || []) : [];
+    const spriteScale = Number(room.board?.spriteScale) > 0 ? Number(room.board.spriteScale) : 1;
     spriteLayer.sync(entry, actors, spriteScale);
   }
 
@@ -1044,7 +1043,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function createEntry(room) {
     revision += 1;
     roomId = room.id;
-    spritesEnabled = Boolean(room.board?.spritesEnabled);
     userAdjusted = false;
     const content = new THREE.Group();
     content.name = "room-content";
@@ -1090,7 +1088,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function syncRoom(room) {
     const entry = current;
     entry.label = room.label;
-    spritesEnabled = Boolean(room.board?.spritesEnabled);
     applyFloor(entry, room);
     syncProps(entry, room);
     syncCards(entry, room);
@@ -1323,9 +1320,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       onSelect({ kind: owner.userData.kind, id: owner.userData.id }, { x: event.clientX, y: event.clientY });
       return;
     }
-    const floor = spritesEnabled ? screenToBoardPosition(event.clientX, event.clientY) : null;
     if (roomId) onSelect({ kind: "room", id: roomId });
-    if (floor) onMoveSprite?.(floor.position);
   }
 
   function pointerCancel(event) {
@@ -1386,7 +1381,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     for (const record of current.cards.values()) {
       if (record.target && !record.group.position.equals(record.target)) return true;
     }
-    return spriteLayer.isAnimating(current);
+    return false;
   }
 
   /** One scheduler frame: advance state, draw if needed, and report whether to continue. */
@@ -1408,7 +1403,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       }
       advanceRecords(current.props.values(), delta, reducedMotion);
       advanceRecords(current.cards.values(), delta, reducedMotion);
-      spriteLayer.advance(current, delta, reducedMotion);
     }
     advanceRoomTransition(delta);
     if (selectionRing.visible && selectionObject) {
@@ -1502,7 +1496,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         revision += 1;
         clear();
         roomId = "";
-        spritesEnabled = false;
         canvas.dataset.boardType = "";
         canvas.dataset.diorama = "false";
         canvas.dataset.boardReady = "false";

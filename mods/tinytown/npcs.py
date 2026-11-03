@@ -1045,22 +1045,6 @@ class NpcHouse(RoommateSystemsMixin):
                 "source_id": record.npc_id,
             },
         )
-        if record.action not in {"sleep", "bathe"} and self._random.random() < 0.32:
-            try:
-                position = self.rooms.sprites.random_npc_position(record.npc_id, record.room_id)
-            except (KeyError, ValueError):
-                position = None
-            if position is not None:
-                await broadcast_room_event(
-                    self.runtime,
-                    room_id=record.room_id,
-                    event={
-                        "type": "peep.sprite",
-                        "room_id": record.room_id,
-                        "peep_id": record.npc_id,
-                        "position": list(position),
-                    },
-                )
         if record.room_id in spoken_rooms or self._random.random() > 0.4:
             return
         spoken_rooms.add(record.room_id)

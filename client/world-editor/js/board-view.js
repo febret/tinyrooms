@@ -1,10 +1,6 @@
 import { createBoard } from "../../app/js/board/board.js";
 import { withBase } from "../../app/js/base-path.js";
 
-function cardEntry(catalog, cardId) {
-  return (catalog?.cards || []).find(entry => entry.id === cardId) || null;
-}
-
 export function buildBoardRoom(draft, catalog, roomId, worldId) {
   const room = draft?.rooms?.[roomId];
   if (!room) return null;
@@ -35,17 +31,6 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
       };
     })
     .filter(Boolean);
-  const roomCards = (room.cards || []).map((card, index) => {
-    const entry = cardEntry(catalog, card.card);
-    return {
-      stackId: `seed-${roomId}-${index}`,
-      position: Array.isArray(card.pos) ? card.pos.map(Number) : [50, 50, 0],
-      definition: {
-        imageUrl: withBase(entry?.image_url || ""),
-        label: entry?.label || card.card,
-      },
-    };
-  });
   return {
     id: roomId,
     label: room.label || roomId,
@@ -61,7 +46,7 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
       dark: Boolean(room.dark),
     },
     props,
-    roomCards,
+    roomCards: [],
   };
 }
 

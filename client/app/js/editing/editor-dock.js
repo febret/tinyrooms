@@ -110,7 +110,7 @@ export function createEditorDock({
         bindEditorControls(wallRegion, onAction);
       }
       const deleteButton = root.querySelector("[data-editor-delete]");
-      if (deleteButton) deleteButton.disabled = !selected;
+      if (deleteButton) deleteButton.disabled = !selected || selected.removable === false;
       const textButton = root.querySelector("[data-editor-text]");
       if (textButton) textButton.disabled = !selected?.text || selected.locked;
       const undo = root.querySelector("[data-editor-undo]");

@@ -556,14 +556,9 @@ class RoomService:
                     "powers": sorted(powers_by_account.get(account.id, ())),
                     "audio_enabled": connection.audio_enabled,
                     "quick_actions": self._user_quick_actions(account),
-                    **self._user_sprite_payload(account.id, room_id),
                 }
             )
         return occupants
-
-    def _user_sprite_payload(self, account_id: str, room_id: str) -> dict[str, object]:
-        position = self._sprites.ensure_user(account_id, room_id)
-        return {} if position is None else {"sprite": {"position": list(position)}}
 
     async def describe_occupant(self, account_id: str, room_id: str) -> dict[str, object] | None:
         """Serialize one connected occupant for a presence-enter delta.
@@ -604,7 +599,6 @@ class RoomService:
             "counters": counters,
             "audio_enabled": connection.audio_enabled,
             "quick_actions": self._user_quick_actions(account),
-            **self._user_sprite_payload(account.id, room_id),
         }
         return entry
 
@@ -765,34 +759,6 @@ class RoomService:
                 npc=self.describe_npc(peep.id, room_id),
             ),
         )
-
-    def move_user_sprite(
-        self,
-        account: AccountRecord,
-        room_id: str,
-        x: float,
-        y: float,
-    ) -> dict[str, object]:
-        """Move a user's board sprite and return the room event to broadcast."""
-
-        for state in self._mod_states:
-            validate = getattr(state, "validate_sprite_move", None)
-            if validate is None:
-                continue
-            try:
-                problem = validate(account, room_id, x, y)
-            except Exception:
-                LOGGER.exception("room.mod_sprite_validation_failed")
-                continue
-            if problem:
-                raise ValueError(problem)
-        position = self._sprites.set_user_position(account.id, room_id, x, y)
-        return {
-            "type": "peep.sprite",
-            "room_id": room_id,
-            "account_id": account.id,
-            "position": list(position),
-        }
 
     def _exit_direction(self, room: RoomDefinition, exit_definition: ExitDefinition) -> str | None:
         """Return the grid direction for an in-world exit, when it is adjacent."""
@@ -1073,7 +1039,6 @@ class RoomService:
                     "counters": counters,
                     "audio_enabled": connection.audio_enabled,
                     "quick_actions": self._user_quick_actions(occupant),
-                    **self._user_sprite_payload(occupant.id, room_id),
                     **({"vibes": vibes_by_id[occupant.id]} if occupant.id in vibes_by_id else {}),
                 }
             )
@@ -1329,7 +1294,6 @@ class RoomService:
             if self._room_change_energy_cost:
                 self._stats.charge_in_transaction(connection, account.id, self._room_change_energy_cost)
         await self._connections.set_room(account.id, None)
-        self._sprites.forget_user(account.id)
         closed = self._activities.close(account.id)
         return WorldDeparture(
             source_room_id=source_room_id,
@@ -1378,7 +1342,6 @@ class RoomService:
                 self._stats.charge_in_transaction(connection, account.id, self._room_change_energy_cost)
             self._profiles.set_remembered_room(connection, account.id, self._world.id, destination_room.id)
         await self._connections.set_room(account.id, destination_room.id)
-        self._sprites.forget_user(account.id)
         closed = self._activities.close_if_room_changed(account.id, destination_room.id)
         if self._behaviors is not None:
             behavior_results.append(

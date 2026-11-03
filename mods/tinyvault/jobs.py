@@ -5,16 +5,15 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from mods.tinyvault.content import CameraSpec, JobTemplate, LaserSpec, LootSpec, RouteSpec
+from mods.tinyvault.content import CameraSpec, JobTemplate, LaserSpec, LootSpec
 
 
 @dataclass(frozen=True, slots=True)
 class GuardSetup:
-    """One staged guard with its patrol route and vision tuning."""
+    """One staged guard and its assigned room."""
 
     peep_id: str
     room_id: str
-    route: RouteSpec
     elite: bool = False
 
 
@@ -57,7 +56,6 @@ def generate_job(template: JobTemplate, seed: str) -> GeneratedJob:
         GuardSetup(
             peep_id=str(peep_id),
             room_id=template.routes[str(peep_id)].room_id,
-            route=template.routes[str(peep_id)],
             elite=str(peep_id) == "guard-elite",
         )
         for peep_id in pool[: template.guard_count]
@@ -66,7 +64,6 @@ def generate_job(template: JobTemplate, seed: str) -> GeneratedJob:
         GuardSetup(
             peep_id=str(peep_id),
             room_id=template.routes[str(peep_id)].room_id,
-            route=template.routes[str(peep_id)],
         )
         for peep_id in template.reinforcement_pool
     )
@@ -83,7 +80,7 @@ def generate_job(template: JobTemplate, seed: str) -> GeneratedJob:
 
 
 def describe_generated(template: JobTemplate, generated: GeneratedJob) -> dict[str, object]:
-    """Summarize a generated job for the board without revealing patrol secrets."""
+    """Summarize a generated job for the board without revealing guard assignments."""
 
     return {
         "id": template.id,

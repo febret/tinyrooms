@@ -1126,7 +1126,7 @@ The World Editor is available at the URL `world-editor` when that feature is
 enabled. Users with the required [powers](#user-powers) can build and modify the
 currently loaded world. Through the World Editor they can:
 - create and delete rooms
-- edit all room aspects including the board picture, props, initial room cards, etc.
+- edit all room aspects including the board picture, props, sprites, etc.
 - give any placed prop its own description, overriding the prop definition's stock text
 - arrange rooms on the room grid map; grid adjacency supplies room connections
 - edit custom room connections through exits
@@ -1137,7 +1137,7 @@ stacking, and keyboard shortcuts as the in-game room editor.
 World authors can browse all available authoring props without player unlocks.
 The properties sidebar holds appearance controls, selected-prop controls
 (label and description overrides, custom quick actions), snapping, board
-images, exits, and initial cards. Prop behavior, activity, content, cooldown,
+images and designs, sprite settings, and exits. Prop behavior, activity, content, cooldown,
 and recipes live on the prop definition and are edited in the Prop Editor.
 Appearance,
 lock/remove buttons, and snap toggles are absent from the in-game dock.
@@ -1148,14 +1148,14 @@ Card-valued settings offer a searchable selector using the Card Database grid,
 with all loaded server cardsets available. Single-card fields choose one card;
 contents, rewards, and recipe/weight mappings allow multiple cards. Selection
 survives search and cardset changes, and Apply preserves existing quantities or
-weights for retained cards. Initial room cards can also be added in a batch.
+weights for retained cards.
 
 Edits do not affect the running world until an explicit `Publish` action.
 Publishing updates the live world while preserving unrelated inventories, task
 progress, and room-card ownership. Deleting a room requires a single explicit
 confirmation; a deleted room drops its orphaned room card stacks. Surviving rooms
-are seed-only: once a room has been initialized, later definition edits to its
-props, initial cards, or environment do not overwrite its live state, which is
+keep their live state: once a room has been initialized, later definition edits
+to its props or environment do not overwrite its live state, which is
 repaired lazily.
 
 

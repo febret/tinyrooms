@@ -269,20 +269,6 @@ function applyServerEvent(state, event) {
     };
     return applyCounterEventToSelf(withRoom, event);
   }
-  if (event.type === "peep.sprite") {
-    const targetId = String(event.peep_id || event.account_id || "");
-    const position = Array.isArray(event.position) ? event.position.map(Number) : null;
-    if (!targetId || !position) return state;
-    const update = peep => peep.id === targetId ? { ...peep, spritePosition: position } : peep;
-    return {
-      ...state,
-      room: {
-        ...state.room,
-        occupants: state.room.occupants.map(update),
-        npcs: state.room.npcs.map(update),
-      },
-    };
-  }
   if (event.type === "emote.bubble") {
     const bubble = event.bubble || {};
     const sourceId = String(event.source_id || "");

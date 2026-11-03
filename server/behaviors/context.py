@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -68,7 +68,6 @@ class BehaviorContext:
         card: CardView | None = None,
         card_lookup: Callable[[str], CardView | None] | None = None,
         peeps_in: Callable[[str], list[dict[str, object]]] | None = None,
-        room_users: Callable[[str], Awaitable[list[dict[str, object]]]] | None = None,
         activity_state: Callable[[str], Mapping[str, object] | None] | None = None,
         activity_users: Callable[[str, str], list[dict[str, object]]] | None = None,
         bops: int = 0,
@@ -90,7 +89,6 @@ class BehaviorContext:
         self._environment = environment
         self._card_lookup = card_lookup
         self._peeps_in = peeps_in
-        self._room_users = room_users
         self._activity_state = activity_state
         self._activity_users = activity_users
         self._bops = int(bops)
@@ -110,30 +108,12 @@ class BehaviorContext:
 
         return str(power) in self._powers
 
-    @property
-    def sprites_enabled(self) -> bool:
-        """Return whether the acting room uses 2D peep sprites."""
-
-        return bool(self.room.get("sprites_enabled"))
-
     def peeps_in(self, room_id: str) -> list[dict[str, object]]:
         """Return lightweight NPC references currently in *room_id*."""
 
         if self._peeps_in is None:
             return []
         return self._peeps_in(str(room_id))
-
-    async def room_users(self, room_id: str) -> list[dict[str, object]]:
-        """Return live user occupants of *room_id* with sprite positions.
-
-        Each record carries ``id``, ``name``, ``position`` (board percent, or
-        None), and effective ``dexterity``/``health``/``cleanliness``. Scripts
-        use this for server-authoritative positional rules such as raycasts.
-        """
-
-        if self._room_users is None:
-            return []
-        return await self._room_users(str(room_id))
 
     def room_activity_state(self, kind: str) -> dict[str, object] | None:
         """Return the last committed public activity state for *kind*.
@@ -159,16 +139,6 @@ class BehaviorContext:
         """Return the acting account's current Bops (0 for system events)."""
 
         return self._bops
-
-    def move_sprite(self, x: float, y: float) -> None:
-        """Queue moving the attached NPC sprite to a board position."""
-
-        self._append("move_sprite", {"position": [float(x), float(y)]})
-
-    def move_sprite_random(self) -> None:
-        """Queue moving the attached NPC sprite to a random valid position."""
-
-        self._append("move_sprite_random", {})
 
     def move_peep(self, peep_id: str, room_id: str) -> None:
         """Queue moving an NPC peep directly to another room."""

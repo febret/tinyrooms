@@ -3,8 +3,7 @@ import { escapeHtml } from "./util.js";
 
 export function cardFieldMode(input) {
   const data = input.dataset;
-  if (data.roomField === "cards") return "multiple";
-  if (data.cardField?.endsWith(":card") || data.exitField?.endsWith(":requires")
+  if (data.exitField?.endsWith(":requires")
     || data.dialogChoiceField?.endsWith(":give_card")) return "single";
   if (data.instanceField === "content" || data.taskField?.endsWith(":reward.cards")) return "multiple";
   if (data.instanceField === "draw_weight" || /:(ingredients|output)$/.test(data.recipeField || "")) return "mapping";

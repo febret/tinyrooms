@@ -11,8 +11,6 @@ from server.content.common import ContentError, load_yaml_file, require_mapping
 
 TOOL_KINDS = frozenset({"reusable", "consumable"})
 OBJECTIVE_KINDS = frozenset({"ghost", "speed", "loot_card", "loot_prop"})
-MIN_BOARD = 6.0
-MAX_BOARD = 94.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,14 +49,10 @@ class DoorSpec:
 
 @dataclass(frozen=True, slots=True)
 class CameraSpec:
-    """One authored camera mount with a server-side vision cone."""
+    """One authored camera mount mapped to a room prop."""
 
     room_id: str
     prop_instance_id: str
-    position: tuple[float, float]
-    facing: float
-    vision_range: float
-    vision_cone: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,14 +78,9 @@ class LootSpec:
 
 @dataclass(frozen=True, slots=True)
 class RouteSpec:
-    """One guard's patrol loop inside a single room."""
+    """One guard's assigned room."""
 
     room_id: str
-    waypoints: tuple[tuple[float, float], ...]
-    speed: float
-    pause_seconds: float
-    vision_range: float
-    vision_cone: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,19 +160,6 @@ def _as_number(value: Any, label: str, *, minimum: float = 0.0) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or float(value) < minimum:
         raise ContentError(f"{label} must be a number at least {minimum}.")
     return float(value)
-
-
-def _as_coordinate(value: Any, label: str) -> float:
-    number = _as_number(value, label, minimum=MIN_BOARD)
-    if number > MAX_BOARD:
-        raise ContentError(f"{label} must be between {MIN_BOARD} and {MAX_BOARD}.")
-    return number
-
-
-def _waypoint(value: Any, label: str) -> tuple[float, float]:
-    if not isinstance(value, (list, tuple)) or len(value) != 2:
-        raise ContentError(f"{label} must be an [x, y] waypoint.")
-    return (_as_coordinate(value[0], label), _as_coordinate(value[1], label))
 
 
 def _string_list(value: Any, label: str) -> tuple[str, ...]:
@@ -394,21 +370,7 @@ def _load_routes(raw_value: Any, label: str, *, world: Any) -> dict[str, RouteSp
         room_id = _as_text(raw_route.get("room"), f"{entry} room")
         if room_id not in world.rooms:
             raise ContentError(f"{entry} references unknown room '{room_id}'.")
-        raw_waypoints = raw_route.get("waypoints")
-        if not isinstance(raw_waypoints, list) or len(raw_waypoints) < 2 or len(raw_waypoints) > 12:
-            raise ContentError(f"{entry} must list two to twelve waypoints.")
-        waypoints = tuple(
-            _waypoint(raw_point, f"{entry} waypoint {index + 1}")
-            for index, raw_point in enumerate(raw_waypoints)
-        )
-        routes[str(peep_id)] = RouteSpec(
-            room_id=room_id,
-            waypoints=waypoints,
-            speed=_as_number(raw_route.get("speed"), f"{entry} speed", minimum=1.0),
-            pause_seconds=_as_number(raw_route.get("pause_seconds"), f"{entry} pause"),
-            vision_range=_as_number(raw_route.get("vision_range"), f"{entry} vision range", minimum=5.0),
-            vision_cone=_as_number(raw_route.get("vision_cone"), f"{entry} vision cone", minimum=10.0),
-        )
+        routes[str(peep_id)] = RouteSpec(room_id=room_id)
     return routes
 
 
@@ -437,10 +399,6 @@ def _load_cameras(raw_value: Any, label: str, *, world: Any, instances: dict[str
             CameraSpec(
                 room_id=room_id,
                 prop_instance_id=prop,
-                position=(_as_coordinate(raw_camera.get("x"), f"{entry} x"), _as_coordinate(raw_camera.get("y"), f"{entry} y")),
-                facing=_as_number(raw_camera.get("facing"), f"{entry} facing"),
-                vision_range=_as_number(raw_camera.get("range"), f"{entry} range", minimum=5.0),
-                vision_cone=_as_number(raw_camera.get("cone"), f"{entry} cone", minimum=10.0),
             )
         )
     return tuple(cameras)

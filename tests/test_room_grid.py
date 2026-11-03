@@ -34,10 +34,9 @@ def _room(
         board_image_style="stretch",
         palette=(),
         dark=False,
-        props={},
-        exits=dict(exits or {}),
-        initial_cards=(),
-        grid=grid,
+    props={},
+    exits=dict(exits or {}),
+    grid=grid,
         template=template,
     )
 

@@ -230,19 +230,6 @@ kitchen:
       - 0
       scale: 0.662
       exit_to: utility
-  cards:
-  - card: tasty-toast
-    quantity: 2
-    pos:
-    - 59
-    - 56
-    - 0
-  - card: tomato-sauce
-    quantity: 1
-    pos:
-    - 70
-    - 66
-    - 0
   exits:
     foyer:
       label: Back to the foyer
@@ -481,13 +468,6 @@ bedroom:
       - 0
       scale: 1
       exit_to: bathroom
-  cards:
-  - card: seal-plushie
-    quantity: 1
-    pos:
-    - 62
-    - 64
-    - 0
   exits:
     foyer:
       label: Downstairs to the foyer
@@ -908,7 +888,6 @@ garden:
       - 0
       - 0
       scale: 0.997
-  cards: []
   exits:
     foyer:
       label: Back inside

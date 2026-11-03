@@ -224,11 +224,14 @@ class RoomLayoutService:
         for entry in live:
             if not isinstance(entry, dict):
                 continue
-            definition = self._world.props.get(str(entry.get("prop_id")))
-            if definition is None or definition.hidden:
-                continue
             instance_id = str(entry.get("id"))
             source = room.props.get(instance_id)
+            raw_prop_id = str(entry.get("prop_id"))
+            if source is not None and not self._world.props[source.prop_id].decorative:
+                raw_prop_id = source.prop_id
+            definition = self._world.props.get(raw_prop_id)
+            if definition is None or definition.hidden:
+                continue
             merged[instance_id] = PropInstanceDefinition(
                 id=instance_id,
                 prop_id=definition.id,
@@ -430,6 +433,10 @@ class RoomLayoutService:
                 "rotation": list(instance.rot),
                 "scale": float(instance.scale),
                 "locked": live_locked.get(instance.id, False),
+                "removable": (
+                    room.props.get(instance.id) is None
+                    or self._world.props[room.props[instance.id].prop_id].decorative
+                ),
                 **({"text": dict(instance.text)} if instance.text is not None else {}),
                 **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
                 **({"exit_style": dict(instance.exit_style)} if instance.exit_style is not None else {}),
@@ -708,23 +715,10 @@ class RoomLayoutService:
             if instance_id not in seen:
                 props.append(entry)
         for instance in room.props.values():
-            if instance.id in seen:
-                continue
             definition = self._world.props[instance.prop_id]
-            if definition.hidden or definition.decorative:
+            if definition.hidden or definition.decorative or instance.id in seen:
                 continue
-                props.append(
-                    {
-                        "id": instance.id,
-                        "prop_id": instance.prop_id,
-                        "position": list(instance.pos),
-                        "rotation": list(instance.rot),
-                        "scale": instance_scale_for(definition, instance.scale),
-                        "locked": False,
-                    **({"text": dict(instance.text)} if instance.text is not None else {}),
-                    **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
-                }
-            )
+            raise ValueError(f"Prop '{instance.id}' cannot be removed from this room.")
         counts: dict[str, int] = {}
         for entry in props:
             definition = self._world.props.get(str(entry["prop_id"]))

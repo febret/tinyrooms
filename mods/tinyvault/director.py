@@ -4,15 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import math
 from datetime import date
 from typing import Any
 
-from mods.tinyvault.guards import GuardState, advance_patrol, angle_to, can_see, move_toward, suspicion_rate
+from mods.tinyvault.guards import GuardState
 from mods.tinyvault.models import (
     BRIEFING_SECONDS,
-    CATCH_DISTANCE,
-    ESCAPE_DISTANCE,
     GUARD_BUBBLE_SECONDS,
     HANGAR_ROOM,
     HIDEOUT_ROOM,
@@ -29,6 +26,11 @@ from server.protocol import room_snapshot_envelope
 
 
 LOGGER = logging.getLogger("tinyrooms.tinyvault")
+GUARD_SUSPICION_RATE = 16.0
+GUARD_ALARM_RATE = 6.0
+CAMERA_ALARM_RATE = 9.0
+DISGUISED_VISIBILITY = 0.65
+LOOKOUT_FACTOR = 0.75
 
 
 class HeistDirector:
@@ -38,7 +40,6 @@ class HeistDirector:
     job: Any
     content: Any
     _room_last_tick: dict[str, float]
-    _move_budget: dict[str, Any]
     _guard_bubble_at: dict[str, float]
     _needs_recovery: bool
 
@@ -50,7 +51,6 @@ class HeistDirector:
         delta = min(5.0, max(0.05, now - last))
         self._room_last_tick[room_id] = now
         broadcasts: list[PendingRoomBroadcast] = []
-        await self._move_guards(room_id, now, delta, broadcasts)
         await self._observe_room(room_id, now, delta, broadcasts)
         if self.job is None:
             return broadcasts
@@ -85,82 +85,6 @@ class HeistDirector:
             except Exception:  # noqa: BLE001 - supervision must not stop
                 LOGGER.exception("tinyvault.supervise_failed")
 
-    async def _move_guards(
-        self, room_id: str, now: float, delta: float, broadcasts: list[PendingRoomBroadcast]
-    ) -> None:
-        assert self.job is not None
-        for guard in self.job.guards.values():
-            if guard.room_id != room_id:
-                continue
-            if guard.state == "investigate" and guard.last_seen is not None:
-                move_toward(guard, guard.last_seen, guard.speed + 2.0, delta)
-                if math.hypot(guard.last_seen[0] - guard.position[0], guard.last_seen[1] - guard.position[1]) < 2.0:
-                    guard.pause_until = now + 2.5
-                    if now >= guard.investigate_until:
-                        guard.state = "patrol"
-                        guard.last_seen = None
-            elif guard.state == "alert" and self.job.decoy_position is not None and now < self.job.decoy_until:
-                move_toward(guard, self.job.decoy_position, guard.speed + 3.0, delta)
-            else:
-                advance_patrol(guard, now, delta)
-            try:
-                position = self.runtime.rooms.sprites.set_npc_position(guard.peep_id, room_id, *guard.position)
-            except ValueError:
-                continue
-            guard.position = position
-            broadcasts.append(
-                PendingRoomBroadcast(
-                    room_id=room_id,
-                    event={"type": "peep.sprite", "room_id": room_id, "peep_id": guard.peep_id, "position": list(position)},
-                )
-            )
-            if guard.state in {"suspicious", "investigate", "alert"}:
-                last = self._guard_bubble_at.get(guard.peep_id, 0.0)
-                if now - last >= GUARD_BUBBLE_SECONDS:
-                    self._guard_bubble_at[guard.peep_id] = now
-                    text = {"suspicious": "Hm?", "investigate": "Who's there?", "alert": "Stop right there!"}[guard.state]
-                    broadcasts.append(
-                        PendingRoomBroadcast(
-                            room_id=room_id,
-                            event={
-                                "type": "emote.bubble",
-                                "room_id": room_id,
-                                "source_id": guard.peep_id,
-                                "speaker_id": guard.peep_id,
-                                "source": self.runtime.world.peeps[guard.peep_id].label,
-                                "bubble": {"kind": "expression", "text": f"{text} ({guard.suspicion:.0f})"},
-                                "card_id": None,
-                            },
-                        )
-                    )
-        await self._move_bot(room_id, delta, broadcasts)
-
-    async def _move_bot(self, room_id: str, delta: float, broadcasts: list[PendingRoomBroadcast]) -> None:
-        assert self.job is not None
-        if self.job.bot is None or not self.job.entered:
-            return
-        leader = self.job.crew.get(self.job.leader_id)
-        if leader is None:
-            return
-        connection = await self.runtime.connections.get(leader.account_id)
-        leader_room = connection.room_id if connection is not None else None
-        if leader_room != room_id:
-            return
-        leader_position = self.runtime.rooms.sprites.position_of_user(leader.account_id)
-        if leader_position is None or leader_position[0] != room_id:
-            return
-        target = (min(94.0, leader_position[1][0] + 6.0), min(94.0, leader_position[1][1] + 5.0))
-        try:
-            position = self.runtime.rooms.sprites.set_npc_position(self.job.bot.peep_id, room_id, *target)
-        except ValueError:
-            return
-        broadcasts.append(
-            PendingRoomBroadcast(
-                room_id=room_id,
-                event={"type": "peep.sprite", "room_id": room_id, "peep_id": self.job.bot.peep_id, "position": list(position)},
-            )
-        )
-
     async def _observe_room(
         self, room_id: str, now: float, delta: float, broadcasts: list[PendingRoomBroadcast]
     ) -> None:
@@ -175,52 +99,74 @@ class HeistDirector:
             self._decay_guards(room_id, delta)
             return
         smoke = now < self.job.smoke_until.get(room_id, 0.0)
-        look_factor = 0.75 if self.job.bot is not None and self.job.bot.role_id == "lookout" else 1.0
-        for guard in self.job.guards.values():
-            if guard.room_id != room_id:
-                continue
-            seen: tuple[float, float] | None = None
-            seen_member = None
-            for member in crew_here:
-                position = self.runtime.rooms.sprites.position_of_user(member.account_id)
-                if position is None or position[0] != room_id:
+        decoy = now < self.job.decoy_until and self.job.decoy_room == room_id
+        look_factor = LOOKOUT_FACTOR if self.job.bot is not None and self.job.bot.role_id == "lookout" else 1.0
+        visibility = max(
+            DISGUISED_VISIBILITY if now < self.job.disguised_until.get(member.account_id, 0.0) else 1.0
+            for member in crew_here
+        )
+        if smoke or decoy:
+            self._decay_guards(room_id, delta)
+        else:
+            for guard in self.job.guards.values():
+                if guard.room_id != room_id:
                     continue
-                visibility = 0.65 if now < self.job.disguised_until.get(member.account_id, 0.0) else 1.0
-                if can_see(guard.position, guard.facing, position[1], guard.vision_range, guard.vision_cone, obscured=smoke, visibility=visibility):
-                    seen = position[1]
-                    seen_member = member
-                    break
-            if seen is not None and seen_member is not None:
-                distance = math.hypot(seen[0] - guard.position[0], seen[1] - guard.position[1])
-                guard.suspicion = min(100.0, guard.suspicion + suspicion_rate(distance, guard.vision_range) * delta * look_factor)
-                guard.last_seen = seen
-                guard.investigate_until = now + 12.0
+                guard.suspicion = min(
+                    100.0,
+                    guard.suspicion + GUARD_SUSPICION_RATE * visibility * delta * look_factor,
+                )
                 guard.state = "alert" if guard.suspicion >= 100.0 else "investigate" if guard.suspicion >= 55.0 else "suspicious"
-                self.job.alarm_score = min(120.0, self.job.alarm_score + (4.0 + distance / 10.0) * delta * look_factor)
+                self.job.alarm_score = min(
+                    120.0,
+                    self.job.alarm_score + GUARD_ALARM_RATE * visibility * delta * look_factor,
+                )
+                self._guard_bubble(guard, room_id, now, broadcasts)
                 if guard.suspicion >= 100.0 and self.job.alarm_stage in {"calm", "suspicious"}:
                     await self._raise_alarm(now, room_id, broadcasts)
-                if self.job.alarm_stage in {"alarm", "lockdown"} and distance <= CATCH_DISTANCE:
-                    await self._catch(seen_member.account_id, room_id, broadcasts)
+                if self.job.alarm_stage in {"alarm", "lockdown"}:
+                    await self._catch(crew_here[0].account_id, room_id, broadcasts)
                     return
-            else:
-                guard.suspicion = max(0.0, guard.suspicion - 6.0 * delta)
-                if guard.suspicion < 30.0 and guard.state == "suspicious":
-                    guard.state = "patrol"
-        for camera in self.job.generated.cameras:
-            if camera.room_id != room_id or camera.prop_instance_id in self.job.cameras_permanent:
-                continue
-            if now < self.job.cameras_disabled_until.get(camera.prop_instance_id, 0.0) or smoke:
-                continue
-            for member in crew_here:
-                position = self.runtime.rooms.sprites.position_of_user(member.account_id)
-                if position is None or position[0] != room_id:
+        if not smoke:
+            for camera in self.job.generated.cameras:
+                if camera.room_id != room_id or camera.prop_instance_id in self.job.cameras_permanent:
                     continue
-                visibility = 0.65 if now < self.job.disguised_until.get(member.account_id, 0.0) else 1.0
-                if can_see(camera.position, camera.facing, position[1], camera.vision_range, camera.vision_cone, visibility=visibility):
-                    self.job.alarm_score = min(120.0, self.job.alarm_score + 9.0 * delta * look_factor)
-                    break
+                if now < self.job.cameras_disabled_until.get(camera.prop_instance_id, 0.0):
+                    continue
+                self.job.alarm_score = min(
+                    120.0,
+                    self.job.alarm_score + CAMERA_ALARM_RATE * visibility * delta * look_factor,
+                )
         if any(laser.room_id == room_id and self._laser_active(laser, now) for laser in self.job.generated.lasers):
             self.job.alarm_score = min(120.0, self.job.alarm_score + 1.5 * delta)
+
+    def _guard_bubble(
+        self,
+        guard: GuardState,
+        room_id: str,
+        now: float,
+        broadcasts: list[PendingRoomBroadcast],
+    ) -> None:
+        if guard.state not in {"suspicious", "investigate", "alert"}:
+            return
+        last = self._guard_bubble_at.get(guard.peep_id, 0.0)
+        if now - last < GUARD_BUBBLE_SECONDS:
+            return
+        self._guard_bubble_at[guard.peep_id] = now
+        text = {"suspicious": "Hm?", "investigate": "Who's there?", "alert": "Stop right there!"}[guard.state]
+        broadcasts.append(
+            PendingRoomBroadcast(
+                room_id=room_id,
+                event={
+                    "type": "emote.bubble",
+                    "room_id": room_id,
+                    "source_id": guard.peep_id,
+                    "speaker_id": guard.peep_id,
+                    "source": self.runtime.world.peeps[guard.peep_id].label,
+                    "bubble": {"kind": "expression", "text": f"{text} ({guard.suspicion:.0f})"},
+                    "card_id": None,
+                },
+            )
+        )
 
     def _decay_guards(self, room_id: str, delta: float) -> None:
         assert self.job is not None
@@ -289,17 +235,10 @@ class HeistDirector:
             self.job.guards[peep_id] = GuardState(
                 peep_id=peep_id,
                 room_id=route.room_id,
-                route=route.waypoints,
-                position=route.waypoints[0],
-                facing=angle_to(route.waypoints[0], route.waypoints[1]) if len(route.waypoints) > 1 else 0.0,
-                speed=route.speed,
-                vision_range=route.vision_range,
-                vision_cone=route.vision_cone,
                 state="alert",
                 suspicion=80.0,
             )
             await self._summon_guard(peep_id, route.room_id)
-            await self._place_guard(self.job.guards[peep_id])
         self.job.reinforcements.clear()
         self.job.alarm_raised = True
         broadcasts.extend(await self._cutscene_broadcasts("alarm-raised", room_id, "room"))
@@ -382,7 +321,6 @@ class HeistDirector:
         )
         if getaway is None:
             return
-        target = self.runtime.world.rooms[room_id].props[getaway].pos
         connections = await self.runtime.connections.list_room(room_id)
         for connection in connections:
             if self.job is None:
@@ -390,22 +328,18 @@ class HeistDirector:
             member = self.job.crew.get(connection.account_id)
             if member is None or member.status != "active":
                 continue
-            position = self.runtime.rooms.sprites.position_of_user(member.account_id)
-            if position is None or position[0] != room_id:
+            account = self.runtime.profiles.get_account_by_id(member.account_id)
+            if account is None:
                 continue
-            if math.hypot(position[1][0] - target[0], position[1][1] - target[1]) <= ESCAPE_DISTANCE:
-                account = self.runtime.profiles.get_account_by_id(member.account_id)
-                if account is None:
-                    continue
-                result = await self.escape_job(account, room_id)
-                broadcasts.extend(result.room_broadcasts)
-                if result.navigation is not None:
-                    broadcasts.append(PendingRoomBroadcast(room_id=result.navigation.source_room_id, event=result.navigation.source_event))
-                    broadcasts.append(PendingRoomBroadcast(room_id=result.navigation.destination_room_id, event=result.navigation.destination_event))
-                    try:
-                        await connection.send(room_snapshot_envelope(result.navigation.destination_snapshot))
-                    except RuntimeError:
-                        pass
+            result = await self.escape_job(account, room_id)
+            broadcasts.extend(result.room_broadcasts)
+            if result.navigation is not None:
+                broadcasts.append(PendingRoomBroadcast(room_id=result.navigation.source_room_id, event=result.navigation.source_event))
+                broadcasts.append(PendingRoomBroadcast(room_id=result.navigation.destination_room_id, event=result.navigation.destination_event))
+                try:
+                    await connection.send(room_snapshot_envelope(result.navigation.destination_snapshot))
+                except RuntimeError:
+                    pass
 
     async def _catch(self, account_id: str, room_id: str, broadcasts: list[PendingRoomBroadcast]) -> None:
         assert self.job is not None
@@ -535,7 +469,6 @@ class HeistDirector:
         await self._cleanup_security(broadcasts)
         self.job = None
         self._room_last_tick.clear()
-        self._move_budget.clear()
         self._security_visual.clear()
         return broadcasts
 
@@ -553,7 +486,6 @@ class HeistDirector:
         await self._cleanup_security([])
         self.job = None
         self._room_last_tick.clear()
-        self._move_budget.clear()
         self._security_visual.clear()
 
     async def _cleanup_security(self, broadcasts: list[PendingRoomBroadcast]) -> None:

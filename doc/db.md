@@ -138,19 +138,18 @@ future per-NPC stats, buffs, and memories; they remain empty defaults today.
 ### Seed-once and reset loss
 
 `room_states.initialized` is the restart-safety gate. On initialization, a
-missing row or flag zero causes existing room cards to be deleted and YAML
-seeds inserted; initialized rooms are left alone. Thus collected seeds stay
-collected and player drops survive restarts. Templates are skipped until
-materialized. Seed stack ids are deterministic; there is no separate seed
-ledger or `initial_key` column in the live card table.
+missing row or flag zero causes existing room cards to be deleted and the
+editable layout to be reseeded from the definition; initialized rooms are
+left alone. Thus player drops survive restarts. Templates are skipped until
+materialized.
 
 Changing YAML does not automatically replace initialized live cards/layouts.
-Clearing the initialization flag causes reseeding on initialization and also
-reseeds editable layout from the definition. Treat it as destructive state
+Clearing the initialization flag clears cards and reseeds the editable layout
+from the definition. Treat it as destructive state
 replacement, not a harmless content-refresh flag.
 
-`.reset_room` / `reset_room_cards()` replaces **all** live room stacks,
-including player drops, with YAML seeds and marks the room initialized. This
+`.reset_room` / `reset_room_cards()` clears **all** live room stacks,
+including player drops, and marks the room initialized. This
 card reset does not itself reset the editable layout. Preserve that loss
 boundary when exposing reset tools.
 

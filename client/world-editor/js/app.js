@@ -32,7 +32,6 @@ import { editorSettingsView } from "../../app/js/views/edit-room-view.js";
 import { createWorldRoomEditor, worldRoomEditor } from "./room-editor.js";
 import { editorKeyAction } from "../../app/js/editing/editor-keyboard.js";
 import { createCardSelector } from "./card-selector.js";
-import { reconcileRoomCards } from "./room-cards.js";
 import { createDialogs } from "../../app/js/dialogs.js";
 import { openTextPropDialog } from "../../app/js/editing/text-prop-dialog.js";
 
@@ -205,7 +204,7 @@ const boardView = createBoardView({
 
 function currentRoomId() {
   const selection = store.state.selection;
-  if (["prop", "card", "room", "exit"].includes(selection.kind)) return selection.id;
+  if (["prop", "room", "exit"].includes(selection.kind)) return selection.id;
   return Object.keys(store.state.draft?.rooms || {})[0] || null;
 }
 
@@ -398,7 +397,6 @@ function handleChange(target) {
   if (dataset.roomField !== undefined) return changeRoomField(dataset.roomField, target);
   if (dataset.roomEditorEnv !== undefined) return changeRoomEnvironment(dataset.roomEditorEnv, target.checked);
   if (dataset.envKey !== undefined) return changeRoomEnvironment(dataset.envKey, target.checked, dataset.envRoom);
-  if (dataset.cardField !== undefined) return changeCardField(dataset.cardField, target);
   if (dataset.exitField !== undefined) return changeExitField(dataset.exitField, target);
   if (dataset.instanceField !== undefined) return changeInstanceField(dataset.instanceField, target);
   if (dataset.peepField !== undefined) return changePeepField(dataset.peepField, target);
@@ -435,9 +433,15 @@ function changeRoomField(fieldName, target) {
   store.update(draft => {
     const room = draft.rooms?.[roomId];
     if (!room) return;
-    if (fieldName === "cards") room.cards = reconcileRoomCards(room.cards, parseCsv(target.value));
-    else if (fieldName === "palette") room.palette = parseCsv(target.value);
-    else if (fieldName === "dark" || fieldName === "template") room[fieldName] = target.checked;
+    if (fieldName === "palette") room.palette = parseCsv(target.value);
+    else if (fieldName === "dark" || fieldName === "template" || fieldName === "sprites_enabled") room[fieldName] = target.checked;
+    else if (fieldName === "sprite_scale") {
+      if (target.value === "") delete room.sprite_scale;
+      else {
+        const value = Number(target.value);
+        if (Number.isFinite(value)) room.sprite_scale = Math.min(3, Math.max(0.5, value));
+      }
+    }
     else room[fieldName] = target.value;
   });
 }
@@ -448,23 +452,6 @@ function changeRoomEnvironment(key, enabled, roomId = store.state.selection.id) 
     if (!room) return;
     if (!room.editor || typeof room.editor !== "object") room.editor = {};
     room.editor.environment = toggleArrayValue(room.editor.environment, key, enabled);
-  });
-}
-
-function changeCardField(spec, target) {
-  const [indexText, fieldName] = spec.split(":");
-  const index = Number(indexText);
-  const roomId = store.state.selection.id;
-  store.update(draft => {
-    const cards = draft.rooms?.[roomId]?.cards;
-    if (!Array.isArray(cards) || !cards[index]) return;
-    const card = cards[index];
-    if (fieldName === "card") card.card = target.value;
-    else if (fieldName === "quantity") card.quantity = Math.max(1, Number(target.value) || 1);
-    else if (fieldName.startsWith("pos.")) {
-      if (!Array.isArray(card.pos)) card.pos = [50, 50, 0];
-      setPath(card, fieldName, numberOr(target.value, 0));
-    }
   });
 }
 
@@ -618,8 +605,6 @@ function handleClick(target) {
   if (dataset.room !== undefined) return store.select({ kind: "room", id: dataset.room });
   if (dataset.roomAdd !== undefined) return addRoom();
   if (dataset.roomDelete !== undefined) return deleteRoom(dataset.roomDelete);
-  if (dataset.cardAdd !== undefined) return addCard();
-  if (dataset.cardDelete !== undefined) return deleteCard(Number(dataset.cardDelete));
   if (dataset.exitAdd !== undefined) return addExit();
   if (dataset.exitDelete !== undefined) return deleteExit(dataset.exitDelete);
   if (dataset.propAdd !== undefined) return addProp(dataset.propAdd);
@@ -682,25 +667,6 @@ function addRoom() {
 function deleteRoom(roomId) {
   store.update(draft => removeRoom(draft, roomId));
   store.select({ kind: "room", id: firstRoomId() });
-}
-
-function addCard() {
-  const roomId = store.state.selection.id;
-  store.update(draft => {
-    const room = draft.rooms?.[roomId];
-    if (!room) return;
-    if (!Array.isArray(room.cards)) room.cards = [];
-    room.cards.push({ card: store.state.catalog?.cards?.[0]?.id || "", quantity: 1, pos: [50, 50, 0] });
-  });
-}
-
-function deleteCard(index) {
-  const roomId = store.state.selection.id;
-  store.update(draft => {
-    const room = draft.rooms?.[roomId];
-    if (room && Array.isArray(room.cards)) room.cards.splice(index, 1);
-  });
-  store.select({ kind: "room", id: roomId });
 }
 
 function addExit() {
@@ -953,7 +919,7 @@ document.addEventListener("change", event => {
 });
 
 document.addEventListener("click", event => {
-  const target = event.target.closest("[data-action],[data-prop-pick],[data-prop-pick-cancel],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-card-add],[data-card-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-lower-tab],[data-graph-fit],[data-dialog-create],[data-confirm-publish],[data-cancel-publish]");
+  const target = event.target.closest("[data-action],[data-prop-pick],[data-prop-pick-cancel],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-lower-tab],[data-graph-fit],[data-dialog-create],[data-confirm-publish],[data-cancel-publish]");
   if (!target) return;
   if (target.dataset.room !== undefined && target.dataset.roomAdd === undefined && target.dataset.roomDelete === undefined) {
     store.select({ kind: "room", id: target.dataset.room });

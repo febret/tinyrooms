@@ -114,16 +114,6 @@ class ExitDefinition:
 
 
 @dataclass(frozen=True, slots=True)
-class InitialRoomCard:
-    """An initial room card stack definition."""
-
-    card_id: str
-    quantity: int
-    pos: tuple[float, float, float]
-    initial_key: str
-
-
-@dataclass(frozen=True, slots=True)
 class RoomDefinition:
     """An immutable room definition."""
 
@@ -138,7 +128,6 @@ class RoomDefinition:
     dark: bool
     props: dict[str, PropInstanceDefinition]
     exits: dict[str, ExitDefinition]
-    initial_cards: tuple[InitialRoomCard, ...]
     grid: tuple[int, int, int] | None = None
     editor_environment: tuple[str, ...] = ()
     template: bool = False
@@ -215,10 +204,6 @@ class PeepDefinition:
     actions: tuple[QuickAction, ...]
     dialog: DialogDefinition | None
     activity: str | None
-    # Optional authored [x, y] board-percent spot where the NPC sprite stands
-    # when first placed in its home room (sprite rooms only). Falls back to a
-    # random free spot when absent or blocked.
-    sprite_home: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -498,21 +483,6 @@ def _load_dialog(
 
 MIN_SPRITE_SCALE = 0.5
 MAX_SPRITE_SCALE = 3.0
-
-
-def _load_sprite_home(raw_value: Any, peep_id: str) -> tuple[float, float] | None:
-    if raw_value is None:
-        return None
-    if (
-        not isinstance(raw_value, (list, tuple))
-        or len(raw_value) != 2
-        or any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in raw_value)
-    ):
-        raise ContentError(f"Peep '{peep_id}' sprite_home must be a list of two numbers [x, y].")
-    x, y = float(raw_value[0]), float(raw_value[1])
-    if not (0.0 <= x <= 100.0 and 0.0 <= y <= 100.0):
-        raise ContentError(f"Peep '{peep_id}' sprite_home must stay within 0..100 board percent.")
-    return (x, y)
 
 
 def _load_sprite_scale(raw_value: Any, room_id: str) -> float:
@@ -939,25 +909,6 @@ def load_world_definition(
                 raise ContentError(
                     f"Room '{room_id}' prop '{instance.id}' exit_to references unknown exit '{instance.exit_to}'."
                 )
-        room_cards: list[InitialRoomCard] = []
-        for index, raw_card in enumerate(raw_room.get("cards", []) or []):
-            if not isinstance(raw_card, dict):
-                raise ContentError(f"Room '{room_id}' contains an invalid card entry.")
-            card_id = str(raw_card.get("card", "")).strip()
-            if card_id not in card_ids:
-                warn_unknown_card(f"Room '{room_id}'", card_id)
-                continue
-            quantity = int(raw_card.get("quantity", 1))
-            if quantity < 1:
-                raise ContentError(f"Room '{room_id}' has invalid quantity {quantity} for '{card_id}'.")
-            room_cards.append(
-                InitialRoomCard(
-                    card_id=card_id,
-                    quantity=quantity,
-                    pos=_load_vec3(raw_card.get("pos"), f"Room '{room_id}' card '{card_id}' pos"),
-                    initial_key=f"{room_id}:{index}:{card_id}",
-                )
-            )
         raw_activities = raw_room.get("activities", raw_room.get("activity"))
         activities = load_room_activities(
             raw_activities,
@@ -978,7 +929,6 @@ def load_world_definition(
             dark=bool(raw_room.get("dark", False)),
             props=room_props,
             exits=room_exits,
-            initial_cards=tuple(room_cards),
             grid=room_grid,
             editor_environment=load_editor_environment(raw_room.get("editor"), room_id),
             template=bool(raw_room.get("template", False)),
@@ -1027,7 +977,6 @@ def load_world_definition(
             actions=_load_actions(raw_peep.get("actions")),
             dialog=_load_dialog(raw_peep.get("dialog"), peep_id, card_ids, known_sounds=known_sounds),
             activity=str(raw_peep["activity"]).strip() if raw_peep.get("activity") else None,
-            sprite_home=_load_sprite_home(raw_peep.get("sprite_home"), peep_id),
         )
 
     world_activities = load_activity_definitions(
