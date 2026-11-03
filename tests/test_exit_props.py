@@ -10,6 +10,7 @@ from unittest.mock import Mock
 
 import yaml
 
+from mods.tinytown.content import load_house_templates
 from server.services.rooms import RoomService
 from tests.common import (
     REPO_ROOT,
@@ -174,6 +175,27 @@ class BakedExitTextureTests(unittest.TestCase):
                 self.assertLess(saturation, 12.0, f"{filename} must stay near grayscale so colors tint cleanly.")
 
 
+class TinytownHomeDoorTests(unittest.TestCase):
+    def test_every_default_home_design_has_a_builtin_exit_door(self) -> None:
+        world = load_test_world(REPO_ROOT / "worlds" / "tinytown")
+        blueprint = world.rooms["home-entry"]
+        door = blueprint.props["front-door"]
+        self.assertEqual(door.prop_id, "builtin:door")
+        self.assertEqual(door.exit_to, "front-door")
+        self.assertFalse(world.props["builtin:door"].decorative)
+        self.assertEqual(blueprint.exits["front-door"].target_room_id, "town")
+
+        templates = load_house_templates(
+            REPO_ROOT / "mods" / "tinytown" / "content" / "houses.yaml",
+            world,
+        )
+        self.assertTrue(templates)
+        for template in templates.values():
+            entry = template.room_for_key(template.entry_key)
+            self.assertIsNotNone(entry)
+            self.assertEqual(entry.blueprint, "home-entry")
+
+
 class RoomLayoutExitStyleTests(IntegrationTestCase):
     """In-game exit finish edits must persist and win over authored finishes."""
 
@@ -203,6 +225,40 @@ class RoomLayoutExitStyleTests(IntegrationTestCase):
         runtime = self.runtime()
         entries = runtime.world_state.read_room_layout(self.room_id)["props"] or []
         return {str(entry.get("id")): entry for entry in entries}
+
+    def test_authored_gameplay_props_are_not_removable(self) -> None:
+        runtime = self.runtime()
+        view = runtime.layout.view(self.account, self.room_id)
+        door = next(prop for prop in view["props"] if prop["id"] == "hub-door0")
+        self.assertFalse(door["removable"])
+        with self.assertRaisesRegex(ValueError, "cannot be removed"):
+            self._save([])
+
+    def test_live_layout_uses_the_authored_type_for_gameplay_props(self) -> None:
+        runtime = self.runtime()
+        layout = runtime.world_state.read_room_layout(self.room_id)
+        props = [dict(entry) for entry in (layout["props"] or [])]
+        props.append({
+            "id": "hub-door0",
+            "prop_id": "red-front-door",
+            "position": [10, 10, 0],
+            "rotation": [0, 0, 0],
+            "scale": 1,
+            "locked": False,
+        })
+        with runtime.hub.transaction() as connection:
+            runtime.world_state.write_room_layout(
+                connection,
+                self.room_id,
+                props,
+                {},
+                expected_revision=int(layout["revision"]),
+            )
+        door = next(
+            prop for prop in runtime.layout.effective_props(self.room_id)
+            if prop.id == "hub-door0"
+        )
+        self.assertEqual(door.prop_id, "builtin:door")
 
     def test_live_finish_wins_over_the_authored_finish(self) -> None:
         runtime = self.runtime()

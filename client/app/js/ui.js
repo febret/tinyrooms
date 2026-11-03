@@ -523,9 +523,9 @@ function renderLook(state) {
   const description = describeSelection(state);
   const preview = lookPreview(state, description);
   const look = $("#look-bar");
-  if (updateMarkup(look, `${preview.markup}<button type="button" class="look-name" data-focus-key="look-name" title="Read full description" aria-label="Read full description of ${escapeHtml(description.title)}">${escapeHtml(description.title)}</button>`)) {
-    look.querySelector(".look-name").onclick = () => dialogs.description(description.title, description.description, description.imageUrl || "");
-  }
+  updateMarkup(look, `${preview.markup}<button type="button" class="look-name" data-focus-key="look-name" title="Read full description" aria-label="Read full description of ${escapeHtml(description.title)}">${escapeHtml(description.title)}</button>`);
+  const lookName = look.querySelector(".look-name");
+  if (lookName) lookName.onclick = () => dialogs.description(description.title, description.description, description.imageUrl || "");
   const inspect = look.querySelector("[data-look-inspect]");
   if (inspect) inspect.onclick = () => {
     if (preview.action?.type === "describe-peep") {

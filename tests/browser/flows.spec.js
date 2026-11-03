@@ -117,6 +117,16 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await page.keyboard.press("Escape");
   await expect(roomDetails).toBeHidden();
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+  // Authored seed cards are gone, so drop an inventory card to exercise a
+  // room-scope card stack in the picker and inspector.
+  await openCore(page, "inventory");
+  const seedInventory = page.getByRole("dialog", { name: "Inventory", exact: true });
+  await seedInventory.locator('[data-inventory-tab="Emotes"]').click();
+  const seedStackId = await seedInventory.locator(".inventory-content .cards-grid .game-card").first().getAttribute("data-stack-id");
+  expect(seedStackId).toBeTruthy();
+  await page.keyboard.press("Escape");
+  await expect(seedInventory).toBeHidden();
+  await command(page, `.drop @card:${seedStackId} 1`);
   await pickerToggle.click();
   const roomCard = picker.locator('[data-stack-id][data-scope="room"]').first();
   const cardLabel = await roomCard.locator("..").locator(".room-picker-label").innerText();
@@ -192,7 +202,7 @@ test("phone opens apps, friends, messages, and the personal chiptune player", as
   await expect(phone).toBeVisible();
   await expect(page.locator(".interaction-dock")).toBeHidden();
   await expect(phone.locator(".phone-lid svg")).toBeVisible();
-  await expect(phone.locator("[data-phone-app]")).toHaveCount(3);
+  await expect(phone.locator("[data-phone-app]")).toHaveCount(4);
   const toolbar = await page.locator(".topbar").boundingBox();
   const device = await phone.locator(".phone-device").boundingBox();
   expect(device.y).toBeGreaterThanOrEqual(toolbar.y + toolbar.height);
@@ -213,14 +223,14 @@ test("phone opens apps, friends, messages, and the personal chiptune player", as
   await expect(phone.locator(".phone-lcd")).toHaveCSS("font-size", "13.5px");
 
   await phone.locator('[data-phone-home="1"]').first().click();
-  await expect(phone.locator("[data-phone-app]")).toHaveCount(3);
+  await expect(phone.locator("[data-phone-app]")).toHaveCount(4);
 
   await phone.locator('[data-phone-app="messages"]').click();
   await expect(phone.getByText("No texts yet", { exact: false })).toBeVisible();
   await keypad.locator('[data-phone-key="messages"]').click();
   await expect(phone.getByText("No texts yet", { exact: false })).toBeVisible();
   await phone.locator('[data-phone-home="1"]').first().click();
-  await expect(phone.locator("[data-phone-app]")).toHaveCount(3);
+  await expect(phone.locator("[data-phone-app]")).toHaveCount(4);
 
   await phone.locator('[data-phone-app="chiptune"]').click();
   await expect(phone.getByText("TOP TRACKS", { exact: true })).toBeVisible();
