@@ -1,0 +1,242 @@
+pools:
+  machines:
+    - text: "The main valve starts humming a tune nobody taught it."
+      favors: nouse
+      hinders: chaos
+    - text: "A previous worker has labelled every pipe with a different wrong name."
+      favors: care
+      hinders: grit
+    - text: "The machine only responds to polite conversation."
+      favors: charm
+      hinders: nouse
+    - text: "A warning light comes on, then apologises and goes off again."
+      favors: nouse
+      hinders: charm
+    - text: "There is a spare bolt left over, and nobody wants to ask where it came from."
+      favors: grit
+      hinders: care
+    - text: "The control panel is held together by tape, optimism, and one very determined paperclip."
+      favors: chaos
+      hinders: care
+  people:
+    - text: "The client's toddler has appointed themselves project manager."
+      favors: charm
+      hinders: nouse
+    - text: "A neighbour arrives to offer unsolicited advice and a tray of biscuits."
+      favors: care
+      hinders: grit
+    - text: "The client keeps saying 'make it pop' without explaining what 'it' is."
+      favors: charm
+      hinders: chaos
+    - text: "Someone has invited the local newspaper photographer."
+      favors: charm
+      hinders: nouse
+    - text: "The room is full of people who all know a better way to do your job."
+      favors: grit
+      hinders: care
+    - text: "A very small child asks the most important question of the day."
+      favors: care
+      hinders: chaos
+  mess:
+    - text: "Something unspeakable has escaped from a cupboard and is now wearing a hat."
+      favors: chaos
+      hinders: care
+    - text: "The floor is a swamp of glitter, gravy, and one suspicious sock."
+      favors: grit
+      hinders: care
+    - text: "Every surface is sticky in a different way."
+      favors: care
+      hinders: grit
+    - text: "A bucket tips over with the timing of a trained comedian."
+      favors: chaos
+      hinders: nouse
+    - text: "The mess has started to organise itself into small, judgemental piles."
+      favors: nouse
+      hinders: chaos
+    - text: "There is a clean path through the room, but it is narrow and morally questionable."
+      favors: care
+      hinders: grit
+  outdoors:
+    - text: "The weather changes its mind three times before you finish reading the forecast."
+      favors: grit
+      hinders: care
+    - text: "A gust of wind removes the instructions and replaces them with a leaf."
+      favors: chaos
+      hinders: nouse
+    - text: "The ground is softer than it looked from the doorway."
+      favors: grit
+      hinders: charm
+    - text: "A flock of very confident birds has taken over the workspace."
+      favors: charm
+      hinders: nouse
+    - text: "The sun comes out just in time to make everything twice as dramatic."
+      favors: charm
+      hinders: grit
+    - text: "There is a wasp. It has opinions about the schedule."
+      favors: chaos
+      hinders: care
+  paperwork:
+    - text: "The form requires a signature from someone who has been dead for eleven years."
+      favors: nouse
+      hinders: chaos
+    - text: "The printer jams in a way that feels personally directed."
+      favors: nouse
+      hinders: grit
+    - text: "Every page is stamped 'URGENT' in a different font."
+      favors: care
+      hinders: chaos
+    - text: "A filing cabinet has swallowed the only copy and is refusing to elaborate."
+      favors: grit
+      hinders: charm
+    - text: "The deadline was moved forward while you were reading this sentence."
+      favors: grit
+      hinders: care
+    - text: "Someone has written 'do not read this bit' next to the most important bit."
+      favors: chaos
+      hinders: nouse
+  creative:
+    - text: "The client wants it to feel 'like a warm memory, but with more lasers'."
+      favors: chaos
+      hinders: care
+    - text: "The canvas is already mostly covered in someone else's very confident sketch."
+      favors: chaos
+      hinders: nouse
+    - text: "A critic has arrived early and is taking notes with their eyebrows."
+      favors: charm
+      hinders: chaos
+    - text: "The colour scheme clashes with itself in a way that feels intentional."
+      favors: care
+      hinders: nouse
+    - text: "There is exactly enough material for one attempt and one dramatic gesture."
+      favors: grit
+      hinders: care
+    - text: "The inspiration arrives late, wearing a hat and asking for a drink."
+      favors: chaos
+      hinders: nouse
+  danger:
+    - text: "The safety briefing is delivered by someone who has clearly never been safe."
+      favors: care
+      hinders: chaos
+    - text: "A tiny alarm begins to beep with enormous confidence."
+      favors: nouse
+      hinders: grit
+    - text: "The emergency exit is behind a stack of boxes labelled 'not emergencies'."
+      favors: grit
+      hinders: care
+    - text: "Someone suggests solving this with a running jump."
+      favors: chaos
+      hinders: care
+    - text: "The floor creaks in a way that suggests it has been waiting for this."
+      favors: nouse
+      hinders: chaos
+    - text: "The only safe route is the one nobody wants to take."
+      favors: care
+      hinders: charm
+  food:
+    - text: "The secret ingredient has been left out, and it is not hiding well."
+      favors: nouse
+      hinders: chaos
+    - text: "A customer with a very serious expression asks for something 'surprising'."
+      favors: charm
+      hinders: care
+    - text: "The oven has developed a personality and wants to be thanked."
+      favors: care
+      hinders: grit
+    - text: "Someone has rearranged the spice rack by colour and ruined your muscle memory."
+      favors: nouse
+      hinders: chaos
+    - text: "There is one perfect ingredient left, and everyone has noticed."
+      favors: grit
+      hinders: care
+    - text: "A plate goes missing. Then a second plate. Then the table."
+      favors: chaos
+      hinders: nouse
+  stage:
+    - text: "The lighting rig has decided this is a noir monologue."
+      favors: charm
+      hinders: nouse
+    - text: "A heckler has arrived with a folding chair and a prepared list."
+      favors: chaos
+      hinders: care
+    - text: "The cue is two minutes early and the audience is already here."
+      favors: grit
+      hinders: care
+    - text: "The microphone is picking up a very private conversation in the wings."
+      favors: charm
+      hinders: chaos
+    - text: "Someone forgot to plug in the most important prop."
+      favors: nouse
+      hinders: grit
+    - text: "The crowd is small, silent, and waiting for one good reason to clap."
+      favors: charm
+      hinders: chaos
+  animals:
+    - text: "The largest animal has decided the small animal is its emotional support animal."
+      favors: care
+      hinders: grit
+    - text: "A latch is open. Nothing has noticed yet."
+      favors: nouse
+      hinders: chaos
+    - text: "An animal has stolen the clipboard and is now the boss."
+      favors: chaos
+      hinders: care
+    - text: "The animals are calm. That is somehow worse."
+      favors: nouse
+      hinders: charm
+    - text: "A very polite animal waits by the door like it has an appointment."
+      favors: charm
+      hinders: chaos
+    - text: "The feeding schedule is written in a language only the animals understand."
+      favors: care
+      hinders: nouse
+  office:
+    - text: "The printer has chosen today to become sentient and withdraw its labour."
+      favors: nouse
+      hinders: chaos
+    - text: "A meeting invite appears with no agenda and a very confident title."
+      favors: charm
+      hinders: grit
+    - text: "Someone has taken your chair. It was a good chair."
+      favors: grit
+      hinders: care
+    - text: "The spreadsheet has more tabs than the building has windows."
+      favors: care
+      hinders: chaos
+    - text: "A colleague says 'quick question' and pulls up another chair."
+      favors: charm
+      hinders: nouse
+    - text: "The coffee machine makes a sound that means either success or evacuation."
+      favors: chaos
+      hinders: care
+  night:
+    - text: "A streetlight overhead is doing an unconvincing impression of daylight."
+      favors: chaos
+      hinders: care
+    - text: "The only witness is a moth with a strong sense of drama."
+      favors: nouse
+      hinders: charm
+    - text: "Someone on the other side of the wall starts a very slow round of applause."
+      favors: grit
+      hinders: care
+    - text: "The shadows are longer than the room should allow."
+      favors: chaos
+      hinders: nouse
+    - text: "It is too quiet to be reassuring and too loud to be quiet."
+      favors: care
+      hinders: grit
+    - text: "The clock says 3:07. The clock is not a reliable narrator."
+      favors: nouse
+      hinders: care
+details:
+  - "Somewhere, a single domino falls over."
+  - "The room smells faintly of ambition and old citrus."
+  - "A distant phone rings exactly once."
+  - "A tiny audience has gathered behind the nearest window."
+  - "The floor makes a small, judgemental sound."
+  - "A pigeon watches from a ledge with the confidence of middle management."
+  - "The light changes, as though the building is listening."
+  - "Nothing happens for three seconds, which is somehow worse."
+  - "A sticky note detaches from the wall and lands in the shape of a warning."
+  - "The air tastes like a decision."
+  - "A very small bell rings for reasons nobody investigates."
+  - "The clock ticks in a slightly different rhythm than expected."

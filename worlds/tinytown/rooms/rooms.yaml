@@ -15,7 +15,29 @@ town:
   - 0
   - 0
   - 0
-  props: {}
+  props:
+    jobs-office:
+      prop: tinytown-job-office
+      pos:
+      - 23.44
+      - 73.88
+      - 2.06
+      rot:
+      - 0
+      - -4.6
+      - 0
+      scale: 1
+    hacker-tower:
+      prop: tinytown-hacker-tower
+      pos:
+      - 33.0
+      - 62.0
+      - 2.76
+      rot:
+      - 0
+      - -8
+      - 0
+      scale: 1
   exits: {}
 home-entry:
   label: Entry Hall
@@ -516,10 +538,9 @@ home-studio:
   exits: {}
 home-garden:
   label: Garden
-  description: A walled garden with warm stones, unruly flowers, and room to stand
-    still.
+  description: ''
   board_type: basic
-  board_image: floor-sandstone.png
+  board_image: floor-moss.png
   board_image_style: stretch
   palette:
   - '#a7bd80'
@@ -537,8 +558,8 @@ home-garden:
     garden-tree:
       prop: cherry-blossom-tree
       pos:
-      - 72
-      - 27
+      - 10
+      - 50
       - 0
       scale: 0.5
     garden-bush:
@@ -551,57 +572,40 @@ home-garden:
     garden-flowers:
       prop: lavender-row
       pos:
-      - 36
-      - 62
+      - 15
+      - 90
       - 0
       scale: 0.9
     garden-flowers-two:
       prop: daisy-cluster
       pos:
-      - 68
-      - 67
-      - 0
+      - 50
+      - 15
+      - 4.373562276363373
       scale: 0.9
     garden-stones:
       prop: stepping-stones
       pos:
-      - 50
-      - 50
+      - 60
+      - 25
       - 0
       scale: 0.9
-    garden-chair:
-      prop: patchwork-rocking-chair
-      pos:
-      - 84
-      - 65
+      rot:
       - 0
-      scale: 0.85
-    garden-table:
-      prop: terrazzo-tripod-table
-      pos:
-      - 75
-      - 68
+      - 36.39999999999975
       - 0
-      scale: 0.65
     garden-rock:
       prop: mossy-rock
       pos:
-      - 90
-      - 24
+      - 75
+      - 20
       - 0
       scale: 0.55
     garden-lantern:
       prop: brass-oil-lantern
       pos:
-      - 18
-      - 62
-      - 0
-      scale: 0.8
-    garden-bench:
-      prop: mustard-armchair
-      pos:
-      - 12
-      - 80
+      - 5
+      - 70
       - 0
       scale: 0.8
   exits: {}

@@ -55,12 +55,21 @@ processes; external lifecycle actions use cooperative world endpoints.
   registered (or a legacy profile has zero/multiple world matches) does entry
   return explicit same-world alternatives. The player must confirm one through
   `POST /api/entry/repair`; entry never falls back automatically to the default,
-  another world, or a different instance. A saved instance serving a different
-  world is still rejected. Retired-instance records may rank a designated
+  another world, or a different instance. A saved instance that is healthy but now
+  serves a different world is reported as `entry_instance_world_mismatch` with the
+  same-world candidates. Retired-instance records may rank a designated
   successor first, but confirmation remains explicit.
-- Repairs preserve `last_world_id` and `remembered_room`; only the exact saved
-  instance changes. If no running instance of the saved world exists, entry keeps
-  the operator-restore message rather than offering another world.
+- If no same-world instance is running, the mismatch response also carries
+  `current_world` (the saved instance's actual world and entry room). The player
+  may confirm `POST /api/entry/repair` with `switch_world: true` and that exact
+  instance id; it is refused unless the saved instance is mismatched and no
+  same-world candidate exists. The switch updates `last_world_id`, resets
+  `remembered_room` to that world's entry room, and is audited as
+  `player.destination.world_switch`.
+- Same-world repairs preserve `last_world_id` and `remembered_room`; only the exact saved
+  instance changes. If no running instance of the saved world exists and the
+  saved instance is not a mismatch, entry keeps the operator-restore message
+  rather than offering another world.
 - A destination must be registered/running, advertise a valid same-origin HTTPS
   `client_url` without credentials/query/fragment (normally
   `https://<hostname>/world/<instance-id>/`), and answer `/health` with matching
@@ -345,9 +354,11 @@ viewer's friends' stickers to the activity.
 [entry.py](../server/mission_control/entry.py) owns `/api/entry/` session,
 login, create, logout, resolve, and repair. Login/create require Origin and rate
 limits; logout/repair require Origin and matching session/header/cookie CSRF
-tokens. A missing or ambiguous saved destination returns `409` with
-`saved_instance_id`, `world_id`, `can_repair`, and same-world `candidates`;
-repair revalidates the chosen instance before updating only `last_instance_id`.
+tokens. A missing, ambiguous, or world-mismatched saved destination returns `409` with
+`saved_instance_id`, `world_id`, `can_repair`, same-world `candidates`, and, for a
+mismatch with no candidates, `current_world`;
+repair revalidates the chosen instance before updating only `last_instance_id`
+(or, with `switch_world`, the saved world and room as described in §2.1).
 Player sessions are separate from operator sessions. Destination rules are in §2.1.
 
 ## 8. Data model and storage

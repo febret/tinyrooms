@@ -55,3 +55,38 @@ tinytown-pool:
   - pool
   - water
   - garden
+tinytown-job-office:
+  label: Office of Odd Jobs
+  description: Looking for a job? Clock in here to start your shift.
+  model: office-building.glb
+  decorative: true
+  default_actions:
+  - - Clock in at the Job Office
+    - .play jobs
+    - true
+  scale: 0.625
+  sprite_footprint:
+  - 12
+  - 12
+  tags:
+  - civic
+  - office
+  - jobs
+tinytown-hacker-tower:
+  label: Hacker Collective
+  description: A humming relay tower with five locked doors. Jack in here to
+    hack a megacorp and practise the maths inside it.
+  model: hacker-tower.glb
+  decorative: true
+  default_actions:
+  - - Jack into the Hacker Collective
+    - .play hacker
+    - true
+  scale: 0.625
+  sprite_footprint:
+  - 10
+  - 10
+  tags:
+  - civic
+  - hacker
+  - arcade

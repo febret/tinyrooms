@@ -1,0 +1,454 @@
+delivery-driver:
+  title: Same-Day Daredevil
+  profession: Delivery Driver
+  tier: 2
+  accent: "#e08a3c"
+  blurb: One van, forty parcels, and an address that exists only on Tuesdays.
+  setting: a storybook miniature diorama of a delivery depot at dawn, with stacked cardboard parcels, a battered orange van, and a wall map covered in pins
+  endings:
+    disaster: The van ends up on the roof of the library. The parcels are fine. The library is not.
+    scraped: Most parcels arrive, one is delivered to a very confused duck pond, and the scanner insists it was always like that.
+    okay: Every parcel reaches a doorstep by sunset, and only two signatures are forged in crayon.
+    great: You beat the same-day deadline by an hour and the depot pins a paper medal to your van.
+    legendary: The town throws a small parade for the van. The van, for once, does not stall.
+  steps:
+    - title: The Address That Isn't
+      setup: The van is loaded, the scanner is warm, and the first address points at a blank brick wall between a bakery and a shuttered cinema.
+      scene: a miniature storybook diorama of a narrow high street with a parked delivery van, stacked parcels, and a blank brick wall between two shopfronts
+      pool: outdoors
+      game: hold-meter
+      sprite: round brass doorbell button
+      choices:
+        - label: Cross-check the address against the old property map
+          approach: nouse
+          success: The map shows a door bricked over in 1987, and a buzzer that still works.
+          failure: The map shows three different walls and a strong opinion about none of them.
+        - label: Ask the bakery owner where the door went
+          approach: charm
+          success: She points at the wall and says the whole building turns around on Sundays.
+          failure: She points at you and says the last driver also asked that, before the incident.
+        - label: Knock on the bricks and announce the parcel loudly
+          approach: chaos
+          success: A hidden hatch opens and a hand takes the parcel without comment.
+          failure: The bricks knock back, which is not a service the depot covers.
+    - title: The Street That Moves
+      setup: The scanner still has thirty-nine parcels on it, and the satnav has rerouted you through a street that was not there this morning.
+      scene: a miniature storybook diorama of a van at a crossroads where a cobbled lane has appeared between two shopfronts, beneath a leaning signpost
+      pool: machines
+      game: drop-catch
+      sprite: brown cardboard parcel tied with string
+      choices:
+        - label: Recalculate the route by hand
+          approach: nouse
+          success: You plot a loop that skips the new street and still beats the clock.
+          failure: You plot a loop that returns you to the same crossroads from the other side.
+        - label: Follow the new street and see where it goes
+          approach: grit
+          success: The street delivers you directly to three addresses in a row.
+          failure: The street delivers you to a cul-de-sac with a very smug cat.
+        - label: Ask the satnav politely to explain itself
+          approach: chaos
+          success: The satnav apologises and offers a shortcut through the park.
+          failure: The satnav begins reciting a poem about roundabouts.
+    - title: Fragile, Allegedly
+      setup: Whatever is in the back of the van has started ticking, and the label says FRAGILE in three languages and one pictogram of a screaming stick figure.
+      scene: a miniature storybook diorama of an open van packed with parcels, one small crate ticking beside a fragile label and a coiled strap
+      pool: danger
+      game: sweep-stop
+      sprite: ticking alarm clock with twin bells
+      choices:
+        - label: Isolate the crate and read the manifest
+          approach: care
+          success: The manifest says it is a clock. The ticking is just a clock. You sit down for a moment.
+          failure: The manifest says it is a clock, and the crate says otherwise.
+        - label: Drive smoothly and talk to the crate
+          approach: charm
+          success: The ticking slows to a comfortable rhythm and the crate seems to trust you.
+          failure: The ticking speeds up whenever you mention the word deadline.
+        - label: Open it a crack to check
+          approach: chaos
+          success: It is a novelty clock shaped like a bomb, and it is exactly on time.
+          failure: It is a novelty clock shaped like a bomb, and it is now eleven minutes fast.
+    - title: The Last Signature
+      setup: The final parcel is addressed to the clock tower roof, and the same-day deadline has nine minutes left on it.
+      scene: a miniature storybook diorama of a town clock tower at dusk with a delivery van below, a fire escape, and a small parcel on the roof edge
+      pool: people
+      game: ring-match
+      sprite: fountain pen with a gold nib
+      choices:
+        - label: Take the service stairs two at a time
+          approach: grit
+          success: You reach the roof with forty seconds left and get a signature in the rain.
+          failure: You reach the roof with no parcel, having left it on the second landing.
+        - label: Radio the depot for a deadline extension
+          approach: charm
+          success: The depot grants four minutes and a round of applause over the radio.
+          failure: The depot grants a lecture about the true meaning of same-day.
+        - label: Attach the parcel to the clock hand and let it deliver itself
+          approach: chaos
+          success: The clock hand sweeps the parcel onto the roof and the signature is practically automatic.
+          failure: The parcel rides the clock hand for one full hour, witnessed by the entire square.
+
+mover:
+  title: Mover of Questionable Furniture
+  profession: Mover
+  tier: 1
+  accent: "#8b6f4e"
+  blurb: A grand piano, a narrow staircase, and a client who believes in the power of positive thinking.
+  setting: a storybook miniature diorama of an apartment stairwell with a grand piano wedged between two walls, cardboard boxes, and a dangling light bulb
+  endings:
+    disaster: The piano stays in the stairwell. The neighbours start charging admission.
+    scraped: The piano arrives, sideways, with three new scratches and a new name.
+    okay: Everything fits in the new flat, and the piano only complains twice.
+    great: The move finishes early and the client plays one perfect note in the empty living room.
+    legendary: You move the piano, the sofa, and the aquarium without a single chip, and the street applauds.
+  steps:
+    - title: The Piano and the Doorway
+      setup: The van is double-parked, the piano is on the pavement, and the doorway was clearly built by someone who hated pianos.
+      scene: a miniature storybook diorama of a narrow townhouse doorway with a grand piano on the pavement, a hand truck, and a crooked brass number
+      pool: machines
+      game: drop-catch
+      sprite: black grand piano
+      choices:
+        - label: Measure the doorway and the piano first
+          approach: nouse
+          success: You find eleven centimetres of hope and a removable doorframe.
+          failure: You find that the piano is wider than the doorway in every possible direction.
+        - label: Ask the client if the piano can be taken apart
+          approach: charm
+          success: The client admits the legs come off and produces the original bolts.
+          failure: The client calls the piano a family member and the family member stays whole.
+        - label: Tip it on its side and commit
+          approach: grit
+          success: The piano slides through with a sound like a held breath.
+          failure: The piano slides through and the doorway stays attached to it.
+    - title: The Staircase of Whispers
+      setup: The piano is inside, the stairs are ahead, and every third step makes a noise like a secret being told.
+      scene: a miniature storybook diorama of a curved staircase with a piano balanced on a dolly, worn treads, and a banister wrapped in moving blankets
+      pool: danger
+      game: hold-meter
+      sprite: coiled orange lifting strap
+      choices:
+        - label: Test each step before trusting it
+          approach: care
+          success: You find the rotten tread and bridge it with a plank.
+          failure: You find the rotten tread by standing on it.
+        - label: Take the load on your shoulders and go
+          approach: grit
+          success: You carry the weight past the bad step and set it down on the landing.
+          failure: You carry the weight past the bad step and the banister makes a rude noise.
+        - label: Slide it up the banister like a sled
+          approach: chaos
+          success: The piano arrives on the landing faster than physics allows.
+          failure: The piano arrives on the landing, and so does the banister.
+    - title: The Collection
+      setup: The flat is nearly full, and the client's partner has arrived with a van of their own and a very different definition of essential.
+      scene: a miniature storybook diorama of a flat packed with stacked boxes, a piano in the corner, and an aquarium balanced on a chair
+      pool: animals
+      game: pop-whack
+      sprite: round goldfish bowl
+      choices:
+        - label: Prioritise what fits and label the rest
+          approach: care
+          success: The essentials fit and the rest is neatly labelled for storage.
+          failure: The essentials fit, and the aquarium is now technically a lamp.
+        - label: Negotiate a truce between the two clients
+          approach: charm
+          success: They agree to lose the second sofa and keep the fish.
+          failure: They agree to keep everything and blame you for the stairs.
+        - label: Stack it all and hope for the best
+          approach: chaos
+          success: The tower holds, and the fish get a better view than anyone.
+          failure: The tower holds until the front door closes.
+    - title: The Landlord's Inspection
+      setup: The last box is somewhere in the flat, the stack has been negotiated down to a pile, and the landlord is knocking with a clipboard and a suspiciously good mood.
+      scene: a miniature storybook diorama of a flat doorway with a neat stack of boxes, a piano against the wall, and a clipboard on a side table
+      pool: people
+      game: rhythm-lane
+      sprite: taped cardboard moving box
+      choices:
+        - label: Walk the landlord through the layout
+          approach: nouse
+          success: The landlord signs off and admires the clever use of the alcove.
+          failure: The landlord finds the box labelled definitely not fragile and gives it a shake.
+        - label: Distract with the piano's best feature
+          approach: charm
+          success: One chord and the landlord forgets the deposit entirely.
+          failure: One chord and the landlord remembers a noise complaint from 1998.
+        - label: Move the last box behind the landlord's back
+          approach: chaos
+          success: The box disappears into a cupboard that should not fit it, and nobody sees a thing.
+          failure: The box disappears into the landlord's arms.
+
+firefighter:
+  title: Calendar Firefighter
+  profession: Firefighter
+  tier: 3
+  accent: "#b8402f"
+  blurb: The station calendar has one photo left to take, and the town keeps catching fire in creative places.
+  setting: a storybook miniature diorama of a fire station with a gleaming red engine, coiled hoses, and a wall calendar full of heroic poses
+  endings:
+    disaster: The calendar ships with an empty month and the town burns a very small, very symbolic effigy.
+    scraped: The fires are out, the photos are blurry, and the calendar is renamed a commemorative abstract.
+    okay: The town survives, the calendar ships, and only February looks confused.
+    great: You save the bakery, the cat, and the shot, and the calendar sells out.
+    legendary: Every fire is out, every photo is heroic, and the mayor declares you the town's official calendar.
+  steps:
+    - title: The Toaster of Destiny
+      setup: The first call of the shift is smoke on Alder Street, and the smoke is coming from a toaster that has achieved something.
+      scene: a miniature storybook diorama of a tiny kitchen with a toaster glowing on the counter, smoke curling under the cabinets, and an extinguisher by the door
+      pool: machines
+      game: sweep-stop
+      sprite: chrome pop-up toaster
+      choices:
+        - label: Cut the power and cool the toaster
+          approach: care
+          success: The toaster surrenders with a click and a small puff of apology.
+          failure: The toaster surrenders, then reignites out of pure spite.
+        - label: Evacuate the building before anything else
+          approach: nouse
+          success: Everyone is out in ninety seconds and the cat is accounted for.
+          failure: Everyone is out, and the cat has invited a friend.
+        - label: Smother it with the nearest tea towel
+          approach: chaos
+          success: The tea towel wins and the kitchen smells like a very brave breakfast.
+          failure: The tea towel becomes part of the problem and a small parade of sparks.
+    - title: The Dry Hydrant
+      setup: The next call is a chip-shop fryer with opinions, and the nearest hydrant has been painted to look like a garden gnome and disconnected.
+      scene: a miniature storybook diorama of a street corner with a gnome-painted hydrant, a chip shop trailing smoke, and a parked delivery van
+      pool: outdoors
+      game: drop-catch
+      sprite: paper cone of golden chips
+      choices:
+        - label: Find the next hydrant on the map
+          approach: nouse
+          success: The next hydrant works and the hose reaches with two metres to spare.
+          failure: The next hydrant is three streets away and the hose is very honest about it.
+        - label: Ask the van driver to move, nicely
+          approach: charm
+          success: The driver moves in seconds and offers the crew free chips.
+          failure: The driver moves, then blocks the other hydrant to be helpful.
+        - label: Draft the gnome hydrant back into service
+          approach: chaos
+          success: The gnome hydrant coughs once and delivers a heroic jet of water.
+          failure: The gnome hydrant delivers a heroic jet of air and a small hat.
+    - title: The Wax Museum
+      setup: The fryer is dealt with, the shift is calm, and then the wax museum alarm goes off for the third time this month, which usually means the mayor is melting.
+      scene: a miniature storybook diorama of a wax museum hall with melting wax sculptures on plinths, red velvet ropes, and a tilted chandelier
+      pool: danger
+      game: hold-meter
+      sprite: dripping wax candle
+      choices:
+        - label: Cool the figures from a safe distance
+          approach: care
+          success: The wax mayor keeps his face and most of his dignity.
+          failure: The wax mayor keeps his face and loses a shoulder to the cause.
+        - label: Rescue the figures in order of importance
+          approach: charm
+          success: You save the founder, the mayor, and the town dog, in that order, and the crowd approves.
+          failure: You save the founder and the dog, and the mayor's head rolls into the gift shop.
+        - label: Open every window and let the draft do the work
+          approach: chaos
+          success: The draft clears the smoke and the figures stay upright out of sheer confusion.
+          failure: The draft clears the smoke and rearranges the hall into a modern art exhibit.
+    - title: The Last Ladder
+      setup: The alarm is finally quiet, the crew is posing for the calendar, and the town mascot has climbed the clock tower to escape the photographer.
+      scene: a miniature storybook diorama of a clock tower at night with an extended ladder, a spotlight, and a small mascot costume on a ledge
+      pool: night
+      game: pop-whack
+      sprite: red firefighter helmet
+      choices:
+        - label: Extend the ladder and secure it properly
+          approach: care
+          success: The ladder holds, the mascot climbs down, and the photo is genuinely good.
+          failure: The ladder holds, and the mascot refuses to climb down until the photo is retaken.
+        - label: Talk the mascot down with the megaphone
+          approach: charm
+          success: The mascot descends to applause and the calendar gets its cover.
+          failure: The mascot descends, then climbs back up for a better angle.
+        - label: Climb up and carry the mascot down
+          approach: grit
+          success: You reach the ledge, the crowd gasps, and the shot is perfect.
+          failure: You reach the ledge, and the mascot insists on carrying you.
+
+security-guard:
+  title: Mall Security Legend
+  profession: Security Guard
+  tier: 1
+  accent: "#3f6f8f"
+  blurb: The mall is closed, the cameras are rolling, and something in the mannequin department has moved.
+  setting: a storybook miniature diorama of a shopping mall at night with shuttered shops, a dry fountain, and a row of mannequins under security lights
+  endings:
+    disaster: The mall opens with the fountain full of gnomes. Corporate calls it an immersive experience.
+    scraped: Nothing is stolen, three things are misplaced, and the incident report is mostly drawings.
+    okay: The mall opens on time and the mannequins are back where they usually stand.
+    great: You solve the night's mystery and the day shift treats you like a legend.
+    legendary: The mall names a pretzel after you. The mannequins attend the ceremony.
+  steps:
+    - title: The Mannequin Who Moved
+      setup: The mall is closed, the cameras are on, and mannequin seven is facing the wrong way, which is not how mannequins work.
+      scene: a miniature storybook diorama of a dark mall corridor with a row of covered display plinths, one turned to face a shuttered shop, and a security camera
+      pool: night
+      game: ring-match
+      sprite: black security camera
+      choices:
+        - label: Check the camera footage from the last hour
+          approach: nouse
+          success: The footage shows a cleaner, a trolley, and a very determined draught.
+          failure: The footage shows six minutes of a ceiling tile thinking about it.
+        - label: Walk the route the mannequin would have taken
+          approach: care
+          success: You find scuff marks leading to the service door and a trail of packing peanuts.
+          failure: You find scuff marks leading in a circle back to your own chair.
+        - label: Ask the mannequin directly
+          approach: chaos
+          success: You feel ridiculous, then notice the reflection in the glass behind it.
+          failure: You feel ridiculous, and the mannequin keeps its counsel.
+    - title: The Fountain Incident
+      setup: A wet, enthusiastic noise pulls you away from the mannequin mystery, and the atrium fountain has been filled with something that is not water and is putting up a fight.
+      scene: a miniature storybook diorama of a mall atrium at night with a fountain full of soap bubbles, overturned chairs, and a distant pretzel stand
+      pool: mess
+      game: sweep-stop
+      sprite: a yellow bar of soap covered in bubbles
+      choices:
+        - label: Shut off the pumps before it spreads
+          approach: nouse
+          success: The bubbles stop rising and settle into a manageable foam.
+          failure: The pumps stop, but the foam has already made friends with the escalator.
+        - label: Follow the bubble trail to its source
+          approach: care
+          success: The trail leads to the janitor's closet and a tipped drum of floor polish.
+          failure: The trail leads to the fountain and then to your shoes.
+        - label: Ride the bubbles out with a mop
+          approach: chaos
+          success: You surf the foam to the shut-off valve and the cameras catch all of it.
+          failure: You surf the foam directly into the pretzel stand.
+    - title: The Escalator Uprising
+      setup: The atrium is still slightly foamy, the escalator has started running backwards, and it is carrying a trolley full of garden gnomes.
+      scene: a miniature storybook diorama of an escalator bank at night with gnomes riding backwards, a sparking control panel, and a caution sign
+      pool: machines
+      game: drop-catch
+      sprite: red pointy gnome hat
+      choices:
+        - label: Hit the emergency stop and secure the trolley
+          approach: care
+          success: The escalator stops and the gnomes settle into a dignified pile.
+          failure: The escalator stops and the trolley does not, quite.
+        - label: Reverse the escalator before it reaches the top
+          approach: nouse
+          success: The gnomes ride gently back down and nobody is harmed.
+          failure: The gnomes ride gently back down and then straight back up again.
+        - label: Catch the gnomes one by one
+          approach: grit
+          success: You catch every gnome and stack them in a pyramid the cameras will never forget.
+          failure: You catch six gnomes and the seventh catches you.
+    - title: The Grand Reopening
+      setup: The gnomes are somewhere behind you, the fountain is drained, and the mall opens in ten minutes, except the mascot scheduled to cut the ribbon is missing.
+      scene: a miniature storybook diorama of a mall entrance with a ribbon across the doors, a small stage, and an empty mascot costume folded on a chair
+      pool: stage
+      game: hold-meter
+      sprite: pair of gold ribbon-cutting scissors
+      choices:
+        - label: Search the staff areas systematically
+          approach: nouse
+          success: You find the mascot asleep in the stockroom and wake them with dignity.
+          failure: You find the costume, the mascot, and a very cosy nest of packing blankets.
+        - label: Stall the crowd with a speech
+          approach: charm
+          success: The crowd is charmed and the mascot arrives just as you run out of words.
+          failure: The crowd is charmed and now expects a speech every Saturday.
+        - label: Wear the mascot costume yourself
+          approach: chaos
+          success: You cut the ribbon, wave at the children, and nobody suspects a thing.
+          failure: You cut the ribbon, trip over your own tail, and the children suspect everything.
+
+tow-truck:
+  title: Tow Truck Therapist
+  profession: Tow Truck Driver
+  tier: 2
+  accent: "#6d7f5a"
+  blurb: The car is not broken down. The car is having a moment, and the owner is not helping.
+  setting: a storybook miniature diorama of a roadside with a yellow tow truck, a small hatchback with its bonnet open, and a scattering of traffic cones
+  endings:
+    disaster: The car is towed, the owner is towed, and the impound lot files a complaint about both.
+    scraped: The car starts eventually and follows you home out of loyalty.
+    okay: The car reaches the lot under its own power and only honks twice.
+    great: The car purrs into the lot and the owner tips you for the conversation.
+    legendary: The car leaves the lot restored, the owner leaves lighter, and the town talks about it for weeks.
+  steps:
+    - title: The Car That Won't Start
+      setup: A hatchback is parked in a no-parking zone with its hazards on and its bonnet open, refusing to acknowledge the concept of ignition.
+      scene: a miniature storybook diorama of a roadside at dusk with a small hatchback, an open bonnet, traffic cones, and a tow truck waiting
+      pool: machines
+      game: rhythm-lane
+      sprite: amber flashing beacon light
+      choices:
+        - label: Listen to the engine before touching it
+          approach: nouse
+          success: You hear a loose connection and a fuel pump that is doing its best.
+          failure: You hear the owner's radio and a bird in the wheel arch.
+        - label: Ask the owner what happened
+          approach: charm
+          success: The owner admits the car only starts when nobody is watching.
+          failure: The owner begins a story that starts in 2009 and has no ending.
+        - label: Give the dashboard a firm tap
+          approach: chaos
+          success: The engine turns over and the dashboard lights up like a small apology.
+          failure: The engine turns over, then the wipers turn on, then the horn.
+    - title: The Owner's Confession
+      setup: The engine has opinions, the owner has a story, and the traffic behind you has started forming a committee.
+      scene: a miniature storybook diorama of a lay-by with a hatchback, a tow truck, and a queue of patient cars stretching around the corner
+      pool: people
+      game: ring-match
+      sprite: steel tow hook on a chain
+      choices:
+        - label: Keep the traffic moving while you listen
+          approach: care
+          success: The queue thins and the owner relaxes enough to mention the wedding.
+          failure: The queue thins, and the owner follows you down the road to finish the story.
+        - label: Offer the owner a lift and a listening ear
+          approach: charm
+          success: They accept the lift and the car is loaded without a fuss.
+          failure: They accept the lift and the car insists on coming too.
+        - label: Hook it up while the story continues
+          approach: chaos
+          success: The car is loaded and the owner barely pauses for breath.
+          failure: The car is loaded and the owner's story follows it onto the truck.
+    - title: The Narrow Alley
+      setup: The lot is across town, but the shortcut is blocked by a parade, a food cart, and one extremely confident goose.
+      scene: a miniature storybook diorama of an alley with bunting, a parked food cart, a goose, and a tow truck barely fitting between the walls
+      pool: outdoors
+      game: sweep-stop
+      sprite: triangular party bunting flag
+      choices:
+        - label: Reverse out and take the long way
+          approach: nouse
+          success: The long way is empty and you arrive before the parade turns.
+          failure: The long way is longer than the map promised and the parade catches up.
+        - label: Ask the parade marshal for a gap
+          approach: charm
+          success: The marshal waves you through between the brass band and the flower float.
+          failure: The marshal waves you through, and the brass band follows.
+        - label: Barely squeeze past the goose
+          approach: grit
+          success: The truck clears the alley with a whisker and the goose salutes.
+          failure: The truck clears the alley, and the goose is now a passenger.
+    - title: The Impound Lot
+      setup: The gate is closing, the paperwork is missing a stamp, and the car has decided it would rather go home with you.
+      scene: a miniature storybook diorama of an impound lot at night with chain-link fencing, stacked cars, and a lit booth holding a stamped form
+      pool: paperwork
+      game: drop-catch
+      sprite: rubber stamp with wooden handle
+      choices:
+        - label: Find the missing stamp in the office
+          approach: nouse
+          success: The stamp is in the drawer marked stamps and the car is checked in cleanly.
+          failure: The stamp is in the drawer marked stamps, under six other stamps, all dried out.
+        - label: Talk the clerk into accepting a promise
+          approach: charm
+          success: The clerk accepts the promise, the car, and a coffee.
+          failure: The clerk accepts the promise and asks for it in writing, twice.
+        - label: Slip the car in before the gate closes
+          approach: grit
+          success: The car rolls into its spot with a second to spare and a small, triumphant beep.
+          failure: The car rolls into its spot and refuses to give back the keys.

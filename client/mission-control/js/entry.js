@@ -10,6 +10,7 @@ const passphrase = document.getElementById("passphrase");
 const repairPanel = document.getElementById("destination-repair");
 const repairMessage = document.getElementById("repair-message");
 const repairSelect = document.getElementById("repair-instance");
+const repairField = document.getElementById("repair-field");
 const repairSubmit = document.getElementById("repair-submit");
 let creating = false;
 let csrf = "";
@@ -64,11 +65,14 @@ function signedIn(session) {
 function hideRepair() {
   repairPanel.hidden = true;
   repairPanel.dataset.worldId = "";
+  repairPanel.dataset.switchInstanceId = "";
+  repairField.hidden = false;
   repairSelect.replaceChildren();
 }
 
 function showRepair(data) {
   const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+  const switchTarget = candidates.length ? null : data.current_world || null;
   repairSelect.replaceChildren(...candidates.map(candidate => {
     const suffix = candidate.replacement ? " (replacement)" : "";
     return new Option(`${candidate.label || candidate.instance_id}${suffix}`, candidate.instance_id);
@@ -76,9 +80,15 @@ function showRepair(data) {
   const replacement = candidates.find(candidate => candidate.replacement);
   if (replacement) repairSelect.value = replacement.instance_id;
   const world = data.world_id || "your saved world";
-  repairMessage.textContent = candidates.length === 1
-    ? `Your saved instance is unavailable. Continue in ${candidates[0].label || candidates[0].instance_id}?`
-    : `Your saved instance is unavailable. Choose a running instance of ${world} to continue.`;
+  repairField.hidden = Boolean(switchTarget);
+  repairPanel.dataset.switchInstanceId = switchTarget ? switchTarget.instance_id : "";
+  if (switchTarget) {
+    repairMessage.textContent = `${world} is not running right now. Continue in ${switchTarget.world_id} instead? You will start in its entry room.`;
+  } else {
+    repairMessage.textContent = candidates.length === 1
+      ? `Your saved instance is unavailable. Continue in ${candidates[0].label || candidates[0].instance_id}?`
+      : `Your saved instance is unavailable. Choose a running instance of ${world} to continue.`;
+  }
   repairPanel.dataset.worldId = data.world_id || "";
   repairPanel.hidden = false;
   status.textContent = "Your saved destination needs attention.";
@@ -98,6 +108,7 @@ async function connect() {
       "entry_instance_not_running",
       "entry_instance_not_registered",
       "entry_instance_unreachable",
+      "entry_instance_world_mismatch",
     ]).has(failure.code);
     if (recoverable && failure.data?.can_repair) {
       showRepair(failure.data);
@@ -169,6 +180,14 @@ form.addEventListener("submit", event => {
 });
 
 repairSubmit.addEventListener("click", () => run(async () => {
+  const switchInstanceId = repairPanel.dataset.switchInstanceId;
+  if (switchInstanceId) {
+    status.textContent = "Saving your destination…";
+    await api("repair", { instance_id: switchInstanceId, switch_world: true });
+    hideRepair();
+    await connect();
+    return;
+  }
   const instanceId = repairSelect.value;
   if (!instanceId) throw new Error("Choose a world instance to continue.");
   status.textContent = "Saving your destination…";

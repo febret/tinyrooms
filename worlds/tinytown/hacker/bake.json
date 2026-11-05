@@ -1,0 +1,224 @@
+{
+  "tasks": [
+    {
+      "label": "hacker-nibble-logo",
+      "tool": "image",
+      "prompt": "NIBBLE INDUSTRIES, a padlock emblem made of circuit traces and a keyhole, monochrome phosphor vector line art, glowing CRT terminal aesthetic, 1980s retro computing, thin geometric strokes, dark background, subtle bloom, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/nibble-logo.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1853744344,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-nibble-bg",
+      "tool": "image",
+      "prompt": "abstract circuit board texture with faint phosphor traces, tiny nodes, and a dark grid, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/nibble-bg.png",
+      "args": {
+        "width": 1024,
+        "height": 576,
+        "seed": 2854905226,
+        "steps": 26,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-nibble-arena",
+      "tool": "image",
+      "prompt": "NIBBLE INDUSTRIES hacking arena, overhead terminal table, faint circuit rings, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/nibble-arena.png",
+      "args": {
+        "width": 768,
+        "height": 432,
+        "seed": 126318425,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-amberlogic-logo",
+      "tool": "image",
+      "prompt": "AMBERLOGIC LTD, a cogwheel emblem with a keyhole centre and cable traces, monochrome phosphor vector line art, glowing CRT terminal aesthetic, 1980s retro computing, thin geometric strokes, dark background, subtle bloom, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/amberlogic-logo.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 4008153162,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-amberlogic-bg",
+      "tool": "image",
+      "prompt": "abstract circuit board texture with faint phosphor traces, tiny nodes, and a dark grid, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/amberlogic-bg.png",
+      "args": {
+        "width": 1024,
+        "height": 576,
+        "seed": 2150861923,
+        "steps": 26,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-amberlogic-arena",
+      "tool": "image",
+      "prompt": "AMBERLOGIC LTD hacking arena, overhead terminal table, faint circuit rings, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/amberlogic-arena.png",
+      "args": {
+        "width": 768,
+        "height": 432,
+        "seed": 4167428091,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-cyandyne-logo",
+      "tool": "image",
+      "prompt": "CYANDYNE SYSTEMS, a stylised surveillance eye emblem inside a data ring, monochrome phosphor vector line art, glowing CRT terminal aesthetic, 1980s retro computing, thin geometric strokes, dark background, subtle bloom, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/cyandyne-logo.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 2809601893,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-cyandyne-bg",
+      "tool": "image",
+      "prompt": "abstract circuit board texture with faint phosphor traces, tiny nodes, and a dark grid, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/cyandyne-bg.png",
+      "args": {
+        "width": 1024,
+        "height": 576,
+        "seed": 2836460292,
+        "steps": 26,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-cyandyne-arena",
+      "tool": "image",
+      "prompt": "CYANDYNE SYSTEMS hacking arena, overhead terminal table, faint circuit rings, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/cyandyne-arena.png",
+      "args": {
+        "width": 768,
+        "height": 432,
+        "seed": 523737008,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-magnetron-logo",
+      "tool": "image",
+      "prompt": "MAGENTRON GROUP, a lightning bolt emblem inside a hexagonal circuit badge, monochrome phosphor vector line art, glowing CRT terminal aesthetic, 1980s retro computing, thin geometric strokes, dark background, subtle bloom, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/magnetron-logo.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 3670560818,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-magnetron-bg",
+      "tool": "image",
+      "prompt": "abstract circuit board texture with faint phosphor traces, tiny nodes, and a dark grid, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/magnetron-bg.png",
+      "args": {
+        "width": 1024,
+        "height": 576,
+        "seed": 3227722352,
+        "steps": 26,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-magnetron-arena",
+      "tool": "image",
+      "prompt": "MAGENTRON GROUP hacking arena, overhead terminal table, faint circuit rings, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/magnetron-arena.png",
+      "args": {
+        "width": 768,
+        "height": 432,
+        "seed": 2558178502,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-teraforge-logo",
+      "tool": "image",
+      "prompt": "TERAFORGE CORP, a stepped server tower emblem with an antenna and orbit ring, monochrome phosphor vector line art, glowing CRT terminal aesthetic, 1980s retro computing, thin geometric strokes, dark background, subtle bloom, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/teraforge-logo.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 276652608,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-teraforge-bg",
+      "tool": "image",
+      "prompt": "abstract circuit board texture with faint phosphor traces, tiny nodes, and a dark grid, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/teraforge-bg.png",
+      "args": {
+        "width": 1024,
+        "height": 576,
+        "seed": 3158060891,
+        "steps": 26,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-teraforge-arena",
+      "tool": "image",
+      "prompt": "TERAFORGE CORP hacking arena, overhead terminal table, faint circuit rings, subtle dark terminal backdrop, faint circuitry and grid, low contrast, deep vignette, empty centre, monochrome phosphor glow, 1980s retro computer graphics, no text, no letters, no numbers.",
+      "output": "mods/tinytown/activities/hacker/art/teraforge-arena.png",
+      "args": {
+        "width": 768,
+        "height": 432,
+        "seed": 3638283763,
+        "steps": 24,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "hacker-tower-preview",
+      "tool": "image",
+      "prompt": "cozy storybook miniature retro relay tower diorama, tiny neon server building with a satellite dish, cable bundles, and glowing antenna, isolated game asset, no text, no letters, no numbers, no people",
+      "output": "worlds/tinytown/rooms/preview-hacker-tower.png",
+      "args": {
+        "width": 1024,
+        "height": 576,
+        "seed": 224295426,
+        "steps": 26,
+        "negative": "people, person, human, hands, fingers, face, faces, text, letters, words, numbers, writing, signage, logo wordmark, watermark, clutter, blurry, low quality, photo"
+      }
+    },
+    {
+      "label": "tinytown-hacker-tower",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature retro computer tower diorama, tiny neon server building with a satellite dish and cable bundles, isolated game asset, no text",
+      "output": "worlds/tinytown/props/hacker-tower.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-hacker-tower.png",
+        "seed": 97810,
+        "faces": 6000
+      },
+      "simplify": false
+    }
+  ]
+}

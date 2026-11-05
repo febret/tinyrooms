@@ -39,6 +39,8 @@ import {
 const GROUP_LIFT = 0.045;
 const LAMP_GLOW = "#ffd58a";
 
+const HOUSE_FOOTPRINT_COLOR = "#c9b896";
+const HOUSE_REVEAL_RING_COLOR = "#ffe2a0";
 const HOUSE_FOOTPRINT_Y = 0.055;
 const HOUSE_REVEAL_MS = 980;
 
@@ -54,14 +56,6 @@ function createHouseLayer(parent, materials, houseData) {
   const pickables = [];
   let disposed = false;
   let lastRevealShadowAt = 0;
-
-  function houseColor(info, index) {
-    const palette = Array.isArray(info.palette) ? info.palette : [];
-    const raw = palette[index % Math.max(1, palette.length)] || info.district_accent || "#87977c";
-    const color = new THREE.Color(raw);
-    if (color.r + color.g + color.b < 0.9) color.offsetHSL(0, 0.02, 0.17);
-    return color;
-  }
 
   function setTextured(record, textured) {
     if (record.mode === (textured ? "full" : "footprint")) return;
@@ -200,7 +194,7 @@ function createHouseLayer(parent, materials, houseData) {
     group.add(visual);
 
     const footprint = new THREE.MeshStandardMaterial({
-      color: houseColor(info, index),
+      color: HOUSE_FOOTPRINT_COLOR,
       roughness: 1,
       metalness: 0,
       flatShading: true,
@@ -219,7 +213,7 @@ function createHouseLayer(parent, materials, houseData) {
     group.add(star);
 
     const ringMaterial = new THREE.MeshBasicMaterial({
-      color: info.district_accent || "#ffe2a0",
+      color: HOUSE_REVEAL_RING_COLOR,
       transparent: true,
       opacity: 0,
       depthWrite: false,

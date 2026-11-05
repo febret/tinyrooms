@@ -64,6 +64,14 @@
     notify: "task-notify.wav",
     open: "door-open-old.wav",
     close: "door-close.wav",
+    jobPass: "job-step-pass.wav",
+    jobFail: "job-step-fail.wav",
+    jobWin: "job-shift-complete.wav",
+    jobLose: "job-shift-bad.wav",
+    jobClock: "job-clock-in.wav",
+    jobPay: "job-payday.wav",
+    jobPage: "job-page.wav",
+    jobStamp: "job-stamp.wav",
   };
   const soundBuffers = new Map();
   const soundPending = new Map();

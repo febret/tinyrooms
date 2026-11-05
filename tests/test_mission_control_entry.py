@@ -299,6 +299,121 @@ class EntryRecoveryTests(McHttpTestCase):
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()["code"], "entry_instance_world_mismatch")
 
+    def mock_fleet_health(self, *records: object) -> None:
+        runtime = self.app.state.mc
+        original = runtime.http
+        by_port = {int(record.endpoint.rsplit(":", 1)[1]): record for record in records}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            record = by_port.get(request.url.port)
+            if record is None:
+                return httpx.Response(503)
+            return httpx.Response(
+                200,
+                json={"ok": True, "world_id": record.world_id, "instance_id": record.instance_id},
+            )
+
+        runtime.http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        self.addCleanup(lambda: __import__("asyncio").run(runtime.http.aclose()))
+        self.addCleanup(lambda: __import__("asyncio").run(original.aclose()))
+
+    def test_resolve_world_mismatch_offers_same_world_candidates(self) -> None:
+        saved = self.add_running_instance("mc-saved", world_id="other-world", port=10001)
+        live = self.add_running_instance("mc-live", port=10002)
+        self.mock_fleet_health(saved, live)
+        self.sign_in(saved.instance_id)
+
+        response = self.client.get("/api/entry/resolve")
+
+        self.assertEqual(response.status_code, 409)
+        data = response.json()
+        self.assertEqual(data["code"], "entry_instance_world_mismatch")
+        self.assertTrue(data["can_repair"])
+        self.assertEqual([candidate["instance_id"] for candidate in data["candidates"]], [live.instance_id])
+        self.assertNotIn("current_world", data)
+
+    def test_resolve_world_mismatch_without_candidates_offers_current_world(self) -> None:
+        saved = self.add_running_instance("mc-saved", world_id="other-world", port=10001)
+        self.mock_health(saved)
+        self.sign_in(saved.instance_id)
+
+        response = self.client.get("/api/entry/resolve")
+
+        self.assertEqual(response.status_code, 409)
+        data = response.json()
+        self.assertEqual(data["code"], "entry_instance_world_mismatch")
+        self.assertTrue(data["can_repair"])
+        self.assertEqual(data["candidates"], [])
+        self.assertEqual(data["current_world"]["instance_id"], saved.instance_id)
+        self.assertEqual(data["current_world"]["world_id"], "other-world")
+
+    def test_repair_rebinds_from_world_mismatch_to_same_world_instance(self) -> None:
+        saved = self.add_running_instance("mc-saved", world_id="other-world", port=10001)
+        live = self.add_running_instance("mc-live", port=10002)
+        self.mock_fleet_health(saved, live)
+        account, issued = self.sign_in(saved.instance_id)
+
+        response = self.client.post(
+            "/api/entry/repair",
+            headers={"origin": self.origin, "x-csrf-token": issued.csrf_token},
+            json={"instance_id": live.instance_id, "world_id": "tutorial"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        profile = self.app.state.mc.profiles.get_user_profile(account.id)
+        self.assertEqual(profile.last_instance_id, live.instance_id)
+        self.assertEqual(profile.last_world_id, "tutorial")
+
+    def test_switch_world_moves_player_to_saved_instance_world(self) -> None:
+        saved = self.add_running_instance("mc-saved", world_id="other-world", port=10001)
+        self.mock_health(saved)
+        account, issued = self.sign_in(saved.instance_id)
+
+        response = self.client.post(
+            "/api/entry/repair",
+            headers={"origin": self.origin, "x-csrf-token": issued.csrf_token},
+            json={"instance_id": saved.instance_id, "switch_world": True},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["world_id"], "other-world")
+        profile = self.app.state.mc.profiles.get_user_profile(account.id)
+        self.assertEqual(profile.last_world_id, "other-world")
+        self.assertEqual(profile.remembered_room, "hub")
+        self.assertEqual(profile.last_instance_id, saved.instance_id)
+        self.assertEqual(self.client.get("/api/entry/resolve").status_code, 200)
+
+    def test_switch_world_rejected_when_same_world_candidate_exists(self) -> None:
+        saved = self.add_running_instance("mc-saved", world_id="other-world", port=10001)
+        live = self.add_running_instance("mc-live", port=10002)
+        self.mock_fleet_health(saved, live)
+        account, issued = self.sign_in(saved.instance_id)
+
+        response = self.client.post(
+            "/api/entry/repair",
+            headers={"origin": self.origin, "x-csrf-token": issued.csrf_token},
+            json={"instance_id": saved.instance_id, "switch_world": True},
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["code"], "entry_world_switch_unavailable")
+        self.assertEqual(self.app.state.mc.profiles.get_user_profile(account.id).last_world_id, "tutorial")
+
+    def test_switch_world_rejected_when_saved_instance_is_not_mismatched(self) -> None:
+        other = self.add_running_instance("mc-other", world_id="other-world", port=10002)
+        self.mock_health(other)
+        account, issued = self.sign_in("mc-missing")
+
+        response = self.client.post(
+            "/api/entry/repair",
+            headers={"origin": self.origin, "x-csrf-token": issued.csrf_token},
+            json={"instance_id": other.instance_id, "switch_world": True},
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["code"], "entry_world_switch_unavailable")
+        self.assertEqual(self.app.state.mc.profiles.get_user_profile(account.id).last_world_id, "tutorial")
+
     def test_retired_instance_successor_is_ranked_first(self) -> None:
         retired = self.add_running_instance("mc-retired", port=10001)
         replacement = self.add_running_instance("mc-replacement", port=10002)

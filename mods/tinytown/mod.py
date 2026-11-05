@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from mods.tinytown.catalog import DISTRICTS_BY_ID
+from mods.tinytown.hacker_activity import tinytown_hack_command
+from mods.tinytown.job_activity import tinytown_jobs_command
 from mods.tinytown.service import ENTRY_ROOM_ID, TinytownService
 from server.commands.activity_launch import ResolvedActivity, start_activity
 from server.commands.core import require_room_id
@@ -571,6 +573,32 @@ def register(api: object) -> None:
             "Open the TinyTown house browser. Buy a private multi-room home, visit other "
             "residents, customize household peeps, browse the room-based Art Gallery, and hang art. "
             "Household peeps have Energy, Health, and Cleanliness and live autonomously."
+        ),
+        toast=False,
+        log=False,
+    )
+    api.register_command(
+        "jobs",
+        "Open the TinyTown Job Office or manage a shift.",
+        tinytown_jobs_command,
+        usage=".jobs [board|start <job_id> [@peep:<id> ...]|challenge [@peep:<id>]|resolve <id> <score> <ms>|resume|quit]",
+        help=(
+            "Choose one of three shifts (the board refreshes every day-night cycle), invite up to three roommates, and play a "
+            "four-scene job story by picking a roommate to lead each reflex challenge. "
+            "Shifts cost 50 Energy and pay Bops and vibes."
+        ),
+        toast=False,
+        log=False,
+    )
+    api.register_command(
+        "hack",
+        "Open the Hacker Collective or hack a megacorp tower.",
+        tinytown_hack_command,
+        usage=".hack [board|start <corp> [floor] [@peep:<id>]|enter <node>|leave|answer <screen> <ms> <key=value,...>|challenge|resolve <node> <id> <score> <ms>|resume|quit]",
+        help=(
+            "Hack one of five megacorps, each teaching a grade's maths. Pick a floor, "
+            "solve its maths screens, and play a reflex challenge on every node of a "
+            "ten-node network map. You have thirty realtime minutes to reach the core."
         ),
         toast=False,
         log=False,

@@ -306,9 +306,14 @@ test("admins open and close the core Multiverse view", async ({ page, runtime })
   await expect(page.locator("#multiverse-layer")).toHaveAttribute("data-state", "open");
   await expect(page.getByRole("dialog", { name: "The Multiverse" })).toBeVisible();
   await expect(page.locator("[data-multiverse-status]")).not.toBeEmpty();
-  await page.keyboard.press("Escape");
+  await expect(page.locator("[data-multiverse-travel]")).toHaveCount(0);
+  await page.locator(".mv-orbit").click({ position: { x: 4, y: 4 } });
   await expect(page.locator("#multiverse-layer")).toBeHidden();
   await expect(page.locator("#multiverse-toggle")).toBeVisible();
+  await page.locator("#multiverse-toggle").click();
+  await expect(page.locator("#multiverse-layer")).toHaveAttribute("data-state", "open");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#multiverse-layer")).toBeHidden();
 });
 
 test.describe("cutscenes under reduced motion", () => {

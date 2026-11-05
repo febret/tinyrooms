@@ -231,6 +231,17 @@ def create_mc_app(config: MCConfig) -> FastAPI:
             )
         raise HTTPException(status_code=404, detail="Vendor file not found.")
 
+    @app.get("/app/js/base-path.js")
+    async def base_path_module() -> Response:
+        candidate = config.client_path / "app" / "js" / "base-path.js"
+        if not candidate.is_file():
+            raise HTTPException(status_code=404, detail="Base path module not found.")
+        return FileResponse(
+            candidate,
+            media_type="text/javascript",
+            headers={"Cache-Control": "no-cache"},
+        )
+
     @app.get("/")
     async def root() -> Response:
         return render_html(config.ui_path / "entry.html", config.base_path)

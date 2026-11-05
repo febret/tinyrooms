@@ -1,0 +1,2604 @@
+{
+  "tasks": [
+    {
+      "label": "sprite-plumber-step-1",
+      "tool": "image",
+      "prompt": "copper pipe elbow joint, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/plumber-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 33563977,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-plumber-step-2",
+      "tool": "image",
+      "prompt": "brass valve wheel handle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/plumber-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 270643554,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-plumber-step-3",
+      "tool": "image",
+      "prompt": "red and white life ring buoy, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/plumber-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 85716788,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-plumber-step-4",
+      "tool": "image",
+      "prompt": "steaming paper coffee cup, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/plumber-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 685651018,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-electrician-step-1",
+      "tool": "image",
+      "prompt": "small glass cartridge fuse with metal caps, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/electrician-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 493021718,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-electrician-step-2",
+      "tool": "image",
+      "prompt": "coiled orange extension cable, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/electrician-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1938033942,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-electrician-step-3",
+      "tool": "image",
+      "prompt": "yellow lightning bolt, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/electrician-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1847110583,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-electrician-step-4",
+      "tool": "image",
+      "prompt": "glowing round light bulb, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/electrician-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 938853365,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-mechanic-step-1",
+      "tool": "image",
+      "prompt": "chrome spark plug, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/mechanic-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 171976386,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-mechanic-step-2",
+      "tool": "image",
+      "prompt": "steel gear cog, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/mechanic-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 159119992,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-mechanic-step-3",
+      "tool": "image",
+      "prompt": "orange traffic cone, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/mechanic-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1320887947,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-mechanic-step-4",
+      "tool": "image",
+      "prompt": "gold car key with a red ribbon bow, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/mechanic-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1605399881,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-locksmith-step-1",
+      "tool": "image",
+      "prompt": "wax-sealed letter envelope, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/locksmith-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 706855868,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-locksmith-step-2",
+      "tool": "image",
+      "prompt": "brass padlock, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/locksmith-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 724601029,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-locksmith-step-3",
+      "tool": "image",
+      "prompt": "antique brass cabinet handle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/locksmith-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1737137421,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-locksmith-step-4",
+      "tool": "image",
+      "prompt": "shiny silver key with jagged teeth, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/locksmith-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1898700536,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-blacksmith-step-1",
+      "tool": "image",
+      "prompt": "iron horseshoe, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/blacksmith-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1088893327,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-blacksmith-step-2",
+      "tool": "image",
+      "prompt": "lump of black coal, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/blacksmith-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1186972718,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-blacksmith-step-3",
+      "tool": "image",
+      "prompt": "blacksmith hammer with wooden handle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/blacksmith-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 36888539,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-blacksmith-step-4",
+      "tool": "image",
+      "prompt": "bent iron nail, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/blacksmith-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 464435997,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-delivery-driver-step-1",
+      "tool": "image",
+      "prompt": "round brass doorbell button, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/delivery-driver-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 791378465,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-delivery-driver-step-2",
+      "tool": "image",
+      "prompt": "brown cardboard parcel tied with string, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/delivery-driver-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1158108864,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-delivery-driver-step-3",
+      "tool": "image",
+      "prompt": "ticking alarm clock with twin bells, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/delivery-driver-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1342958327,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-delivery-driver-step-4",
+      "tool": "image",
+      "prompt": "fountain pen with a gold nib, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/delivery-driver-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1476374003,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-mover-step-1",
+      "tool": "image",
+      "prompt": "black grand piano, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/mover-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 39163986,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-mover-step-2",
+      "tool": "image",
+      "prompt": "coiled orange lifting strap, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/mover-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1956931423,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-mover-step-3",
+      "tool": "image",
+      "prompt": "round goldfish bowl, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/mover-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 540431197,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-mover-step-4",
+      "tool": "image",
+      "prompt": "taped cardboard moving box, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/mover-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1043222276,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-firefighter-step-1",
+      "tool": "image",
+      "prompt": "chrome pop-up toaster, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/firefighter-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 228705169,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-firefighter-step-2",
+      "tool": "image",
+      "prompt": "paper cone of golden chips, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/firefighter-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1942775282,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-firefighter-step-3",
+      "tool": "image",
+      "prompt": "dripping wax candle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/firefighter-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 264440673,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-firefighter-step-4",
+      "tool": "image",
+      "prompt": "red firefighter helmet, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/firefighter-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 390926722,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-security-guard-step-1",
+      "tool": "image",
+      "prompt": "black security camera, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/security-guard-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1447371203,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-security-guard-step-2",
+      "tool": "image",
+      "prompt": "a yellow bar of soap covered in bubbles, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/security-guard-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1888923635,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-security-guard-step-3",
+      "tool": "image",
+      "prompt": "red pointy gnome hat, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/security-guard-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1474198503,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-security-guard-step-4",
+      "tool": "image",
+      "prompt": "pair of gold ribbon-cutting scissors, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/security-guard-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 334098691,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-tow-truck-step-1",
+      "tool": "image",
+      "prompt": "amber flashing beacon light, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/tow-truck-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 977353944,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-tow-truck-step-2",
+      "tool": "image",
+      "prompt": "steel tow hook on a chain, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/tow-truck-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1553782418,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-tow-truck-step-3",
+      "tool": "image",
+      "prompt": "triangular party bunting flag, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/tow-truck-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 967821622,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-tow-truck-step-4",
+      "tool": "image",
+      "prompt": "rubber stamp with wooden handle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/tow-truck-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1126399838,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-teacher-step-1",
+      "tool": "image",
+      "prompt": "a gold star sticker, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/teacher-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 985831479,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-teacher-step-2",
+      "tool": "image",
+      "prompt": "a sunflower seed, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/teacher-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1187828206,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-teacher-step-3",
+      "tool": "image",
+      "prompt": "a red school handbell, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/teacher-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1333248297,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-teacher-step-4",
+      "tool": "image",
+      "prompt": "a shiny red apple, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/teacher-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1580591485,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-nurse-step-1",
+      "tool": "image",
+      "prompt": "a little lighthouse figurine, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/nurse-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 251928950,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-nurse-step-2",
+      "tool": "image",
+      "prompt": "a chocolate bar half unwrapped from silver foil, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/nurse-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 229338810,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-nurse-step-3",
+      "tool": "image",
+      "prompt": "a glowing yellow torch, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/nurse-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 549402027,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-nurse-step-4",
+      "tool": "image",
+      "prompt": "a steaming coffee mug, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/nurse-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1347108090,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-dentist-step-1",
+      "tool": "image",
+      "prompt": "a shiny white molar tooth, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/dentist-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 171523264,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-dentist-step-2",
+      "tool": "image",
+      "prompt": "a glass jar of teeth, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/dentist-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 105176240,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-dentist-step-3",
+      "tool": "image",
+      "prompt": "a leather-bound ledger book, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/dentist-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 375602622,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-dentist-step-4",
+      "tool": "image",
+      "prompt": "a blue toothbrush with white and blue bristles, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/dentist-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1794627714,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-veterinarian-step-1",
+      "tool": "image",
+      "prompt": "a gold wedding ring, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/veterinarian-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1786767002,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-veterinarian-step-2",
+      "tool": "image",
+      "prompt": "a yellow squeaky rubber duck, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/veterinarian-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1553541324,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-veterinarian-step-3",
+      "tool": "image",
+      "prompt": "a chewy dog bone, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/veterinarian-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1210199912,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-veterinarian-step-4",
+      "tool": "image",
+      "prompt": "a curly stethoscope, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/veterinarian-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 575355399,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-pet-groomer-step-1",
+      "tool": "image",
+      "prompt": "a pink pet brush, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/pet-groomer-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1414904762,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-pet-groomer-step-2",
+      "tool": "image",
+      "prompt": "a polka-dot hair bow, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/pet-groomer-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 124302734,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-pet-groomer-step-3",
+      "tool": "image",
+      "prompt": "a fluffy blow dryer, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/pet-groomer-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1295478831,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-pet-groomer-step-4",
+      "tool": "image",
+      "prompt": "a blue show rosette ribbon, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/pet-groomer-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1831673633,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-dog-walker-step-1",
+      "tool": "image",
+      "prompt": "a coiled red dog leash, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/dog-walker-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 240104907,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-dog-walker-step-2",
+      "tool": "image",
+      "prompt": "a three-link string of plump pink sausages, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/dog-walker-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 286578189,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-dog-walker-step-3",
+      "tool": "image",
+      "prompt": "a steel dog water bowl, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/dog-walker-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1819978580,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-dog-walker-step-4",
+      "tool": "image",
+      "prompt": "a fuzzy tennis ball, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/dog-walker-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 830917832,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-personal-trainer-step-1",
+      "tool": "image",
+      "prompt": "a small chunky dumbbell, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/personal-trainer-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1596669243,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-personal-trainer-step-2",
+      "tool": "image",
+      "prompt": "a roll of white athletic tape, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/personal-trainer-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1291736050,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-personal-trainer-step-3",
+      "tool": "image",
+      "prompt": "a blue water bottle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/personal-trainer-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1103578187,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-personal-trainer-step-4",
+      "tool": "image",
+      "prompt": "a black cast iron kettlebell with a handle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/personal-trainer-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1506352064,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-life-coach-step-1",
+      "tool": "image",
+      "prompt": "a rolled certificate with a ribbon, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/life-coach-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 190916862,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-life-coach-step-2",
+      "tool": "image",
+      "prompt": "a purple glue stick, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/life-coach-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1189901222,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-life-coach-step-3",
+      "tool": "image",
+      "prompt": "a paper cone of hot chips, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/life-coach-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1883625161,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-life-coach-step-4",
+      "tool": "image",
+      "prompt": "a black graduation cap, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/life-coach-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 591802559,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-bartender-step-1",
+      "tool": "image",
+      "prompt": "a melting ice cube, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/bartender-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1578676295,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-bartender-step-2",
+      "tool": "image",
+      "prompt": "a tall glass of water, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/bartender-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1608881611,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-bartender-step-3",
+      "tool": "image",
+      "prompt": "a cocktail glass with a cherry, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/bartender-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 479970153,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-bartender-step-4",
+      "tool": "image",
+      "prompt": "a frothy beer mug, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/bartender-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 311064882,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-barista-step-1",
+      "tool": "image",
+      "prompt": "a paper takeaway coffee cup, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/barista-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1073148259,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-barista-step-2",
+      "tool": "image",
+      "prompt": "a roasted coffee bean, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/barista-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1548797512,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-barista-step-3",
+      "tool": "image",
+      "prompt": "a tiny cup on a saucer, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/barista-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1074336984,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-barista-step-4",
+      "tool": "image",
+      "prompt": "a steel milk pitcher, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/barista-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 929408270,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-wedding-singer-step-1",
+      "tool": "image",
+      "prompt": "a vintage silver microphone, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/wedding-singer-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1492304545,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-wedding-singer-step-2",
+      "tool": "image",
+      "prompt": "a tall glass of lemonade with a straw, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/wedding-singer-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 778166648,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-wedding-singer-step-3",
+      "tool": "image",
+      "prompt": "a lit white candle in a brass holder, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/wedding-singer-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1254645793,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-wedding-singer-step-4",
+      "tool": "image",
+      "prompt": "a sparkling mirror ball, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/wedding-singer-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1590240330,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-actor-step-1",
+      "tool": "image",
+      "prompt": "a rolled script tied with a ribbon, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/actor-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 926671786,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-actor-step-2",
+      "tool": "image",
+      "prompt": "a golden ceremonial staff with a red jewel, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/actor-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1829788819,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-actor-step-3",
+      "tool": "image",
+      "prompt": "a ripe red tomato, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/actor-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 896745043,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-actor-step-4",
+      "tool": "image",
+      "prompt": "a red rose tied with a ribbon, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/actor-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1721225328,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-comedian-step-1",
+      "tool": "image",
+      "prompt": "a golden star, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/comedian-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1442198951,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-comedian-step-2",
+      "tool": "image",
+      "prompt": "a snare drum with crossed sticks, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/comedian-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1820108903,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-comedian-step-3",
+      "tool": "image",
+      "prompt": "a black microphone on a stand, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/comedian-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 658553198,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-comedian-step-4",
+      "tool": "image",
+      "prompt": "a banana peel, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/comedian-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 630714954,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-magician-step-1",
+      "tool": "image",
+      "prompt": "a black top hat, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/magician-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 153882410,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-magician-step-2",
+      "tool": "image",
+      "prompt": "a star-tipped magic wand, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/magician-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 62236158,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-magician-step-3",
+      "tool": "image",
+      "prompt": "a white origami dove, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/magician-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 240304835,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-magician-step-4",
+      "tool": "image",
+      "prompt": "a set of three linked silver rings, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/magician-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1174634059,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-clown-step-1",
+      "tool": "image",
+      "prompt": "a yellow honking bike horn with a red rubber bulb, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/clown-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1927800093,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-clown-step-2",
+      "tool": "image",
+      "prompt": "a twisted balloon dog, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/clown-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1297048515,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-clown-step-3",
+      "tool": "image",
+      "prompt": "a slice of birthday cake with a candle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/clown-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 187921258,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-clown-step-4",
+      "tool": "image",
+      "prompt": "a tiny painted clown car, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/clown-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 146395075,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-director-step-1",
+      "tool": "image",
+      "prompt": "a vintage film camera on a tripod, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/director-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1364754008,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-director-step-2",
+      "tool": "image",
+      "prompt": "a canvas director's chair, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/director-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1511434953,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-director-step-3",
+      "tool": "image",
+      "prompt": "a pair of over-ear headphones, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/director-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1854087669,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-director-step-4",
+      "tool": "image",
+      "prompt": "a clapperboard, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/director-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1291132181,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-influencer-step-1",
+      "tool": "image",
+      "prompt": "a plain knitted bobble hat, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/influencer-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1521492339,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-influencer-step-2",
+      "tool": "image",
+      "prompt": "a pink heart notification bubble, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/influencer-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1375539579,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-influencer-step-3",
+      "tool": "image",
+      "prompt": "a lit scented candle in a glass jar, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/influencer-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 723743737,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-influencer-step-4",
+      "tool": "image",
+      "prompt": "a steaming cup of tea, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/influencer-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 873233494,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-radio-host-step-1",
+      "tool": "image",
+      "prompt": "a black vinyl record, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/radio-host-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 431684487,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-radio-host-step-2",
+      "tool": "image",
+      "prompt": "a retro rotary telephone, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/radio-host-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 298736636,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-radio-host-step-3",
+      "tool": "image",
+      "prompt": "a glowing red on-air lamp in a box, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/radio-host-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 803681204,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-radio-host-step-4",
+      "tool": "image",
+      "prompt": "a sealed envelope with a heart sticker, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/radio-host-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 553360968,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-weatherperson-step-1",
+      "tool": "image",
+      "prompt": "a smiling cartoon sun with triangular orange rays, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/weatherperson-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 447845389,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-weatherperson-step-2",
+      "tool": "image",
+      "prompt": "a brass barometer dial, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/weatherperson-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1129473166,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-weatherperson-step-3",
+      "tool": "image",
+      "prompt": "a zigzag lightning bolt, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/weatherperson-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 659397610,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-weatherperson-step-4",
+      "tool": "image",
+      "prompt": "a fluffy white felt cloud, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/weatherperson-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 674910237,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-wedding-planner-step-1",
+      "tool": "image",
+      "prompt": "a castle-shaped cake, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/wedding-planner-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 90057404,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-wedding-planner-step-2",
+      "tool": "image",
+      "prompt": "a clipboard with a checklist, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/wedding-planner-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1592430181,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-wedding-planner-step-3",
+      "tool": "image",
+      "prompt": "a white wedding marquee tent, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/wedding-planner-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 87590690,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-wedding-planner-step-4",
+      "tool": "image",
+      "prompt": "a pair of gold wedding rings, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/wedding-planner-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1636741615,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-accountant-step-1",
+      "tool": "image",
+      "prompt": "a stack of paper receipts tied with a rubber band, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/accountant-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1766372233,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-accountant-step-2",
+      "tool": "image",
+      "prompt": "chunky beige desk calculator, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/accountant-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1840323302,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-accountant-step-3",
+      "tool": "image",
+      "prompt": "tiny toy yacht with a white sail, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/accountant-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 595744827,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-accountant-step-4",
+      "tool": "image",
+      "prompt": "fountain pen with a swirly gold nib, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/accountant-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1866299584,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-lawyer-step-1",
+      "tool": "image",
+      "prompt": "red pointy garden gnome hat, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/lawyer-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 78192855,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-lawyer-step-2",
+      "tool": "image",
+      "prompt": "cracked smartphone with a spiderweb screen, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/lawyer-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 521373048,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-lawyer-step-3",
+      "tool": "image",
+      "prompt": "wooden judge's gavel, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/lawyer-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1296435589,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-lawyer-step-4",
+      "tool": "image",
+      "prompt": "brass scales of justice, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/lawyer-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 494584943,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-tech-support-step-1",
+      "tool": "image",
+      "prompt": "tangled beige ethernet cable coil, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/tech-support-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 729821957,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-tech-support-step-2",
+      "tool": "image",
+      "prompt": "blue floppy disk, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/tech-support-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1304210040,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-tech-support-step-3",
+      "tool": "image",
+      "prompt": "a computer mouse with a curly wire tail, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/tech-support-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 455195470,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-tech-support-step-4",
+      "tool": "image",
+      "prompt": "retro desktop printer with a paper sheet, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/tech-support-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1890003575,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-startup-founder-step-1",
+      "tool": "image",
+      "prompt": "glowing yellow lightbulb, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/startup-founder-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 834190596,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-startup-founder-step-2",
+      "tool": "image",
+      "prompt": "a golden piggy bank with a coin slot, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/startup-founder-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 808931503,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-startup-founder-step-3",
+      "tool": "image",
+      "prompt": "tiny rocket ship, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/startup-founder-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1506813190,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-startup-founder-step-4",
+      "tool": "image",
+      "prompt": "rolled contract with a red wax seal, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/startup-founder-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1685442183,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-librarian-step-1",
+      "tool": "image",
+      "prompt": "warm glowing book with a ribbon bookmark, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/librarian-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1512135660,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-librarian-step-2",
+      "tool": "image",
+      "prompt": "green glass reading lamp, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/librarian-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1039819474,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-librarian-step-3",
+      "tool": "image",
+      "prompt": "brass service bell, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/librarian-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1418154463,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-librarian-step-4",
+      "tool": "image",
+      "prompt": "old brass skeleton key, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/librarian-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1493435440,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-archivist-step-1",
+      "tool": "image",
+      "prompt": "strapped wooden crate with brass corners, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/archivist-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 813578265,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-archivist-step-2",
+      "tool": "image",
+      "prompt": "small wooden card catalogue drawer with a brass handle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/archivist-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 201603077,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-archivist-step-3",
+      "tool": "image",
+      "prompt": "manila folder tied with red string, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/archivist-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 216906191,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-archivist-step-4",
+      "tool": "image",
+      "prompt": "pair of golden ceremonial scissors, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/archivist-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 870135189,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-museum-curator-step-1",
+      "tool": "image",
+      "prompt": "blue and white porcelain vase, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/museum-curator-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 477464949,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-museum-curator-step-2",
+      "tool": "image",
+      "prompt": "magnifying glass with a brass rim, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/museum-curator-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 807415800,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-museum-curator-step-3",
+      "tool": "image",
+      "prompt": "gold seal medallion with a ribbon, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/museum-curator-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1040716213,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-museum-curator-step-4",
+      "tool": "image",
+      "prompt": "a red velvet rope strung between two brass posts, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/museum-curator-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1953553172,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-art-restorer-step-1",
+      "tool": "image",
+      "prompt": "fine paintbrush with a wooden handle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/art-restorer-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1566261310,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-art-restorer-step-2",
+      "tool": "image",
+      "prompt": "a glass jar of blue paint with a brush resting across the top, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/art-restorer-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1823432854,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-art-restorer-step-3",
+      "tool": "image",
+      "prompt": "wooden paint palette with colour blobs, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/art-restorer-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 315359103,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-art-restorer-step-4",
+      "tool": "image",
+      "prompt": "ornate gold picture frame, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/art-restorer-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1235419542,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-matchmaker-step-1",
+      "tool": "image",
+      "prompt": "two interlocking golden rings, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/matchmaker-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1253857527,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-matchmaker-step-2",
+      "tool": "image",
+      "prompt": "pink heart-shaped love letter, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/matchmaker-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1222619634,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-matchmaker-step-3",
+      "tool": "image",
+      "prompt": "wooden rubber stamp with a round head, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/matchmaker-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 949630439,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-matchmaker-step-4",
+      "tool": "image",
+      "prompt": "sparkly silver disco ball, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/matchmaker-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1914263574,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-ghost-tour-guide-step-1",
+      "tool": "image",
+      "prompt": "flickering iron lantern, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/ghost-tour-guide-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 894844651,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-ghost-tour-guide-step-2",
+      "tool": "image",
+      "prompt": "wooden window shutter with a crescent moon cutout, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/ghost-tour-guide-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1772524875,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-ghost-tour-guide-step-3",
+      "tool": "image",
+      "prompt": "brass megaphone, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/ghost-tour-guide-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1594022423,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-ghost-tour-guide-step-4",
+      "tool": "image",
+      "prompt": "hanging brass jail key, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/ghost-tour-guide-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1808377883,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-chef-step-1",
+      "tool": "image",
+      "prompt": "a golden bowl of steaming stew, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/chef-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 507383863,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-chef-step-2",
+      "tool": "image",
+      "prompt": "a rubber stamp with a wooden handle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/chef-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1397819393,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-chef-step-3",
+      "tool": "image",
+      "prompt": "a ripe red tomato, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/chef-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1769453037,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-chef-step-4",
+      "tool": "image",
+      "prompt": "a sizzling frying pan with a fried egg, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/chef-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1650728975,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-farmer-step-1",
+      "tool": "image",
+      "prompt": "a small plump orange pumpkin, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/farmer-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1545590918,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-farmer-step-2",
+      "tool": "image",
+      "prompt": "a golden corn cob, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/farmer-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 242294849,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-farmer-step-3",
+      "tool": "image",
+      "prompt": "a brass weighing scale, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/farmer-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 886120666,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-farmer-step-4",
+      "tool": "image",
+      "prompt": "a blue prize rosette ribbon, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/farmer-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1011973237,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-fisher-step-1",
+      "tool": "image",
+      "prompt": "a cartoon blue fish with a fan tail seen from the side, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/fisher-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 254514910,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-fisher-step-2",
+      "tool": "image",
+      "prompt": "a brass water tap with a droplet, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/fisher-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 562447305,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-fisher-step-3",
+      "tool": "image",
+      "prompt": "a red and white fishing float, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/fisher-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1761235961,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-fisher-step-4",
+      "tool": "image",
+      "prompt": "a wooden fishing lure with a feather, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/fisher-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1398569268,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-beekeeper-step-1",
+      "tool": "image",
+      "prompt": "a woven straw beehive skep, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/beekeeper-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 767816236,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-beekeeper-step-2",
+      "tool": "image",
+      "prompt": "a small paper scroll tied with ribbon, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/beekeeper-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1533471636,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-beekeeper-step-3",
+      "tool": "image",
+      "prompt": "a metal bee smoker with a bellows, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/beekeeper-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 154066777,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-beekeeper-step-4",
+      "tool": "image",
+      "prompt": "a glass honey jar with a golden lid, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/beekeeper-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1097767795,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-zookeeper-step-1",
+      "tool": "image",
+      "prompt": "a plush toy dog wearing a fluffy mane, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/zookeeper-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1665416523,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-zookeeper-step-2",
+      "tool": "image",
+      "prompt": "a brass magnifying glass, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/zookeeper-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 323655946,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-zookeeper-step-3",
+      "tool": "image",
+      "prompt": "a ripe yellow banana, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/zookeeper-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 45912035,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-zookeeper-step-4",
+      "tool": "image",
+      "prompt": "a big iron zoo gate key, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/zookeeper-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1589244198,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-florist-step-1",
+      "tool": "image",
+      "prompt": "a long-stemmed pink rose, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/florist-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1921437916,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-florist-step-2",
+      "tool": "image",
+      "prompt": "a frosty blue snowflake crystal, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/florist-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 649146320,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-florist-step-3",
+      "tool": "image",
+      "prompt": "a chubby cartoon bumblebee, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/florist-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 263190444,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-florist-step-4",
+      "tool": "image",
+      "prompt": "a white lily bloom, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/florist-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1794305630,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-astronomer-step-1",
+      "tool": "image",
+      "prompt": "a glowing yellow five-pointed star, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/astronomer-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 920587802,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-astronomer-step-2",
+      "tool": "image",
+      "prompt": "a small brass telescope on a wooden tripod, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/astronomer-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 562119784,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-astronomer-step-3",
+      "tool": "image",
+      "prompt": "a ringed planet like saturn, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/astronomer-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1220879648,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-astronomer-step-4",
+      "tool": "image",
+      "prompt": "a brass telescope, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/astronomer-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1972304679,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-astronaut-step-1",
+      "tool": "image",
+      "prompt": "a chrome rocket with cardboard fins, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/astronaut-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 537230940,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-astronaut-step-2",
+      "tool": "image",
+      "prompt": "a mango smoothie cup with a straw, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/astronaut-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 974621359,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-astronaut-step-3",
+      "tool": "image",
+      "prompt": "a salted soft pretzel, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/astronaut-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1427755811,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-astronaut-step-4",
+      "tool": "image",
+      "prompt": "a round glass space helmet, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/astronaut-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1735568748,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-toy-maker-step-1",
+      "tool": "image",
+      "prompt": "a wooden toy duck painted yellow, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/toy-maker-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1317015013,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-toy-maker-step-2",
+      "tool": "image",
+      "prompt": "a brass cog gear, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/toy-maker-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1213240577,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-toy-maker-step-3",
+      "tool": "image",
+      "prompt": "a paint pot with a brush, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/toy-maker-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 529073247,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-toy-maker-step-4",
+      "tool": "image",
+      "prompt": "a little wooden toy train engine, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/toy-maker-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 564997957,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-referee-step-1",
+      "tool": "image",
+      "prompt": "a red penalty card, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/referee-step-1.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1398354410,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-referee-step-2",
+      "tool": "image",
+      "prompt": "a muddy football boot, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/referee-step-2.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 1630399682,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-referee-step-3",
+      "tool": "image",
+      "prompt": "a black and white football, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/referee-step-3.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 96703878,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    },
+    {
+      "label": "sprite-referee-step-4",
+      "tool": "image",
+      "prompt": "a shiny silver referee whistle, single centered object filling a round game-token emblem, thick dark brown outline, bold flat cel shading, bright saturated colors, soft highlight, simple clear silhouette, on a plain warm cream circular badge background that fills the frame edge to edge, no text, no letters, no numbers, no people, no hands, no faces, no scenery.",
+      "output": "mods/tinytown/activities/jobs/sprites/referee-step-4.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 625391749,
+        "steps": 24,
+        "negative": "people, person, hands, fingers, face, faces, text, letters, words, numbers, writing, logo, watermark, scenery, background clutter, multiple objects, blurry, low quality"
+      }
+    }
+  ]
+}

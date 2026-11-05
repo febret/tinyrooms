@@ -63,7 +63,9 @@ Counters, buffs, ownership, and profile settings therefore share that row
 across worlds. `last_world_id`, `remembered_room`, and `last_visit_at` track
 resume/navigation; stable destination identity is
 `profile_json.last_instance_id`. Entry repair and operator destination edits
-rewrite only that key, preserving the saved world and room. See
+rewrite only that key, preserving the saved world and room; the one exception is
+the player-confirmed `switch_world` repair, which also updates `last_world_id`
+and `remembered_room` through `ensure_user_profile`. See
 [mission-control entry semantics](./mission-control.md) and the repository's
 `remember_instance`, `reassign_last_instance`, and `ensure_user_profile` paths.
 

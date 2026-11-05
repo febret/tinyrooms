@@ -663,10 +663,8 @@ class TinytownHousing:
                     "description": template.description,
                     "district": template.district,
                     "district_label": district.label,
-                    "district_accent": district.accent,
                     "price": template.price,
                     "size": template.size,
-                    "palette": list(template.palette),
                     "model_url": f"/assets/world/{self._world.id}/props/{template.model}",
                     "preview_url": f"/assets/world/{self._world.id}/rooms/{template.preview}",
                     "key_url": f"/assets/world/{self._world.id}/keys/{template.id}.png",
@@ -1079,6 +1077,26 @@ class TinytownService:
         self.market = self.housing.market
 
     @property
+    def jobs(self) -> object:
+        from mods.tinytown.job_runs import JobRuns
+
+        jobs = getattr(self, "_job_runs", None)
+        if jobs is None:
+            self._job_runs = JobRuns(self)
+            jobs = self._job_runs
+        return jobs
+
+    @property
+    def hacker(self) -> object:
+        from mods.tinytown.hacker_runs import HackerRuns
+
+        hacker = getattr(self, "_hacker_runs", None)
+        if hacker is None:
+            self._hacker_runs = HackerRuns(self)
+            hacker = self._hacker_runs
+        return hacker
+
+    @property
     def available(self) -> bool:
         return self.runtime.world.id == "tinytown"
 
@@ -1086,6 +1104,8 @@ class TinytownService:
         self.housing.prepare()
         if self.available:
             self.gallery.prepare()
+            self.jobs.prepare()
+            self.hacker.prepare()
         self._wire_dialog_settlement()
 
     def start(self) -> None:

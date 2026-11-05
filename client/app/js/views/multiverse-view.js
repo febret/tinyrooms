@@ -70,7 +70,7 @@ export function multiversePlanetMarkup(world, { selected = false, traveling = fa
   const description = [
     label,
     online,
-    world.current ? "You are here." : "Select to aim the hub at this world.",
+    world.current ? "You are here." : "Travel to this world.",
     friendCount ? `${friendCount} ${friendCount === 1 ? "friend" : "friends"} online.` : "",
   ].filter(Boolean).join(" ");
   return `
@@ -82,11 +82,12 @@ export function multiversePlanetMarkup(world, { selected = false, traveling = fa
           aria-selected="${selected ? "true" : "false"}" aria-label="${escapeHtml(description)}"
           title="${escapeHtml(label)}">
           <span class="mv-orb">
-            ${multiverseImageUrl(world.imageUrl)
-              ? `<img class="mv-planet-image" src="${escapeHtml(multiverseImageUrl(world.imageUrl))}" alt="" loading="lazy" draggable="false">`
-              : `<span class="mv-planet-fallback" aria-hidden="true">✦</span>`}
-            <span class="mv-planet-shade" aria-hidden="true"></span>
-            <span class="mv-planet-ring" aria-hidden="true"></span>
+            <span class="mv-orb-art" aria-hidden="true">
+              ${multiverseImageUrl(world.imageUrl)
+                ? `<img class="mv-planet-image" src="${escapeHtml(multiverseImageUrl(world.imageUrl))}" alt="" loading="lazy" draggable="false">`
+                : `<span class="mv-planet-fallback">✦</span>`}
+              <span class="mv-planet-shade"></span>
+            </span>
             ${world.current ? '<span class="mv-home" aria-hidden="true">HOME</span>' : ""}
           </span>
           <span class="mv-tag">
@@ -105,24 +106,6 @@ function statusCopy(multiverse) {
   if (!multiverse.worlds.length) return "No other worlds are humming right now.";
   const total = multiverse.worlds.length;
   return `${total} ${total === 1 ? "world is" : "worlds are"} within reach.`;
-}
-
-/** Central travel action for the selected world, rendered at the hub of the ring. */
-export function multiverseTravelMarkup(selected, multiverse = {}) {
-  if (!selected) {
-    return `<p class="mv-center-empty">No world selected.</p>`;
-  }
-  const traveling = Boolean(multiverse.travelingId && multiverse.travelingId === selected.id);
-  const travelDisabled = Boolean(selected.current || traveling || multiverse.status !== "ready");
-  const travelLabel = traveling
-    ? `Stepping toward ${selected.label}…`
-    : selected.current
-      ? "You are here"
-      : `Travel to ${selected.label}`;
-  return `
-    <button type="button" class="mv-travel primary" data-multiverse-travel="${escapeHtml(String(selected.id || ""))}" data-sound="multiverseTravel" ${travelDisabled ? "disabled" : ""}>${escapeHtml(travelLabel)}</button>
-    ${traveling ? '<p class="mv-center-note" role="status">Holding the portal open…</p>' : ""}
-  `;
 }
 
 export function multiverseShellMarkup(multiverse) {
@@ -166,13 +149,10 @@ export function multiverseShellMarkup(multiverse) {
         ${multiverse?.status === "error" && !ordered.length
           ? `<button type="button" class="primary mv-retry" data-multiverse-refresh>Try again</button>`
           : ""}
-        <div class="mv-center" data-multiverse-center aria-live="polite">
-          ${multiverseTravelMarkup(selected, multiverse || {})}
-        </div>
       </div>
       <footer class="mv-foot">
         <span data-multiverse-count>${escapeHtml(totalOnline ? `${totalOnline} peeps across the Multiverse` : "")}</span>
-        <span class="mv-hint">Arrows move · Enter selects · Travel confirms</span>
+        <span class="mv-hint">Click a world to travel · Click anywhere else to close</span>
       </footer>
     </section>
   `;
@@ -190,7 +170,6 @@ export function createMultiverseView({
   let open = false;
   let worldsKey = "";
   let selectedKey = "";
-  let centerKey = "";
   let closeTimer = 0;
   let travelTimer = 0;
 
@@ -215,10 +194,6 @@ export function createMultiverseView({
     return layer.querySelector("[data-multiverse-ring]");
   }
 
-  function center() {
-    return layer.querySelector("[data-multiverse-center]");
-  }
-
   function statusNode() {
     return layer.querySelector("[data-multiverse-status]");
   }
@@ -232,7 +207,6 @@ export function createMultiverseView({
     layer.innerHTML = multiverseShellMarkup(multiverse);
     worldsKey = "";
     selectedKey = "";
-    centerKey = "";
   }
 
   function setBackground() {
@@ -253,7 +227,7 @@ export function createMultiverseView({
     slot.style.setProperty("--mv-y", `${Math.round(y)}px`);
     slot.style.setProperty("--mv-sx", `${Math.round(-x)}px`);
     slot.style.setProperty("--mv-sy", `${Math.round(-y)}px`);
-    const size = count <= 1 ? 196 : count <= 3 ? 172 : count <= 5 ? 150 : count <= 7 ? 128 : 110;
+    const size = Math.round((count <= 1 ? 196 : count <= 3 ? 172 : count <= 5 ? 150 : count <= 7 ? 128 : 110) * 1.3);
     slot.style.setProperty("--mv-size", `${compact ? Math.round(size * 0.68) : size}px`);
   }
 
@@ -280,16 +254,6 @@ export function createMultiverseView({
         image.replaceWith(fallback);
       }, { once: true });
     });
-  }
-
-  /** Keep the central travel action in step with the selected world. */
-  function syncCenter(world, multiverse) {
-    const centerNode = center();
-    if (!centerNode) return;
-    const key = JSON.stringify([world?.id || "", multiverse.travelingId || "", multiverse.status || ""]);
-    if (centerKey === key) return;
-    centerKey = key;
-    centerNode.innerHTML = multiverseTravelMarkup(world, multiverse);
   }
 
   function syncWorlds(force = false) {
@@ -339,7 +303,6 @@ export function createMultiverseView({
     if (statusNode() && (force || worldsKey === key) && !ordered.length && multiverse.status !== "loading") {
       statusNode().textContent = statusCopy(multiverse);
     }
-    syncCenter(selected, multiverse);
     layoutPlanets();
   }
 
@@ -381,7 +344,6 @@ export function createMultiverseView({
     open = false;
     worldsKey = "";
     selectedKey = "";
-    centerKey = "";
     layer.dataset.state = "idle";
     layer.hidden = true;
     layer.innerHTML = "";
@@ -447,18 +409,16 @@ export function createMultiverseView({
       onRefresh?.();
       return;
     }
-    const close = event.target.closest("[data-multiverse-close]");
-    if (close) {
+    if (stateMultiverse().travelingId || layer.dataset.state === "closing" || layer.dataset.state === "traveling") return;
+    const planet = event.target.closest("[data-world-id]");
+    if (!planet) {
       onClose?.();
       return;
     }
-    const travel = event.target.closest("[data-multiverse-travel]");
-    if (travel && !travel.disabled) {
-      onTravel?.(String(travel.dataset.multiverseTravel || ""));
-      return;
-    }
-    const planet = event.target.closest("[data-world-id]");
-    if (planet) selectWorld(planet.dataset.worldId);
+    const world = worldById(planet.dataset.worldId);
+    if (!world || world.current) return;
+    selectWorld(world.id);
+    onTravel?.(world.id);
   });
 
   layer.addEventListener("focusin", event => {

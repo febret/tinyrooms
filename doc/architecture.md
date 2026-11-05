@@ -47,6 +47,8 @@ through a generated map. See the canonical
 | Content and extensions | [server/content/](../server/content/), [mods](../server/mods.py), [behaviors](../server/behaviors/) |
 | Browser rendering and state | [app/js/](../client/app/js/), [app/css/](../client/app/css/) |
 | Embedded activities | [activities](../client/activities/), [client host](../client/app/js/activities.js), [server lifecycle](../server/services/activities.py) |
+| TinyTown Job Office | [jobs activity](../mods/tinytown/activities/jobs/), [run service](../mods/tinytown/job_runs.py), [hidden engine](../mods/tinytown/job_engine.py) |
+| Hacker Collective | [hacker activity](../mods/tinytown/activities/hacker/), [run service](../mods/tinytown/hacker_runs.py), [maths screens](../mods/tinytown/hacker_problems.py), [docs](hacker-activity.md) |
 | MC and world management channel | [server/mission_control/](../server/mission_control/), [mission-control UI](../client/mission-control/), [mc_client](../server/mc_client.py), [mc_api](../server/mc_api.py) |
 
 ### 2.1 Content and mods

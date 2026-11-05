@@ -1,0 +1,454 @@
+dog-walker:
+  title: Pack Leader
+  profession: Dog Walker
+  tier: 1
+  accent: "#7fa65a"
+  blurb: Eleven dogs, one lead, and a park that has recently installed a Very Official Gate.
+  setting: a storybook miniature street corner with a tangle of leather leads, a row of water bowls, and a green park gate
+  endings:
+    disaster: The pack scatters across three postcodes. You spend the afternoon explaining yourself to a woman holding one extremely smug cat.
+    scraped: Eight dogs come home. The other three are technically at a birthday party and will be returned by dinner.
+    okay: Every dog arrives home tired, muddy, and accounted for. Two of them have made new friends.
+    great: The pack walks in a perfect line for a full block, and a stranger photographs it like a royal wedding.
+    legendary: You deliver eleven calm dogs and one local legend. The park gate is unofficially renamed after you.
+  steps:
+    - title: The Morning Round-Up
+      setup: It is just past seven. Eleven dogs wait behind eleven different doors, and each of them believes they are the only dog.
+      scene: a storybook miniature street of painted front doors with leads hanging beside them and bowls on the steps
+      pool: animals
+      game: rhythm-lane
+      sprite: a coiled red dog leash
+      choices:
+        - label: Check the leads and count noses first
+          approach: care
+          success: You match every lead to a dog and discover the pack has a spare collar.
+          failure: You count twelve leads and eleven dogs, and nobody will admit to the extra.
+        - label: Whistle the pack into formation
+          approach: charm
+          success: They line up with the solemnity of a very small parade.
+          failure: They line up facing you, which is not how walking works.
+        - label: Open all the doors at once
+          approach: chaos
+          success: The pack converges on you like a furry tide with excellent timing.
+          failure: The pack converges on the bakery van instead.
+    - title: The Great Escape
+      setup: The round-up is done, more or less. Halfway down the hill, the smallest dog discovers a gap in the hedge.
+      scene: a storybook hedge with a small gap, a dropped lead in the grass, and a distant park beyond
+      pool: outdoors
+      game: pop-whack
+      sprite: a three-link string of plump pink sausages
+      choices:
+        - label: Follow the gap and stay calm
+          approach: care
+          success: You coax the escapee out with a biscuit and a very reasonable tone.
+          failure: The biscuit attracts three more dogs and now the gap is a club.
+        - label: Bribe the pack with the emergency sausages
+          approach: nouse
+          success: The sausages restore order and the pack forgives the hedge entirely.
+          failure: The sausages restore order among the dogs who did not escape.
+        - label: Sprint ahead and cut them off
+          approach: grit
+          success: You reach the far side first and the pack turns as one, impressed.
+          failure: You reach the far side first and the pack treats it as a race.
+    - title: The Rival Walker
+      setup: Order is restored, mostly. At the park gate stands a rival walker with a polished cart and a clipboard of clients.
+      scene: a storybook park gate with two dog carts, a clipboard on a bench, and a blank signboard
+      pool: people
+      game: hold-meter
+      sprite: a steel dog water bowl
+      choices:
+        - label: Compare routes and split the park politely
+          approach: nouse
+          success: You agree on a schedule and both packs get the good sniffing spots.
+          failure: You agree on a schedule and both packs ignore it.
+        - label: Win the owners over with a morning report
+          approach: charm
+          success: The owners prefer your updates and the rival is left explaining a laminated chart.
+          failure: The owners love the chart more than the walk.
+        - label: Let the dogs settle it
+          approach: chaos
+          success: The packs merge into one enormous, joyful, entirely illegal parade.
+          failure: The packs merge and the rival walker becomes your co-worker by accident.
+    - title: The Park Gate Finale
+      setup: The gate is locked for maintenance. Eleven dogs, four owners, and one photographer are all watching you.
+      scene: a storybook park gate with a maintenance barrier, a row of water bowls, and a row of patient dogs
+      pool: stage
+      game: drop-catch
+      sprite: a fuzzy tennis ball
+      choices:
+        - label: Read the notice and find the side entrance
+          approach: nouse
+          success: You find the side gate and lead the pack through like a professional.
+          failure: The side gate is locked too, and the notice has a second page.
+        - label: Give the owners a confident explanation
+          approach: charm
+          success: They accept the detour, and one of them tips you for the drama.
+          failure: They accept the detour and then follow you to verify it.
+        - label: Lift the smallest dog over and hope
+          approach: grit
+          success: The small dog lands, turns, and inspires the entire pack to jump cleanly.
+          failure: The small dog lands and unlocks the gate from the inside, which is worse.
+
+personal-trainer:
+  title: Extreme Personal Trainer
+  profession: Personal Trainer
+  tier: 2
+  accent: "#d1543f"
+  blurb: Your newest client has booked a full transformation, a photoshoot, and possibly a funeral.
+  setting: a storybook miniature gym with rubber mats, a rack of small dumbbells, and a climbing rope
+  endings:
+    disaster: The client takes the stairs down and then takes them up again. You are asked to stop texting them.
+    scraped: The transformation is measurable if you squint and use the good tape measure.
+    okay: The client finishes the programme, slightly fitter and fully committed to telling everyone about it.
+    great: The photoshoot goes beautifully and the before picture is quietly deleted.
+    legendary: The client carries their grandson up the stairs, then carries you up them too for the photograph.
+  steps:
+    - title: The Six A.M. Assessment
+      setup: The client arrives at six sharp wearing three layers and a look of quiet regret. The assessment is due before the gym opens.
+      scene: a storybook gym at dawn with rubber mats, a clipboard on a bench, and a rack of small dumbbells
+      pool: machines
+      game: pop-whack
+      sprite: a small chunky dumbbell
+      choices:
+        - label: Test mobility before loading weight
+          approach: care
+          success: You find the stiff hip and build a plan around it.
+          failure: You find the stiff hip and the client finds a new excuse.
+        - label: Ask what they actually want from this
+          approach: charm
+          success: They admit they want to carry their grandson up the stairs.
+          failure: They admit they want to look good at a wedding and cry a little.
+        - label: Start with the heaviest thing in the room
+          approach: grit
+          success: They lift it, surprise themselves, and become unbearable for a week.
+          failure: They lift it and the room becomes a quiet place of reflection.
+    - title: The Client's Knee
+      setup: The plan is written. On rep three, the client's knee makes a sound that is not a muscle.
+      scene: a storybook gym with a dropped dumbbell, a foam roller, and a first aid box on the wall
+      pool: danger
+      game: hold-meter
+      sprite: a roll of white athletic tape
+      choices:
+        - label: Stop, assess, and modify the session
+          approach: care
+          success: You swap the squat for a safer movement and the knee calms down.
+          failure: You swap the squat and the client decides they are cured.
+        - label: Distract them with a story and lower the weight
+          approach: charm
+          success: They finish the set without noticing the weight is gone.
+          failure: They notice, and now they want the story finished too.
+        - label: Tape it and push through
+          approach: grit
+          success: The tape holds and the set finishes with a heroic grunt.
+          failure: The tape holds, the knee does not, and the physio is a lovely person.
+    - title: The Fun-Run Escalation
+      setup: The client has signed you both up for the town fun run, which is neither fun nor a run. It is a hill.
+      scene: a storybook hillside course with paper bunting, a water station, and a steep muddy path
+      pool: outdoors
+      game: drop-catch
+      sprite: a blue water bottle
+      choices:
+        - label: Pace them properly up the hill
+          approach: nouse
+          success: You hit the crest with breath to spare and a plan for the descent.
+          failure: You hit the crest and the client's shoelace chooses that moment.
+        - label: Run beside them and keep talking
+          approach: charm
+          success: The chatter carries them past the water station and into a personal best.
+          failure: The chatter carries them past the turning point entirely.
+        - label: Sprint ahead to prove it can be done
+          approach: chaos
+          success: You finish first, turn around, and cheer them over the line.
+          failure: You finish first and the client takes the shortcut behind the marquee.
+    - title: The Final Rep
+      setup: The photoshoot is set up in the middle of the gym. The client has one rep left and an audience of regulars.
+      scene: a storybook gym with a spotlight, a loaded bar, and a chalk-dusted platform
+      pool: stage
+      game: sweep-stop
+      sprite: a black cast iron kettlebell with a handle
+      choices:
+        - label: Cue the cleanest lift they have
+          approach: care
+          success: The rep is smooth, the camera clicks, and the regulars applaud.
+          failure: The rep is smooth and the camera has no film.
+        - label: Build the moment like a headline fight
+          approach: charm
+          success: The whole gym counts down, and the lift lands like a title win.
+          failure: The whole gym counts down and the bar goes up about a second late.
+        - label: Add one extra plate for the story
+          approach: chaos
+          success: They lift it, the place erupts, and you both pretend it was the plan.
+          failure: They do not lift it, and the story becomes about the attempt.
+
+life-coach:
+  title: Unlicensed Life Coach
+  profession: Life Coach
+  tier: 1
+  accent: "#a07bd6"
+  blurb: Your qualifications are a weekend course, a laminated certificate, and enormous confidence.
+  setting: a storybook office above a chip shop with two beanbags, a drooping plant, and a blank whiteboard
+  endings:
+    disaster: The client asks for a refund. You offer them a vision board instead, and they take it.
+    scraped: The client leaves with a plan, a certificate, and several reasonable doubts.
+    okay: The client feels heard, slightly improved, and only mildly overcharged.
+    great: The client quits the job they hated and sends you a postcard from a beach.
+    legendary: The graduation speech is quoted at three weddings, and the chip shop names a wrap after you.
+  steps:
+    - title: The First Client
+      setup: Your first client arrives early, sits on the beanbag, and asks what your qualifications are.
+      scene: a small storybook office with two beanbags, a potted plant, and a blank whiteboard
+      pool: office
+      game: hold-meter
+      sprite: a rolled certificate with a ribbon
+      choices:
+        - label: Be honest about the certificate
+          approach: care
+          success: They appreciate the honesty and admit they are also improvising their life.
+          failure: They ask to see the certificate and it is laminated on both sides.
+        - label: Reframe the question into a bigger question
+          approach: charm
+          success: They leave the beanbag thinking about purpose instead of paperwork.
+          failure: They leave the beanbag thinking about the refund.
+        - label: Invent a methodology on the spot
+          approach: chaos
+          success: The methodology is nonsense, but it has a diagram, and they love diagrams.
+          failure: The methodology contradicts itself in the first session, which they notice.
+    - title: The Vision Board
+      setup: The first session went somewhere. Now the client wants a vision board by Thursday and the glue stick is missing.
+      scene: a storybook craft table with magazines, scissors, a pinboard, and a bare patch of wall
+      pool: creative
+      game: drop-catch
+      sprite: a purple glue stick
+      choices:
+        - label: Work with what is in the recycling bin
+          approach: nouse
+          success: You build a coherent future out of a seed catalogue and a ferry timetable.
+          failure: You build a future that is mostly a ferry timetable.
+        - label: Ask what the board should feel like
+          approach: charm
+          success: They describe a kitchen full of people, and the board writes itself.
+          failure: They describe a kitchen and then cry about the kitchen.
+        - label: Glue everything down at once
+          approach: chaos
+          success: The collage is chaotic, sincere, and exactly right.
+          failure: The collage is chaotic and the plant is now part of it.
+    - title: The Client's Ex
+      setup: The board is up. The client's ex walks into the chip shop below, and the client wants to know if this is a sign.
+      scene: a storybook chip shop below an office window with a queue rope and a glowing red awning
+      pool: people
+      game: sweep-stop
+      sprite: a paper cone of hot chips
+      choices:
+        - label: Separate the sign from the coincidence
+          approach: nouse
+          success: They laugh, and the ex becomes a story rather than a summons.
+          failure: They take the coincidence as a curriculum and want a plan.
+        - label: Go down and order chips for both of you
+          approach: charm
+          success: The chips defuse the evening and the client leaves lighter.
+          failure: The ex joins you and the session becomes a three-person panel.
+        - label: Declare it a sign and lean in
+          approach: chaos
+          success: The client marches down, says hello, and comes back grinning.
+          failure: The client marches down, says everything, and comes back with the ex.
+    - title: The Graduation
+      setup: The client has booked the chip shop back room for a graduation. They want a speech, a certificate, and closure.
+      scene: a storybook chip shop back room with paper bunting, folding chairs, and a small podium
+      pool: stage
+      game: ring-match
+      sprite: a black graduation cap
+      choices:
+        - label: Write a real speech about the sessions
+          approach: care
+          success: The speech lands, the room goes quiet in the good way, and the certificate is framed.
+          failure: The speech lands and the client's mother asks who licensed you.
+        - label: Hand out certificates to the whole room
+          approach: charm
+          success: Everyone gets one, everyone cries, and the chip shop sells out.
+          failure: Everyone gets one and the ceremony runs until closing.
+        - label: Wing it entirely
+          approach: chaos
+          success: You improvise a graduation so moving that strangers ask to enrol.
+          failure: You improvise and accidentally graduate the chip shop owner instead.
+
+bartender:
+  title: Therapy Bartender
+  profession: Bartender
+  tier: 2
+  accent: "#3f7d8c"
+  blurb: The bar has nine stools, one ice machine, and a regular who has decided tonight is the night to talk.
+  setting: a storybook cocktail bar with brass taps, velvet stools, and jars of garnishes on a shelf
+  endings:
+    disaster: The bar closes early. The regular finishes their confession to a coat rack, which is at least a good listener.
+    scraped: Last call happens twice. The till is confused, and so is the visiting rep.
+    okay: The bar closes on time, the glasses are counted, and nobody has to be carried anywhere.
+    great: The regular leaves with a plan, the competition is a near miss, and the tip jar is heavy.
+    legendary: The last round becomes a toast, the toast becomes a song, and the whole bar sings the harmony.
+  steps:
+    - title: Opening the Doors
+      setup: The doors open in ten minutes. The ice machine is warm and the garnish jars are empty.
+      scene: a storybook bar at dusk with brass taps, empty jars, and a warm humming ice machine
+      pool: food
+      game: drop-catch
+      sprite: a melting ice cube
+      choices:
+        - label: Restock the bar in order of need
+          approach: nouse
+          success: You have ice, citrus, and a plan before the first customer.
+          failure: You have citrus, a plan, and no ice.
+        - label: Ask the kitchen for whatever is spare
+          approach: charm
+          success: The kitchen sends herbs, a lemon, and one very good sausage.
+          failure: The kitchen sends a sausage and a lecture about waste.
+        - label: Chill the ice with a theatrical ice bath
+          approach: chaos
+          success: The machine groans, then produces ice with tremendous drama.
+          failure: The machine groans and produces a single, perfect, useless cube.
+    - title: The Regular's Confession
+      setup: The doors are open. A regular takes stool four, orders water, and says they have something to tell you.
+      scene: a storybook bar counter with one water glass, four empty stools, and a low brass lamp
+      pool: night
+      game: hold-meter
+      sprite: a tall glass of water
+      choices:
+        - label: Listen without offering a drink
+          approach: care
+          success: They talk for an hour, order a soda, and leave with a plan.
+          failure: They talk for an hour and order everything on the shelf.
+        - label: Make them a drink that matches the mood
+          approach: nouse
+          success: The drink is bitter, warm, and exactly right, and they laugh.
+          failure: The drink is a masterpiece and completely the wrong message.
+        - label: Ask the whole bar to give them advice
+          approach: chaos
+          success: The bar becomes a support group with table service.
+          failure: The bar becomes a tribunal with table service.
+    - title: The Cocktail Competition
+      setup: The confession is handled, more or less. A visiting rep announces a cocktail competition at nine, and the prize is a new ice machine.
+      scene: a storybook bar with a judges table, silver shakers, and a chalk-dusted scoreboard of unreadable marks
+      pool: creative
+      game: pop-whack
+      sprite: a cocktail glass with a cherry
+      choices:
+        - label: Build a drink around the house speciality
+          approach: nouse
+          success: The drink is balanced, cheap, and impossible to argue with.
+          failure: The drink is balanced and tastes like the bar's accounts.
+        - label: Name the drink after the regular
+          approach: charm
+          success: The judges love the story and the regular pretends not to cry.
+          failure: The judges love the story and the regular wants royalties.
+        - label: Set the drink on fire
+          approach: chaos
+          success: The flame is brief, blue, and deeply impressive.
+          failure: The flame is brief, blue, and takes the garnish shelf with it.
+    - title: Last Call
+      setup: The competition is over. It is two minutes to last call and the bar is full of people who have all decided to stay.
+      scene: a storybook bar at closing with stacked glasses, low lights, and a row of empty stools
+      pool: stage
+      game: rhythm-lane
+      sprite: a frothy beer mug
+      choices:
+        - label: Call time clearly and kindly
+          approach: care
+          success: The room empties in a warm, orderly way and the tips are good.
+          failure: The room empties in a warm way and someone is asleep in the coat rack.
+        - label: Offer one last round on the house
+          approach: charm
+          success: The final round becomes a toast, and the toast becomes a song.
+          failure: The final round becomes four final rounds.
+        - label: Announce the bar is closed with a speech
+          approach: chaos
+          success: The speech is short, ridiculous, and gets an actual ovation.
+          failure: The speech is short and starts a second, smaller party.
+
+barista:
+  title: Esoteric Barista
+  profession: Barista
+  tier: 1
+  accent: "#a67c52"
+  blurb: The beans are single-origin, the machine is temperamental, and the queue has begun to ask questions.
+  setting: a tiny storybook cafe with a chrome espresso machine, hanging plants, and a chalkboard of unreadable squiggles
+  endings:
+    disaster: The machine gives up, the queue gives up, and the chalkboard is the only thing still working.
+    scraped: Most of the orders arrive, most of them warm, and only one has to be explained.
+    okay: The queue clears, the machine holds, and the regular leaves with the right drink.
+    great: The latte art lands, a stranger films it, and the cafe is busy until closing.
+    legendary: Your pour is framed behind the counter and the machine purrs whenever you walk past.
+  steps:
+    - title: The Morning Queue
+      setup: The queue reaches the door. The first customer wants a drink that is not on the board and never has been.
+      scene: a storybook cafe counter with a chrome espresso machine, paper cups, and a potted fern by the doorway
+      pool: food
+      game: sweep-stop
+      sprite: a paper takeaway coffee cup
+      choices:
+        - label: Ask what they usually enjoy
+          approach: care
+          success: They describe a drink you can actually make, and they are delighted.
+          failure: They describe a childhood and you make a latte.
+        - label: Invent a name and charge confidently
+          approach: charm
+          success: The invented drink becomes the special and the queue relaxes.
+          failure: The invented drink becomes the special and the queue orders it.
+        - label: Steam milk with great intensity and hope
+          approach: chaos
+          success: The foam comes out perfect and the drink looks intentional.
+          failure: The foam comes out as a shape the customer describes as a warning.
+    - title: The Machine's Mood
+      setup: The first rush is survived. The espresso machine begins a noise that is either a purge or a complaint.
+      scene: a storybook cafe counter with a rattling chrome espresso machine and a small toolkit
+      pool: machines
+      game: drop-catch
+      sprite: a roasted coffee bean
+      choices:
+        - label: Descale it properly, step by step
+          approach: nouse
+          success: The machine settles into a steady purr and the shots taste like coffee again.
+          failure: The machine settles into a steady purr and then refuses to stop purring.
+        - label: Talk to it while you work
+          approach: charm
+          success: The machine behaves, and you both pretend the conversation did not happen.
+          failure: The machine behaves, and now a customer is also talking to it.
+        - label: Give the group head a firm knock
+          approach: grit
+          success: The noise stops, the pressure holds, and the machine looks slightly embarrassed.
+          failure: The noise stops because the machine has stopped.
+    - title: The Regular's Order
+      setup: The machine is back. The regular who orders the same thing every day asks for something different, quietly.
+      scene: a storybook cafe window seat with two cups and a newspaper folded under a saucer
+      pool: people
+      game: hold-meter
+      sprite: a tiny cup on a saucer
+      choices:
+        - label: Ask one careful question
+          approach: care
+          success: They admit it is an anniversary, and you make something gentle.
+          failure: They admit it is an anniversary and you make two of everything.
+        - label: Suggest something with a story attached
+          approach: charm
+          success: The story is better than the drink and the drink is very good.
+          failure: The story is better than the drink, which is fine, but the story takes twenty minutes.
+        - label: Surprise them completely
+          approach: chaos
+          success: The surprise is strange, beautiful, and exactly what they did not know they wanted.
+          failure: The surprise is strange and they drink it out of politeness.
+    - title: The Latte Art Finale
+      setup: The regular has told the queue. Now a small crowd wants to see the famous pour, and the milk is nearly out.
+      scene: a storybook cafe counter with an empty tip jar, a pitcher of milk, and one clean cup
+      pool: creative
+      game: pop-whack
+      sprite: a steel milk pitcher
+      choices:
+        - label: Pour a clean, simple heart
+          approach: care
+          success: The heart lands perfectly and the crowd makes a soft, satisfied noise.
+          failure: The heart lands perfectly and then drifts into a shape best described as a bean.
+        - label: Pour something ambitious for the crowd
+          approach: nouse
+          success: The swan is recognisable, the crowd applauds, and the queue grows.
+          failure: The swan is recognisable as a different bird entirely.
+        - label: Pour the whole pitcher at once
+          approach: chaos
+          success: The result is enormous, abstract, and briefly famous on the internet.
+          failure: The result covers the counter, the cup, and one customer's sleeve.

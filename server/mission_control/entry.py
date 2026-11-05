@@ -64,10 +64,11 @@ class CreateCredentials(Credentials):
 
 
 class RepairDestination(BaseModel):
-    """Explicit player confirmation of a replacement same-world instance."""
+    """Explicit player confirmation of a replacement instance or world switch."""
 
     instance_id: str
     world_id: str | None = None
+    switch_world: bool = False
 
 
 class PlayerAuthService:
@@ -314,8 +315,13 @@ def _recovery_response(
     *,
     code: str,
     saved_instance_id: str | None,
+    mismatched: tuple[InstanceRecord, str] | None = None,
 ) -> JSONResponse:
-    """Return a recoverable destination error with explicit same-world choices."""
+    """Return a recoverable destination error with explicit player choices.
+
+    *mismatched* is the saved instance and its client URL when it is healthy but
+    now serves a different world than the profile's saved world.
+    """
 
     world_id = profile.last_world_id
     retirement = runtime.retired.get(saved_instance_id)
@@ -329,7 +335,33 @@ def _recovery_response(
         saved_instance_id=saved_instance_id,
         successor_instance_id=successor,
     )
-    if candidates:
+    current_world: dict[str, object] | None = None
+    if mismatched is not None and not candidates and mismatched[0].entry_room_id:
+        current_world = {
+            "instance_id": mismatched[0].instance_id,
+            "world_id": mismatched[0].world_id,
+            "label": mismatched[0].name,
+            "client_url": mismatched[1],
+            "entry_room_id": mismatched[0].entry_room_id,
+        }
+    if mismatched is not None:
+        serving = mismatched[0].world_id
+        if candidates:
+            message = (
+                f"The saved instance '{saved_instance_id}' now serves '{serving}' instead of '{world_id}'. "
+                f"Choose another running instance of '{world_id}' to continue."
+            )
+        elif current_world is not None:
+            message = (
+                f"Your saved world '{world_id}' is not running, and '{saved_instance_id}' now serves '{serving}'. "
+                f"You can continue in '{serving}' instead, starting in its entry room."
+            )
+        else:
+            message = (
+                f"The saved instance '{saved_instance_id}' now serves a different world. "
+                "Ask an operator for help."
+            )
+    elif candidates:
         if saved_instance_id:
             message = (
                 f"The saved instance '{saved_instance_id}' is not available right now. "
@@ -350,9 +382,11 @@ def _recovery_response(
     data: dict[str, object] = {
         "saved_instance_id": saved_instance_id,
         "world_id": world_id,
-        "can_repair": bool(candidates),
+        "can_repair": bool(candidates) or current_world is not None,
         "candidates": candidates,
     }
+    if current_world is not None:
+        data["current_world"] = current_world
     if retirement is not None:
         data["retired"] = True
         data["retired_at"] = retirement.get("retired_at")
@@ -492,9 +526,58 @@ async def resolve(request: Request) -> Response:
             )
         raise
     if record.world_id != profile.last_world_id:
-        raise HTTPException(409, "Your saved instance now serves a different world. Ask an operator for help.")
+        return _recovery_response(
+            runtime,
+            request,
+            profile,
+            code="entry_instance_world_mismatch",
+            saved_instance_id=instance_id,
+            mismatched=(record, client_url),
+        )
     return JSONResponse({"ok": True, "instance_id": record.instance_id, "world_id": record.world_id,
                          "client_url": client_url}, headers={"Cache-Control": "no-store"})
+
+
+async def _switch_world(
+    request: Request,
+    account_id: str,
+    profile,
+    payload: RepairDestination,
+    saved_mismatched: bool,
+) -> Response:
+    """Move a player to the world their saved instance now serves, after explicit confirmation."""
+
+    runtime = request.app.state.mc
+    saved_instance_id = profile.last_instance_id
+    unavailable = EntryError(
+        409,
+        "entry_world_switch_unavailable",
+        "Switching worlds is not available for your saved destination. Ask an operator for help.",
+    )
+    if not saved_mismatched or payload.instance_id != saved_instance_id:
+        raise unavailable
+    if _repair_candidates(runtime, request, profile.last_world_id, saved_instance_id=saved_instance_id):
+        raise unavailable
+    record, client_url = await _destination(request, payload.instance_id)
+    if not record.entry_room_id or (payload.world_id is not None and payload.world_id != record.world_id):
+        raise unavailable
+    runtime.profiles.ensure_user_profile(account_id, record.world_id, record.entry_room_id)
+    runtime.profiles.remember_instance(account_id, record.instance_id)
+    runtime.audit.record(
+        f"account:{account_id}",
+        "player.destination.world_switch",
+        target=record.instance_id,
+        detail={"previous_world_id": profile.last_world_id, "world_id": record.world_id},
+    )
+    return JSONResponse(
+        {
+            "ok": True,
+            "instance_id": record.instance_id,
+            "world_id": record.world_id,
+            "client_url": client_url,
+        },
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.post("/api/entry/repair")
@@ -512,17 +595,22 @@ async def repair(request: Request, payload: RepairDestination) -> Response:
         raise HTTPException(409, "Your player profile is missing. Ask an operator for help.")
     saved_instance_id = profile.last_instance_id
     saved = runtime.registry.get(saved_instance_id) if saved_instance_id else None
+    saved_mismatched = False
     if saved is not None:
         try:
             await _validate_running_destination(runtime, saved)
         except EntryError:
             pass
         else:
-            raise EntryError(
-                409,
-                "entry_instance_healthy",
-                "Your saved instance is available. Reload player entry to continue.",
-            )
+            if saved.world_id == profile.last_world_id:
+                raise EntryError(
+                    409,
+                    "entry_instance_healthy",
+                    "Your saved instance is available. Reload player entry to continue.",
+                )
+            saved_mismatched = True
+    if payload.switch_world:
+        return await _switch_world(request, session.account_id, profile, payload, saved_mismatched)
     if payload.world_id is not None and payload.world_id != profile.last_world_id:
         raise EntryError(
             409,

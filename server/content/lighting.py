@@ -62,3 +62,19 @@ def cycle_phase(seconds: float, duration: float = DAY_NIGHT_CYCLE_SECONDS) -> fl
     if duration <= 0:
         return 0.0
     return ((float(seconds) % duration) / duration)
+
+
+def cycle_index(seconds: float, duration: float = DAY_NIGHT_CYCLE_SECONDS) -> int:
+    """Return which day-night cycle (counted from the wall-clock epoch) a timestamp is in."""
+
+    if duration <= 0:
+        return 0
+    return int(float(seconds) // duration)
+
+
+def cycle_remaining(seconds: float, duration: float = DAY_NIGHT_CYCLE_SECONDS) -> float:
+    """Return the seconds left until the current cycle ends."""
+
+    if duration <= 0:
+        return 0.0
+    return duration - (float(seconds) % duration)

@@ -7,3 +7,18 @@ keyring:
   title: The Keyring
   aliases:
   - keys
+jobs:
+  title: TinyTown Job Office
+  aliases:
+  - work
+  - shift
+  - office
+  rooms:
+  - town
+hacker:
+  title: Hacker Collective
+  aliases:
+  - hack
+  - megacorp
+  rooms:
+  - town

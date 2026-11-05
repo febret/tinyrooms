@@ -278,6 +278,18 @@
         "faces": 7500
       },
       "simplify": false
+    },
+    {
+      "label": "tinytown-office-building",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature civic office building diorama, wide brick facade, teal awnings, central clock, tall arched windows, potted plants, isolated game asset, no text",
+      "output": "worlds/tinytown/props/office-building.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-office-building.png",
+        "seed": 97150,
+        "faces": 7500
+      },
+      "simplify": false
     }
   ]
 }

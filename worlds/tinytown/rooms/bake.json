@@ -395,6 +395,18 @@
         "seed": 96242,
         "steps": 30
       }
+    },
+    {
+      "label": "tinytown-office-preview",
+      "tool": "image",
+      "prompt": "isometric miniature diorama exterior of a wide cozy civic office building, warm brick and teal trim, three storeys, central brass clock above the door, striped awnings, tall arched windows, a tidy queue of potted plants, tiny notice board, single detached building on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
+      "output": "worlds/tinytown/rooms/preview-office-building.png",
+      "args": {
+        "width": 1024,
+        "height": 640,
+        "seed": 96450,
+        "steps": 30
+      }
     }
   ]
 }

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en" class="full-height">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hacker Collective</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="./hacker.css">
+    <link rel="stylesheet" href="./hacker-play.css">
+  </head>
+  <body class="hack-body">
+    <canvas id="fx-canvas" aria-hidden="true"></canvas>
+    <main class="hack-shell crt" id="hack-shell">
+      <p class="connection" id="connection" role="status">Waiting for Tinyrooms...</p>
+
+      <header class="hack-top">
+        <div class="hack-brand">
+          <span class="hack-cursor" aria-hidden="true"></span>
+          <span>HACKER COLLECTIVE</span>
+          <span class="hack-path" id="top-path">/ access terminal</span>
+        </div>
+        <div class="hack-status" aria-live="polite">
+          <span id="status-corp" class="hack-chip">NO TARGET</span>
+          <span id="status-timer" class="hack-chip clock" hidden>30:00</span>
+          <span id="status-bops" class="hack-chip" hidden>0 BOPS</span>
+        </div>
+      </header>
+
+      <section class="hack-screen" id="screen-boot" aria-label="Booting">
+        <div class="boot-panel">
+          <p class="hack-kicker">TinyTown darknet relay</p>
+          <h1 class="glitch-text" data-text="HACKER COLLECTIVE">HACKER COLLECTIVE</h1>
+          <ul class="boot-log" id="boot-log" aria-hidden="true"></ul>
+          <p class="boot-hint" id="boot-hint">Press any key or tap to continue.</p>
+          <button type="button" class="hack-btn primary boot-go" id="boot-go" disabled>CONNECT</button>
+        </div>
+      </section>
+
+      <section class="hack-screen" id="screen-corps" aria-labelledby="corps-title" hidden>
+        <div class="screen-head">
+          <div>
+            <p class="hack-kicker">Target board</p>
+            <h1 id="corps-title">Choose a megacorp</h1>
+          </div>
+          <p class="screen-note" id="corps-note">Five towers. One maths floor each. Grades two to four are sealed.</p>
+        </div>
+        <div class="corp-grid" id="corp-grid"></div>
+        <div class="resume-banner" id="resume-banner" hidden>
+          <span class="hack-kicker">Hack in progress</span>
+          <strong id="resume-title">—</strong>
+          <div class="resume-actions">
+            <button type="button" class="hack-btn" id="resume-go">RESUME</button>
+            <button type="button" class="hack-btn danger" id="resume-abandon">ABANDON</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="hack-screen" id="screen-floors" aria-labelledby="floors-title" hidden>
+        <button type="button" class="hack-back" id="floors-back">← back to targets</button>
+        <div class="floors-layout">
+          <div class="blueprint-stage">
+            <canvas id="floor-canvas" aria-label="Megacorp building blueprint"></canvas>
+            <div class="blueprint-hud">
+              <p class="hack-kicker" id="floors-corp">—</p>
+              <h1 id="floors-title">Blueprint</h1>
+              <p class="screen-note" id="floors-note">Floor 1 is the only floor that answers.</p>
+            </div>
+          </div>
+          <div class="floors-side">
+            <div class="floor-list" id="floor-list" role="list" aria-label="Floors"></div>
+            <div class="crew-pick">
+              <p class="hack-kicker">Optional support</p>
+              <h2>Bring a roommate?</h2>
+              <p id="crew-note" class="screen-note">They only change the reflex challenges. The maths stays the same.</p>
+              <div class="helper-grid" id="crew-helpers" role="group" aria-label="Choose a roommate"></div>
+              <div class="crew-actions">
+                <button type="button" class="hack-btn primary" id="crew-start">JACK IN</button>
+                <p class="fineprint" id="crew-fineprint"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="hack-screen" id="screen-map" aria-labelledby="map-title" hidden>
+        <div class="map-layout">
+          <div class="map-stage">
+            <div class="map-hud">
+              <div>
+                <p class="hack-kicker" id="map-floor">Floor 1</p>
+                <h1 id="map-title">Netmap</h1>
+              </div>
+              <p class="map-count" id="map-count">0 / 10 nodes clean</p>
+            </div>
+            <canvas id="map-canvas" aria-label="Network map"></canvas>
+            <p class="map-live" id="map-live" role="status" aria-live="polite"></p>
+          </div>
+          <aside class="map-side">
+            <div class="map-brief" id="map-brief"></div>
+            <div class="node-list" id="map-nodes" role="list"></div>
+            <div class="helper-strip" id="map-helper"></div>
+            <div class="map-actions">
+              <button type="button" class="hack-btn" id="map-leave">LEAVE TOWER</button>
+              <button type="button" class="hack-btn danger" id="map-abandon">ABANDON HACK</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="hack-screen" id="screen-node" aria-labelledby="node-title" hidden>
+        <div class="node-layout">
+          <div class="node-main">
+            <header class="node-head">
+              <div>
+                <p class="hack-kicker" id="node-kind">FIREWALL</p>
+                <h1 id="node-title">FW-01</h1>
+              </div>
+              <div class="node-head-actions">
+                <div class="screen-stepper" id="node-stepper" aria-label="Maths screen progress"></div>
+                <button type="button" class="hack-btn" id="node-exit">← MAP</button>
+              </div>
+            </header>
+            <div class="edu-stage" id="edu-stage"></div>
+            <div class="game-stage" id="game-stage" hidden></div>
+            <p class="node-feedback" id="node-feedback" role="status" aria-live="polite"></p>
+            <footer class="node-comments" id="node-comments" hidden>
+              <img id="node-comment-avatar" alt="" hidden>
+              <div class="nc-body">
+                <strong id="node-comment-name"></strong>
+                <span id="node-comment-text"></span>
+              </div>
+            </footer>
+          </div>
+        </div>
+      </section>
+
+      <section class="hack-screen" id="screen-result" aria-labelledby="result-title" hidden>
+        <div class="result-panel">
+          <p class="hack-kicker" id="result-kicker">Connection closed</p>
+          <h1 id="result-title" class="glitch-text" data-text="ACCESS GRANTED">ACCESS GRANTED</h1>
+          <p id="result-text" class="screen-note"></p>
+          <div class="result-stats" id="result-stats"></div>
+          <div class="result-props" id="result-props"></div>
+          <div class="result-helper" id="result-helper"></div>
+          <div class="result-actions">
+            <button type="button" class="hack-btn primary" id="result-again">BACK TO TARGETS</button>
+            <button type="button" class="hack-btn" id="result-close">CLOSE</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="./hacker.js"></script>
+  </body>
+</html>
