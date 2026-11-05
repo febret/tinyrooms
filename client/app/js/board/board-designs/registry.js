@@ -1,7 +1,7 @@
 // Generic diorama-board design registry.
 //
 // Core board plumbing only knows `board.type === "diorama"` plus a
-// `board.design` slug (e.g. "tinytown", "galaxy-vortex"). Specific looks live
+// `board.design` slug (e.g. "galaxy-vortex"). Specific looks live
 // in enabled mods and register here through their declared `boards` modules.
 
 import { withBase } from "../../base-path.js";

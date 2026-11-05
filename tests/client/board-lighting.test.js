@@ -18,7 +18,6 @@ import {
   selectPropLights,
   spriteLightingForPreset,
 } from "../../client/app/js/board/board-lighting.js";
-import { daylightForPhase, normalizeDayCycle } from "../../mods/tinytown/boards/daylight.js";
 
 test("presets cover darkness, night, dusk, day, dawn, and fluorescent with render tuning", () => {
   for (const name of ["darkness", "night", "dusk", "day", "dawn", "fluorescent"]) {
@@ -133,15 +132,7 @@ test("minimap shading is owned by the client recipe", () => {
   assert.deepEqual(minimapTint("unknown"), { color: "#ffffff", level: 1 });
 });
 
-test("the diorama clock reads the unified lighting state", () => {
-  const cycle = normalizeDayCycle({
-    lighting_preset: { time_of_day: 0.25, day_cycle_seconds: 600 },
-  });
-  assert.equal(cycle.phase, 0.25);
-  assert.equal(cycle.duration, 600);
-});
-
-test("sprite lighting follows presets and diorama daylight", () => {
+test("sprite lighting follows presets", () => {
   assert.deepEqual(lightingTint(spriteLightingForPreset(LIGHTING_PRESETS.day)), {
     color: "#ffffff",
     opacity: 1,
@@ -153,12 +144,6 @@ test("sprite lighting follows presets and diorama daylight", () => {
     color: LIGHTING_PRESETS.darkness.spriteColor,
     opacity: LIGHTING_PRESETS.darkness.spriteOpacity,
   });
-
-  const day = lightingTint(spriteLightingForPreset(daylightForPhase(0.5)));
-  const dark = lightingTint(spriteLightingForPreset(daylightForPhase(0)));
-  assert.equal(day.opacity, 1);
-  assert.ok(dark.opacity < day.opacity);
-  assert.notEqual(day.color, dark.color);
   assert.equal(lightingTintKey({ color: "#123456", opacity: 0.5001 }), "#123456|0.50");
 });
 

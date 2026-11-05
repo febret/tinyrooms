@@ -255,57 +255,5 @@ class TutorialGridSnapshotTests(IntegrationTestCase):
             )
 
 
-class TinytownGridPlacementTests(IntegrationTestCase):
-    world_path = REPO_ROOT / "worlds" / "tinytown"
-    mods = "tinytown"
-
-    def test_purchased_houses_form_connected_free_clusters(self) -> None:
-        credentials = self.create_ready_account("grid-buyer")
-        account_id = self.account_id(credentials)
-        self.set_bops(account_id, 5000)
-        runtime = self.runtime()
-        account = runtime.profiles.get_account_by_id(account_id)
-        housing = runtime.mods["tinytown"].housing
-        first = housing.purchase(account, "micro-loft")
-        second = housing.purchase(account, "brick-studio")
-
-        for record in (first, second):
-            rooms = [runtime.world.rooms[room_id] for room_id in record.room_ids.values()]
-            positions = [room.grid for room in rooms]
-            self.assertTrue(all(position is not None for position in positions))
-            self.assertEqual(len(set(positions)), len(positions))
-            self.assertEqual({position[2] for position in positions}, {positions[0][2]})
-            reachable = {record.room_ids[housing.template_for(record).entry_key]}
-            frontier = list(reachable)
-            while frontier:
-                room = runtime.world.rooms[frontier.pop()]
-                for exit_definition in room.exits.values():
-                    if exit_definition.target_world_id is None and exit_definition.target_room_id in record.room_ids.values():
-                        if exit_definition.target_room_id not in reachable:
-                            reachable.add(exit_definition.target_room_id)
-                            frontier.append(exit_definition.target_room_id)
-            self.assertEqual(reachable, set(record.room_ids.values()))
-
-        first_positions = [runtime.world.rooms[room_id].grid for room_id in first.room_ids.values()]
-        second_positions = [runtime.world.rooms[room_id].grid for room_id in second.room_ids.values()]
-        closest = min(
-            max(abs(a[0] - b[0]), abs(a[1] - b[1]), abs(a[2] - b[2]))
-            for a in first_positions
-            for b in second_positions
-        )
-        self.assertGreater(closest, 1)
-
-        before = {
-            room_id: runtime.world.rooms[room_id].grid
-            for room_id in (*first.room_ids.values(), *second.room_ids.values())
-        }
-        self.restart()
-        after = {
-            room_id: self.runtime().world.rooms[room_id].grid
-            for room_id in (*first.room_ids.values(), *second.room_ids.values())
-        }
-        self.assertEqual(after, before)
-
-
 if __name__ == "__main__":
     unittest.main()

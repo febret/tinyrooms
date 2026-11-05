@@ -1,5 +1,0 @@
-id: tinytown
-label: TinyTown
-requires: []
-boards:
-  tinytown: tinytown.js

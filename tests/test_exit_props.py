@@ -10,7 +10,6 @@ from unittest.mock import Mock
 
 import yaml
 
-from mods.tinytown.content import load_house_templates
 from server.services.rooms import RoomService
 from tests.common import (
     REPO_ROOT,
@@ -175,27 +174,6 @@ class BakedExitTextureTests(unittest.TestCase):
                 self.assertLess(saturation, 12.0, f"{filename} must stay near grayscale so colors tint cleanly.")
 
 
-class TinytownHomeDoorTests(unittest.TestCase):
-    def test_every_default_home_design_has_a_builtin_exit_door(self) -> None:
-        world = load_test_world(REPO_ROOT / "worlds" / "tinytown")
-        blueprint = world.rooms["home-entry"]
-        door = blueprint.props["front-door"]
-        self.assertEqual(door.prop_id, "builtin:door")
-        self.assertEqual(door.exit_to, "front-door")
-        self.assertFalse(world.props["builtin:door"].decorative)
-        self.assertEqual(blueprint.exits["front-door"].target_room_id, "town")
-
-        templates = load_house_templates(
-            REPO_ROOT / "mods" / "tinytown" / "content" / "houses.yaml",
-            world,
-        )
-        self.assertTrue(templates)
-        for template in templates.values():
-            entry = template.room_for_key(template.entry_key)
-            self.assertIsNotNone(entry)
-            self.assertEqual(entry.blueprint, "home-entry")
-
-
 class RoomLayoutExitStyleTests(IntegrationTestCase):
     """In-game exit finish edits must persist and win over authored finishes."""
 
@@ -286,7 +264,7 @@ class RoomLayoutExitStyleTests(IntegrationTestCase):
 
 class ShippedExitCoverageTests(unittest.TestCase):
     def test_every_authored_exit_is_reachable_through_a_prop(self) -> None:
-        worlds = ("tutorial", "tiny-arcade", "tinytown")
+        worlds = ("tutorial", "tiny-arcade")
         for world_name in worlds:
             world_root = REPO_ROOT / "worlds"
             world = load_test_world(

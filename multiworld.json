@@ -28,7 +28,9 @@
       "enabled": true,
       "port": 5103,
       "instance_id": "tinytown-1",
-      "label": "TinyTown"
+      "label": "TinyTown",
+      "path": "../tinyrooms-workshop/worlds/tinytown",
+      "shared_content": "../tinyrooms-workshop"
     },
     {
       "id": "tiny-backrooms",

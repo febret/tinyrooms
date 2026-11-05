@@ -231,25 +231,26 @@ class RuntimeTestCase(unittest.TestCase):
     legacy_features = ""
     mods = "classrooms,core-boards"
     world_path: Path | None = None
+    shared_content: Path | None = None
 
     def setUp(self) -> None:
         self.temporary_directory = TemporaryDirectory()
         self.runtime_path = Path(self.temporary_directory.name)
-        self.config = load_config(
-            env={
-                "TRSERVER_NEW_ACCOUNT_PASSPHRASE": "open-sesame",
-                "TRSERVER_USERS_PATH": str(self.runtime_path / "users"),
-                "TRSERVER_WORLD_PATH": str(self.world_path or (REPO_ROOT / "worlds" / "tutorial")),
-                "TRSERVER_WORLDSTATE_PATH": str(self.runtime_path / "worldstate.sqlite3"),
-                "TRSERVER_FEATURES": self.features,
-                "TRSERVER_LEGACY_FEATURES": self.legacy_features,
-                "TRSERVER_MODS": self.mods,
-                "TRSERVER_TIMEZONE": "UTC",
-                "TRSERVER_HOST": "testserver",
-                "TRSERVER_PORT": "5000",
-            },
-            repo_root=REPO_ROOT,
-        )
+        environment = {
+            "TRSERVER_NEW_ACCOUNT_PASSPHRASE": "open-sesame",
+            "TRSERVER_USERS_PATH": str(self.runtime_path / "users"),
+            "TRSERVER_WORLD_PATH": str(self.world_path or (REPO_ROOT / "worlds" / "tutorial")),
+            "TRSERVER_WORLDSTATE_PATH": str(self.runtime_path / "worldstate.sqlite3"),
+            "TRSERVER_FEATURES": self.features,
+            "TRSERVER_LEGACY_FEATURES": self.legacy_features,
+            "TRSERVER_MODS": self.mods,
+            "TRSERVER_TIMEZONE": "UTC",
+            "TRSERVER_HOST": "testserver",
+            "TRSERVER_PORT": "5000",
+        }
+        if self.shared_content is not None:
+            environment["TRSERVER_SHARED_CONTENT_PATH"] = str(self.shared_content)
+        self.config = load_config(env=environment, repo_root=REPO_ROOT)
         self.config = replace(
             self.config,
             local_path=self.runtime_path,

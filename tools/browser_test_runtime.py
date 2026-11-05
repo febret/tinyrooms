@@ -30,7 +30,7 @@ def _link_or_copy(source: str, destination: str) -> None:
         shutil.copy2(source, destination)
 
 
-def _prepare_world(directory: Path) -> Path:
+def _prepare_world(directory: Path) -> tuple[Path, Path | None]:
     """Copy the tutorial world into the run directory so publishes stay isolated.
 
     The directory keeps the world id as its name because world-card scope is
@@ -48,12 +48,33 @@ def _prepare_world(directory: Path) -> Path:
         return build_scaled_world(directory, **parse_scale(scale_arg))
     world_name = os.environ.get("TR_TEST_WORLD", "tutorial").strip() or "tutorial"
     world_path = directory / world_name
+    shared_content = _shared_content_root(world_name)
     if not world_path.is_dir():
-        source = ROOT / "worlds" / world_name
+        source = _world_source(world_name)
         if not source.is_dir():
             raise FileNotFoundError(f"Unknown test world '{world_name}'.")
         shutil.copytree(source, world_path, copy_function=_link_or_copy)
-    return world_path
+    return world_path, shared_content
+
+
+def _workshop_root() -> Path:
+    return ROOT.parent / "tinyrooms-workshop"
+
+
+def _world_source(world_name: str) -> Path:
+    source = ROOT / "worlds" / world_name
+    if source.is_dir():
+        return source
+    return _workshop_root() / "worlds" / world_name
+
+
+def _shared_content_root(world_name: str) -> Path | None:
+    if (ROOT / "worlds" / world_name).is_dir():
+        return None
+    workshop = _workshop_root()
+    if (workshop / "worlds" / world_name).is_dir():
+        return workshop
+    return None
 
 
 def _prepare_fx(directory: Path) -> Path:
@@ -72,7 +93,7 @@ def main() -> None:
     directory = args.directory.resolve()
     if directory.parent != ROOT / ".browser-runtime" or not directory.is_dir():
         parser.error("Runtime directory must be an existing child of .browser-runtime.")
-    world_path = _prepare_world(directory)
+    world_path, shared_content = _prepare_world(directory)
     fx_path = _prepare_fx(directory)
     drafts_path = directory / "drafts"
     drafts_path.mkdir(parents=True, exist_ok=True)
@@ -81,7 +102,7 @@ def main() -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
-        config = load_config(env={
+        environment = {
             "TRSERVER_NEW_ACCOUNT_PASSPHRASE": "browser-test-invitation",
             "TRSERVER_USERS_PATH": str(directory / "users"),
             "TRSERVER_WORLDSTATE_PATH": str(directory / "worldstate.sqlite3"),
@@ -96,7 +117,10 @@ def main() -> None:
             "TRSERVER_TICK_SECONDS": os.environ.get("TRSERVER_TICK_SECONDS", "3600"),
             "TRSERVER_HOST": "127.0.0.1",
             "TRSERVER_PORT": str(port),
-        }, repo_root=ROOT)
+        }
+        if shared_content is not None:
+            environment["TRSERVER_SHARED_CONTENT_PATH"] = str(shared_content)
+        config = load_config(env=environment, repo_root=ROOT)
         config = replace(
             config,
             local_path=directory,

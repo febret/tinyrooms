@@ -8,8 +8,9 @@ client board renderers (``boards/``), and Python behaviour via an entrypoint
 
 Enabled mods come from ``TRSERVER_MODS`` (comma-separated names, or ``*`` for
 every installed mod); the search root comes from ``TRSERVER_MODS_PATH``
-(default ``./mods``). Worlds declare the mods they need through
-``requires_mods`` in ``world.yaml``.
+(default ``./mods``). A world's ``shared_content`` root contributes a second
+``mods/`` directory so workshop worlds can ship their required mods. Worlds
+declare the mods they need through ``requires_mods`` in ``world.yaml``.
 """
 
 from __future__ import annotations
@@ -181,17 +182,31 @@ class LoadedMods:
 
 
 def discover_mods(mods_path: Path | None) -> dict[str, ModDefinition]:
-    """Discover mod manifests under a directory, keyed by mod id."""
+    """Discover mod manifests under one directory, keyed by mod id."""
 
-    if mods_path is None or not mods_path.is_dir():
-        return {}
+    return discover_mods_in((mods_path,) if mods_path is not None else ())
+
+
+def discover_mods_in(mods_paths: Iterable[Path]) -> dict[str, ModDefinition]:
+    """Discover mod manifests across search roots, later roots winning clashes."""
+
     mods: dict[str, ModDefinition] = {}
-    for manifest in sorted(mods_path.glob("*/mod.yaml")):
-        definition = _load_manifest(manifest)
-        if definition.id in mods:
-            raise ContentError(f"Duplicate mod id '{definition.id}' under {mods_path}.")
-        mods[definition.id] = definition
+    for mods_path in mods_paths:
+        if not mods_path.is_dir():
+            continue
+        _ensure_importable(mods_path)
+        for manifest in sorted(mods_path.glob("*/mod.yaml")):
+            definition = _load_manifest(manifest)
+            mods[definition.id] = definition
     return mods
+
+
+def _ensure_importable(mods_path: Path) -> None:
+    """Make a mod root's parent importable so ``mods.<id>`` modules resolve."""
+
+    parent = str(mods_path.parent)
+    if parent not in sys.path:
+        sys.path.insert(0, parent)
 
 
 def _load_manifest(manifest: Path) -> ModDefinition:
@@ -269,14 +284,16 @@ def resolve_mods(config: AppConfig) -> tuple[ModDefinition, ...]:
 
     if not config.mods:
         return ()
-    available = discover_mods(config.mods_path)
+    mods_paths = config.mods_paths
+    available = discover_mods_in(mods_paths)
     if "*" in config.mods:
         selected = set(available)
     else:
         selected = set(config.mods)
     missing = sorted(selected - set(available))
     if missing:
-        raise ConfigError(f"Unknown mod(s) {missing} in {config.mods_path}.")
+        roots = ", ".join(str(path) for path in mods_paths) or "(none)"
+        raise ConfigError(f"Unknown mod(s) {missing} in {roots}.")
     resolved: dict[str, ModDefinition] = {}
     order: list[str] = []
 

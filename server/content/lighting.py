@@ -12,7 +12,7 @@ DEFAULT_LIGHTING_ENVIRONMENT = "day"
 # Single source of truth for the shared day-night cycle length, in seconds.
 # The diorama board and the server-driven room presets use the same wall-clock
 # epoch, so both stay in step. The client only keeps a fallback copy for rooms
-# whose snapshot carries no duration (see mods/tinytown/boards/daylight.js).
+# whose snapshot carries no duration; mod board renderers mirror this clock.
 DAY_NIGHT_CYCLE_SECONDS = 600.0
 
 

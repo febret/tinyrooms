@@ -53,6 +53,18 @@ def _thread_payload(context: CommandContext, thread_key: str) -> dict[str, objec
     return payload
 
 
+def _unreachable_line() -> str:
+    """Return a content-provided fallback line when no mod supplies one."""
+
+    try:
+        from mods.tinytown.roommate_messages import UNREACHABLE_LINES
+    except ImportError:
+        return "This peep isn't answering right now."
+    if not UNREACHABLE_LINES:
+        return "This peep isn't answering right now."
+    return UNREACHABLE_LINES[0]
+
+
 def _npc_peer_name(context: CommandContext, thread_key: str) -> str:
     for thread in context.phone_messages.list_threads(context.account.id):
         if thread.thread_key == thread_key:
@@ -144,14 +156,12 @@ async def phone_msg_command(context: CommandContext, command: ParsedCommand) -> 
                     except Exception:  # noqa: BLE001 - replies must never break sending
                         reply = None
             if reply is None:
-                from mods.tinytown.roommate_messages import UNREACHABLE_LINES
-
                 peer_name = _npc_peer_name(context, thread_key)
                 service.append_npc_exchange(
                     context.account,
                     thread_key,
                     outbound_body=text,
-                    inbound_body=UNREACHABLE_LINES[0],
+                    inbound_body=_unreachable_line(),
                     inbound_sender=peer_name,
                     world_id=world_id,
                     peer_name=peer_name,

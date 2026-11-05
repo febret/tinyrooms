@@ -268,6 +268,19 @@ class AppConfig:
         return self.repo_root / "data" / "cardsets"
 
     @property
+    def mods_paths(self) -> tuple[Path, ...]:
+        """Return every mod search root, shared content included."""
+
+        roots: list[Path] = []
+        if self.mods_path is not None:
+            roots.append(self.mods_path)
+        if self.shared_content_path is not None:
+            shared_mods = self.shared_content_path / "mods"
+            if shared_mods not in roots:
+                roots.append(shared_mods)
+        return tuple(roots)
+
+    @property
     def shared_cardsets_path(self) -> Path | None:
         """Return the shared cardsets directory, if a shared root is configured."""
 

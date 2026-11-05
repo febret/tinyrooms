@@ -47,8 +47,8 @@ through a generated map. See the canonical
 | Content and extensions | [server/content/](../server/content/), [mods](../server/mods.py), [behaviors](../server/behaviors/) |
 | Browser rendering and state | [app/js/](../client/app/js/), [app/css/](../client/app/css/) |
 | Embedded activities | [activities](../client/activities/), [client host](../client/app/js/activities.js), [server lifecycle](../server/services/activities.py) |
-| TinyTown Job Office | [jobs activity](../mods/tinytown/activities/jobs/), [run service](../mods/tinytown/job_runs.py), [hidden engine](../mods/tinytown/job_engine.py) |
-| Hacker Collective | [hacker activity](../mods/tinytown/activities/hacker/), [run service](../mods/tinytown/hacker_runs.py), [maths screens](../mods/tinytown/hacker_problems.py), [docs](hacker-activity.md) |
+| TinyTown Job Office | [jobs activity](../../tinyrooms-workshop/mods/tinytown/activities/jobs/), [run service](../../tinyrooms-workshop/mods/tinytown/job_runs.py), [hidden engine](../../tinyrooms-workshop/mods/tinytown/job_engine.py) |
+| Hacker Collective | [hacker activity](../../tinyrooms-workshop/mods/tinytown/activities/hacker/), [run service](../../tinyrooms-workshop/mods/tinytown/hacker_runs.py), [maths screens](../../tinyrooms-workshop/mods/tinytown/hacker_problems.py), [docs](../../tinyrooms-workshop/docs/hacker-activity.md) |
 | MC and world management channel | [server/mission_control/](../server/mission_control/), [mission-control UI](../client/mission-control/), [mc_client](../server/mc_client.py), [mc_api](../server/mc_api.py) |
 
 ### 2.1 Content and mods
@@ -134,21 +134,22 @@ module registers a factory, and core only routes diorama frames to it. A mod may
 also choose the design through `environment.diorama.design` in its
 `diorama_payload` when the room leaves `board_design` unset; an explicit room
 definition always wins. The tutorial world requires `core-boards`, while
-TinyTown's island renderer ships in the `tinytown` mod.
+TinyTown's island renderer ships in the `tinytown` mod in the sibling
+`tinyrooms-workshop` checkout.
 
 Mods may expose `start()`/`stop()` lifecycle hooks for background work. TinyTown
 uses this for autonomous household NPCs while its private multi-room houses,
 house purchases, visits, roommate classifieds, and community art sales live in
 the `tinytown` mod. The unbound
-[Tiny Mag activity](../mods/tinytown/activities/tiny-mag/) remains the property
+[Tiny Mag activity](../../tinyrooms-workshop/mods/tinytown/activities/tiny-mag/) remains the property
 and roommate magazine plus the submission desk. `.tinytown gallery` opens a
 generated art wing built by
-[gallery.py](../mods/tinytown/gallery.py) from the catalog plus active resident
+[gallery.py](../../tinyrooms-workshop/mods/tinytown/gallery.py) from the catalog plus active resident
 listings: rooms are cloned from authored gallery shells, connected with doors,
 and sized to hold four to eight works. Gallery surfaces are locked system-owned
 whiteboards; their personal actions buy or rehang a work into a selected owned
 home. The separate
-[Keyring activity](../mods/tinytown/activities/keyring/) (`keyring`, `keys`
+[Keyring activity](../../tinyrooms-workshop/mods/tinytown/activities/keyring/) (`keyring`, `keys`
 aliases) handles owned-home switching, lock management, and household review.
 Each owned home persists five roommate candidates; adopting one adds the peep to
 a chosen owned home and replenishes the classified batch. Community art is
@@ -314,7 +315,7 @@ unread count rides on the account payload. A recipient connected to the same
 world process gets a `phone.message` room event with no `room_id` (plus a toast
 when the thread is not open); anyone elsewhere or offline pulls the inbox on
 the next app open. TinyTown roommates generate their own hourly texts from
-[roommate_messages.py](../mods/tinytown/roommate_messages.py), called from the
+[roommate_messages.py](../../tinyrooms-workshop/mods/tinytown/roommate_messages.py), called from the
 household sim, and answer player texts with one canned reply each.
 
 The Phone's Guest Invite app asks the world server for a capability link and

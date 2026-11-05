@@ -743,7 +743,7 @@ def load_world_definition(
         elif not isinstance(raw_design, str) or not BOARD_DESIGN_RE.match(raw_design.strip()):
             raise ContentError(
                 f"Room '{room_id}' has unknown board_design '{raw_design}'. "
-                "Expected a lowercase slug like 'tinytown' or 'galaxy-vortex'."
+                "Expected a lowercase slug like 'galaxy-vortex'."
             )
         else:
             board_design = raw_design.strip()
