@@ -94,7 +94,7 @@ class BehaviorDispatcher(BehaviorIntentMixin):
     def register_peep(self, peep_id: str, script_path) -> None:
         """Attach a shared behavior script to a runtime-registered NPC peep.
 
-        Used by mods that materialize NPCs after world load (for example, the
+        Used by mods that materialize NPCs after world load (for example, a
         classrooms mod's generated students). The script is imported through the
         loader used at startup so module identity stays stable.
         """

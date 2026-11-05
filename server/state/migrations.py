@@ -309,7 +309,7 @@ CREATE TABLE IF NOT EXISTS room_cards (
 CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id);
 CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_at, stack_id);
 -- door_json: classroom: rooms store {style:{...},locked:bool,grade:int}; ordinary rooms keep {}.
--- idx_room_states_player_owner limits classrooms to one per account in this world DB.
+-- idx_room_states_player_owner limits purchased rooms to one per account in this world DB.
 -- initialized: missing/0 makes initialize_world() replace all cards AND reseed YAML props;
 -- 1 preserves player drops/layout across restarts and YAML edits.
 -- reset_room_cards() clears all stacks (including drops), sets 1, leaves layout alone.

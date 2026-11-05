@@ -229,7 +229,7 @@ class RuntimeTestCase(unittest.TestCase):
 
     features = "dev_sample_activity"
     legacy_features = ""
-    mods = "classrooms,core-boards"
+    mods = "core-boards"
     world_path: Path | None = None
     shared_content: Path | None = None
 

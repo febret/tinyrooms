@@ -231,9 +231,9 @@ may contribute content, props, activity iframes, board renderers, and Python
 `register(api)` behavior. A world's configured `shared_content` root also
 contributes its `mods/` directory, so workshop worlds can ship their required
 mods. Enable comma-separated names or `*` through `TRSERVER_MODS`. Worlds
-declare `requires_mods`; the scammon-academia world requires `classrooms`, the
-tutorial world requires `core-boards`, and the workshop TinyTown world requires
-`tinytown`.
+declare `requires_mods`; the tutorial world requires `core-boards`. Workshop
+worlds ship their required mods alongside their world files: Scammon Academia
+requires `classrooms` and TinyTown requires `tinytown`.
 
 ## Editors
 

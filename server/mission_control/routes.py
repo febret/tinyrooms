@@ -277,6 +277,13 @@ def _active_child_pid(record: object) -> int | None:
 def _is_stale_child(record: object, pid: int | None) -> bool:
     """Return True when a reporting process is not the record's active child."""
 
+    # Windows venv launchers (venv/Scripts/python.exe) spawn the real
+    # interpreter as a child with the same command line, so Popen.pid
+    # (launcher) never equals os.getpid() (real child). PID staleness
+    # cannot be enforced reliably there; instance_ids are unique per world
+    # so a stale world cannot hijack an unrelated record.
+    if os.name == "nt":
+        return False
     active = _active_child_pid(record)
     return active is not None and pid is not None and pid != active
 

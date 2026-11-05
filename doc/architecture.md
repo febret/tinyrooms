@@ -69,10 +69,11 @@ server picks the winner.
 
 [The mod loader](../server/mods.py) owns manifest discovery, enabled-mod selection,
 content merging, command registration, and runtime factories. Worlds declare
-`requires_mods`; startup rejects missing dependencies. The scammon-academia
-world requires [classrooms](../mods/classrooms/). Mod `prepare()` runs before
-world seeding so persisted dynamically materialized rooms can receive their
-seeds.
+`requires_mods`; startup rejects missing dependencies. Workshop worlds declare
+their required mods, which resolve from the configured `shared_content` root
+(for example, the workshop Scammon Academia world requires `classrooms`). Mod
+`prepare()` runs before world seeding so persisted dynamically materialized
+rooms can receive their seeds.
 
 Prop schema and file-wide scale settings are defined by
 [prop_definitions.py](../server/content/prop_definitions.py) (re-exported through
@@ -255,7 +256,7 @@ shortcuts, but it must not infer action authority from presentation.
   activity per account. Replacement/cancellation/travel/logout/disconnect must
   close the appropriate session. Mandatory onboarding has stronger UI gates
   than ordinary activity windows.
-- **Classrooms:** [classrooms](../mods/classrooms/) owns purchase,
+- **Classrooms:** the workshop `classrooms` mod owns purchase,
   customization, grade floors, materialization, and access checks. Entry shares
   the normal room-change path; persisted rooms are prepared before
   initialization/seeding. TinyTown houses, gallery rooms, and classrooms receive
