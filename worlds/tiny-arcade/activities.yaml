@@ -6,3 +6,4 @@ paintball:
   title: Paintball Arena
   aliases: [arena]
   rooms: [lobby]
+  start_cost: 20

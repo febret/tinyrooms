@@ -30,6 +30,34 @@ class TinyArcadeContentTests(unittest.TestCase):
         self.assertEqual(world.props["paintball-vending"].activity, "paintball")
         self.assertEqual(set(world.activities["chess"].rooms), {"lobby"})
         self.assertEqual(set(world.activities["paintball"].rooms), {"lobby"})
+        self.assertEqual(world.activities["paintball"].start_cost, 20)
+
+    def test_arcade_side_rooms_and_snack_dispensers_resolve(self) -> None:
+        world = load_test_world(WORLD_PATH, allow_legacy_whiteboards=True)
+        self.assertEqual(world.rooms["lobby"].grid, (0, 0, 0))
+        self.assertEqual(world.rooms["restroom"].grid, (1, 0, 0))
+        self.assertEqual(world.rooms["snack-bar"].grid, (-1, 0, 0))
+        self.assertEqual(set(world.rooms["lobby"].exits), {"west", "east"})
+        self.assertEqual(world.rooms["lobby"].exits["west"].target_room_id, "restroom")
+        self.assertEqual(world.rooms["lobby"].exits["east"].target_room_id, "snack-bar")
+        self.assertEqual(world.rooms["restroom"].exits["east"].target_room_id, "lobby")
+        self.assertEqual(world.rooms["snack-bar"].exits["west"].target_room_id, "lobby")
+        restroom_props = {prop.prop_id for prop in world.rooms["restroom"].props.values()}
+        self.assertIn("cottage-toilet", restroom_props)
+        self.assertIn("medicine-cabinet", restroom_props)
+        self.assertIn("apothecary-cabinet", restroom_props)
+        self.assertNotIn("arcade-medicine-cabinet", restroom_props)
+        for prop_id in ("arcade-snack-dresser", "arcade-drink-cooler", "arcade-sweet-shelf"):
+            definition = world.props[prop_id]
+            self.assertEqual(definition.behavior, "dispenser")
+            self.assertTrue(definition.content)
+            self.assertTrue(all(card_id.startswith("market-") for card_id in definition.content))
+
+    def test_prop_behavior_scripts_resolve(self) -> None:
+        world = load_test_world(WORLD_PATH, allow_legacy_whiteboards=True)
+        scripts = BehaviorLoader().load_world(world)
+        self.assertIn("builtin:dispenser", scripts.scripts)
+        self.assertTrue(any(script.startswith("behavior:") for script in scripts.scripts))
 
     def test_paintball_config_preserves_gameplay_values(self) -> None:
         world = load_test_world(WORLD_PATH, allow_legacy_whiteboards=True)
@@ -37,7 +65,8 @@ class TinyArcadeContentTests(unittest.TestCase):
         self.assertEqual(config["round_seconds"], 120)
         self.assertEqual(config["intermission_seconds"], 30)
         self.assertEqual(config["tick_hz"], 15)
-        self.assertEqual(list(config["rewards"]), [10, 5, 1])
+        self.assertEqual(list(config["rewards"]), [100, 50, 20])
+        self.assertNotIn("shot_energy_cost", config)
         self.assertNotIn("max_range", config)
         self.assertNotIn("peep_radius", config)
         bots = config["bots"]

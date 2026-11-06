@@ -8,9 +8,9 @@ const context = canvas.getContext("2d");
 const connection = document.querySelector("#connection");
 const statusView = document.querySelector("#status");
 const scoreboardView = document.querySelector("#scoreboard");
-const healthView = document.querySelector("#health");
-const energyView = document.querySelector("#energy");
-const paintView = document.querySelector("#paint");
+const streakView = document.querySelector("#streak");
+const streakCountView = document.querySelector("#streak-count");
+const streakBestView = document.querySelector("#streak-best");
 const podium = document.querySelector("#podium");
 
 const FIELD_IMAGES = {
@@ -51,6 +51,21 @@ let lastFrame = 0;
 let lastPodiumKey = "";
 let hitEffects = [];
 let seenHitIds = new Set();
+let seenProjectileIds = new Set();
+let projectilesPrimed = false;
+let lastSplatSoundAt = 0;
+let roundFeeRound = 0;
+let roundFeePending = 0;
+let roundFeeFailed = 0;
+let lastSoundPhase = "";
+let lastSoundRound = 0;
+let streakValue = 0;
+let streakBest = 0;
+let streakRound = 0;
+let streakSeeded = false;
+let lastLocalHits = 0;
+let lastLocalRespawn = 0;
+let streakPopTimer = 0;
 let respawnGlide = null;
 let respawnFade = null;
 
@@ -152,6 +167,159 @@ function reducedMotion() {
   return Boolean(host?.config?.reducedMotion);
 }
 
+function roundFeeStorageKey() {
+  return `tinyrooms:paintball:round-fee:${Tiny.activityId || "local"}`;
+}
+
+function storedPaidRound() {
+  try {
+    return Math.max(0, Number(window.sessionStorage.getItem(roundFeeStorageKey()) || 0));
+  } catch {
+    return 0;
+  }
+}
+
+function rememberPaidRound(round) {
+  try {
+    window.sessionStorage.setItem(roundFeeStorageKey(), String(round));
+  } catch {
+    // Storage is optional; the in-memory guard still covers this window.
+  }
+}
+
+roundFeeRound = storedPaidRound();
+
+function roundEntryCost() {
+  return Math.max(0, Number(host?.activity?.config?.start_cost ?? 0));
+}
+
+function roundEntryPaid(state) {
+  const cost = roundEntryCost();
+  if (cost <= 0) return true;
+  return roundFeeRound === Number(state?.round || 0);
+}
+
+function chargeRoundEntry(state) {
+  const cost = roundEntryCost();
+  const round = Number(state?.round || 0);
+  if (cost <= 0 || state?.phase !== "active" || round <= 0) return;
+  if (roundFeeRound === round || roundFeePending === round || roundFeeFailed === round) return;
+  roundFeePending = round;
+  void Tiny.command(".activity_start")
+    .then(reply => {
+      roundFeeRound = round;
+      rememberPaidRound(round);
+      const charged = Number(reply?.payload?.round?.charged || 0);
+      if (charged > 0) Tiny.toast(`Round entry cost ${charged} Energy.`, false, false);
+    })
+    .catch(error => {
+      roundFeeFailed = round;
+      Tiny.toast(error instanceof Error ? error.message : String(error), true);
+    })
+    .finally(() => {
+      if (roundFeePending === round) roundFeePending = 0;
+    });
+}
+
+function observeShots(state) {
+  const projectiles = Array.isArray(state?.projectiles) ? state.projectiles : [];
+  const localId = String(host?.user?.id || "");
+  if (!projectilesPrimed) {
+    for (const projectile of projectiles) seenProjectileIds.add(String(projectile?.id || ""));
+    projectilesPrimed = true;
+    return;
+  }
+  for (const projectile of projectiles) {
+    const id = String(projectile?.id || "");
+    if (!id || seenProjectileIds.has(id)) continue;
+    seenProjectileIds.add(id);
+    if (localId && String(projectile?.owner || "") === localId) Tiny.sound("paintballShot");
+  }
+  if (seenProjectileIds.size > 512) {
+    seenProjectileIds = new Set(projectiles.map(projectile => String(projectile?.id || "")));
+  }
+}
+
+function announceRoundSound(state) {
+  const phase = String(state?.phase || "");
+  const round = Number(state?.round || 0);
+  if (phase === "active" && round > 0 && (lastSoundPhase !== "active" || lastSoundRound !== round)) {
+    Tiny.sound("paintballRound");
+    seenProjectileIds.clear();
+    projectilesPrimed = false;
+  } else if (phase !== "active" && lastSoundPhase === "active") {
+    Tiny.sound("success");
+  }
+  lastSoundPhase = phase;
+  lastSoundRound = round;
+}
+
+function showStreakPop(amount) {
+  if (reducedMotion() || !streakView) return;
+  streakView.querySelector(".paint-streak-pop")?.remove();
+  const pop = document.createElement("span");
+  pop.className = "paint-streak-pop";
+  pop.textContent = `+${amount}`;
+  pop.setAttribute("aria-hidden", "true");
+  streakView.append(pop);
+  clearTimeout(streakPopTimer);
+  streakPopTimer = window.setTimeout(() => pop.remove(), 850);
+}
+
+function setStreak(value, { bump = 0, reset = false, silent = false } = {}) {
+  if (!streakView || !streakCountView || !streakBestView) return;
+  const previous = streakValue;
+  streakValue = Math.max(0, Number(value) || 0);
+  streakBest = Math.max(streakBest, streakValue);
+  streakCountView.textContent = String(streakValue);
+  streakBestView.textContent = `Best ${streakBest}`;
+  streakView.dataset.streak = String(streakValue);
+  streakView.setAttribute("aria-label", `Hit streak: ${streakValue}`);
+  streakView.classList.toggle("is-hot", streakValue >= 3);
+  streakView.classList.toggle("is-blazing", streakValue >= 5);
+  streakView.classList.toggle("is-legendary", streakValue >= 10);
+  if (silent) return;
+  if (reset && previous > 0) {
+    streakView.classList.remove("is-reset");
+    void streakView.offsetWidth;
+    streakView.classList.add("is-reset");
+  }
+  if (bump > 0) {
+    streakView.classList.remove("is-bump");
+    void streakView.offsetWidth;
+    streakView.classList.add("is-bump");
+    showStreakPop(bump);
+  }
+}
+
+function updateHitStreak(state, me) {
+  const round = Number(state?.round || 0);
+  const score = (state.scoreboard || []).find(entry => String(entry?.id) === String(host?.user?.id));
+  const hits = Math.max(0, Number(score?.hits || 0));
+  const respawn = Math.max(0, Number(me?.respawn || 0));
+  if (!streakSeeded || round !== streakRound) {
+    streakRound = round;
+    lastLocalHits = hits;
+    lastLocalRespawn = respawn;
+    streakSeeded = true;
+    setStreak(0, { silent: true });
+    return;
+  }
+  if (respawn !== lastLocalRespawn) {
+    lastLocalRespawn = respawn;
+    lastLocalHits = hits;
+    setStreak(0, { reset: true });
+    return;
+  }
+  if (hits > lastLocalHits) {
+    const gained = hits - lastLocalHits;
+    lastLocalHits = hits;
+    setStreak(streakValue + gained, { bump: gained });
+  } else if (hits < lastLocalHits) {
+    lastLocalHits = hits;
+  }
+}
+
 function drawShieldShimmer(x, y, bodyH) {
   const centerY = y - bodyH * 0.4;
   const seconds = performance.now() / 1000;
@@ -203,6 +371,10 @@ function observeHits(state) {
     if (!id || seenHitIds.has(id)) continue;
     seenHitIds.add(id);
     if (seenHitIds.size > 64) seenHitIds.delete(seenHitIds.values().next().value);
+    if (now - lastSplatSoundAt > 120) {
+      lastSplatSoundAt = now;
+      Tiny.sound("paintballSplat");
+    }
     hitEffects.push({
       id,
       x: Number(hit.x) || 0,
@@ -945,8 +1117,13 @@ function draw(timestamp) {
   [offsetX, offsetY] = cameraOffset(width, height, scale, focusX, focusY);
   const aim = me ? currentAimVector(me) : [1, 0];
   const move = currentMoveVector();
+  observeShots(state);
   if (me) {
-    sendInputPacket(`input:${Math.round(move[0] * 1000)}:${Math.round(move[1] * 1000)}:${Math.round(aim[0] * 1000)}:${Math.round(aim[1] * 1000)}:${currentFire() ? 1 : 0}`);
+    if (state.phase === "active" && !roundEntryPaid(state)) {
+      sendInputPacket("input:0:0:1000:0:0");
+    } else {
+      sendInputPacket(`input:${Math.round(move[0] * 1000)}:${Math.round(move[1] * 1000)}:${Math.round(aim[0] * 1000)}:${Math.round(aim[1] * 1000)}:${currentFire() ? 1 : 0}`);
+    }
   }
   const renderTime = serverClock.now() - INTERP_DELAY_MS;
   const drag = tuning(state).projectileDrag;
@@ -993,13 +1170,12 @@ function renderHud(state) {
     ? `Round ${state.round} — ${minutes}:${remainder}`
     : `Next round ${minutes}:${remainder}`;
   scoreboardView.textContent = (state.scoreboard || []).slice(0, 5).map(entry => `${entry.name} ${entry.hits}`).join(" · ");
-  const counters = host?.user?.counters || {};
-  healthView.textContent = `${Math.round(Number(counters.health || 0))}/${Math.round(Number(counters.maxHealth || 0))}`;
-  energyView.textContent = `${Math.round(Number(counters.energy || 0))}/${Math.round(Number(counters.maxEnergy || 0))}`;
   const me = (state.participants || []).find(entry => String(entry?.id) === String(host?.user?.id));
-  const paint = String(me?.color || "#ff4d6d");
-  paintView.textContent = paint;
-  paintView.style.color = paint;
+  if (me) {
+    chargeRoundEntry(state);
+    updateHitStreak(state, me);
+  }
+  announceRoundSound(state);
   const lastRound = state.last_round;
   if (state.phase === "active") {
     podium.hidden = true;

@@ -1,6 +1,7 @@
 lobby:
   label: The Arcade Lobby
-  description: Neon carpet, a wall of cabinets, and two machines ready to play. Select the
+  description: Neon carpet, glowing lounges, a wall of cabinets, and two machines ready
+    to play. The restrooms sit to one side and the snack bar to the other. Select the
     Chess Cabinet or the Paintball Vending Machine to start a game.
   board_type: basic
   board_image: lobby.png
@@ -9,6 +10,7 @@ lobby:
   - '#241a33'
   - '#ff5d8f'
   - '#4ee1c1'
+  grid: [0, 0, 0]
   props:
     lobby-wall:
       prop: builtin:whiteboard
@@ -241,6 +243,153 @@ lobby:
           y: 550
           size: 34
           color: '#ff5d8f'
+    lobby-rug:
+      prop: neon-grid-rug
+      pos:
+      - 50
+      - 52
+      - 0
+      scale: 2.4
+    lobby-sofa:
+      prop: neon-modular-sofa
+      pos:
+      - 22
+      - 80
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.8
+    lobby-pouf-a:
+      prop: neon-pouf-lounger
+      pos:
+      - 11
+      - 68
+      - 0
+      scale: 1.1
+    lobby-pouf-b:
+      prop: neon-pouf-lounger
+      pos:
+      - 33
+      - 84
+      - 0
+      scale: 1.1
+    lobby-lamp-a:
+      prop: neon-tube-floor-lamp
+      pos:
+      - 8
+      - 46
+      - 0
+      scale: 1.2
+    lobby-lamp-b:
+      prop: neon-tube-floor-lamp
+      pos:
+      - 92
+      - 46
+      - 0
+      scale: 1.2
+    lobby-heart:
+      prop: neon-sign-heart
+      pos:
+      - 50
+      - 8
+      - 0
+      scale: 1.4
+    lobby-shelf:
+      prop: neon-cube-shelf
+      pos:
+      - 84
+      - 70
+      - 0
+      scale: 1.2
+    lobby-plant-a:
+      prop: neon-snake-plant
+      pos:
+      - 94
+      - 84
+      - 0
+      scale: 1.2
+    lobby-plant-b:
+      prop: potted-bonsai
+      pos:
+      - 76
+      - 88
+      - 0
+      scale: 1.1
+    lobby-clock:
+      prop: neon-flip-clock
+      pos:
+      - 50
+      - 18
+      - 0
+      scale: 1.1
+    lobby-arcade-a:
+      prop: arcade-cabinet
+      pos:
+      - 14
+      - 24
+      - 0
+      scale: 1.2
+    lobby-arcade-b:
+      prop: arcade-cabinet
+      pos:
+      - 86
+      - 24
+      - 0
+      scale: 1.2
+    lobby-stool-a:
+      prop: neon-bar-stool
+      pos:
+      - 38
+      - 72
+      - 0
+      scale: 1
+    lobby-stool-b:
+      prop: neon-bar-stool
+      pos:
+      - 50
+      - 74
+      - 0
+      scale: 1
+    lobby-stool-c:
+      prop: neon-bar-stool
+      pos:
+      - 62
+      - 72
+      - 0
+      scale: 1
+    lobby-trash:
+      prop: galvanized-trashcan
+      pos:
+      - 4
+      - 88
+      - 0
+      scale: 1
+    lobby-restroom-door:
+      prop: builtin:door
+      pos:
+      - 4
+      - 30
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1.1
+      exit_to: west
+    lobby-snack-door:
+      prop: builtin:door
+      pos:
+      - 96
+      - 30
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1.1
+      exit_to: east
     chess-cabinet:
       prop: chess-cabinet
       pos:
@@ -286,9 +435,9 @@ lobby:
         round_seconds: 120
         intermission_seconds: 30
         rewards:
-        - 10
-        - 5
-        - 1
+        - 100
+        - 50
+        - 20
         arena_width: 140
         arena_height: 140
         player_speed: 24
@@ -315,7 +464,6 @@ lobby:
           shot_seconds:
           - 5.5
           - 9.5
-        shot_energy_cost: 2
         immunity_seconds: 5
         field_textures:
         - neon
@@ -327,7 +475,212 @@ lobby:
         - bunker
         - spool
         - rock
-  exits: {}
+  exits:
+    west:
+      label: To the restrooms
+      target: restroom
+    east:
+      label: To the snack bar
+      target: snack-bar
+restroom:
+  label: The Restroom Lounge
+  description: A neon-tiled restroom lounge with three statement toilets, a stocked
+    medicine cabinet, an apothecary cupboard, and a mirror that reflects only your
+    best angles.
+  board_type: basic
+  board_image: restroom.png
+  board_image_style: stretch
+  palette:
+  - '#10202b'
+  - '#7af7e4'
+  - '#ff8fd0'
+  grid: [1, 0, 0]
+  props:
+    restroom-door:
+      prop: builtin:door
+      pos:
+      - 50
+      - 94
+      - 0
+      rot:
+      - 0
+      - 180
+      - 0
+      scale: 1.1
+      exit_to: east
+    restroom-toilet-a:
+      prop: cottage-toilet
+      pos:
+      - 18
+      - 34
+      - 0
+      scale: 1.2
+    restroom-toilet-b:
+      prop: victorian-high-tank
+      pos:
+      - 50
+      - 34
+      - 0
+      scale: 1.2
+    restroom-toilet-c:
+      prop: disco-glam-toilet
+      pos:
+      - 82
+      - 34
+      - 0
+      scale: 1.2
+    restroom-cabinet-a:
+      prop: medicine-cabinet
+      pos:
+      - 25
+      - 12
+      - 0
+      scale: 1
+    restroom-cabinet-b:
+      prop: apothecary-cabinet
+      label: Apothecary Cupboard
+      description: Dozens of tiny labeled drawers holding mystery remedies. The labels
+        are legible only to whoever last needed them.
+      pos:
+      - 50
+      - 12
+      - 0
+      scale: 1.1
+    restroom-mirror:
+      prop: neon-infinity-mirror
+      pos:
+      - 75
+      - 12
+      - 0
+      scale: 1.1
+    restroom-towels:
+      prop: poolhouse-towel-shelf
+      pos:
+      - 92
+      - 62
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+    restroom-plant:
+      prop: snake-plant
+      pos:
+      - 8
+      - 72
+      - 0
+      scale: 1
+    restroom-trash:
+      prop: galvanized-trashcan
+      pos:
+      - 92
+      - 86
+      - 0
+      scale: 0.9
+  exits:
+    east:
+      label: Back to the lobby
+      target: lobby
+snack-bar:
+  label: The Snack Bar
+  description: A checkerboard snack bar glowing with neon, stocked with supermarket
+    snacks, chilled drinks, and desserts. Refuel before the next round.
+  board_type: basic
+  board_image: snack-bar.png
+  board_image_style: stretch
+  palette:
+  - '#2a1230'
+  - '#ffd166'
+  - '#ff5d8f'
+  grid: [-1, 0, 0]
+  props:
+    snack-door:
+      prop: builtin:door
+      pos:
+      - 50
+      - 94
+      - 0
+      rot:
+      - 0
+      - 180
+      - 0
+      scale: 1.1
+      exit_to: west
+    snack-counter:
+      prop: live-edge-slab-table
+      pos:
+      - 50
+      - 48
+      - 0
+      scale: 1.5
+    snack-dresser:
+      prop: arcade-snack-dresser
+      pos:
+      - 20
+      - 24
+      - 0
+      scale: 1.2
+    snack-cooler:
+      prop: arcade-drink-cooler
+      pos:
+      - 50
+      - 24
+      - 0
+      scale: 1.2
+    snack-sweets:
+      prop: arcade-sweet-shelf
+      pos:
+      - 80
+      - 24
+      - 0
+      scale: 1.25
+    snack-stool-a:
+      prop: neon-bar-stool
+      pos:
+      - 34
+      - 62
+      - 0
+      scale: 1
+    snack-stool-b:
+      prop: neon-bar-stool
+      pos:
+      - 50
+      - 64
+      - 0
+      scale: 1
+    snack-stool-c:
+      prop: neon-bar-stool
+      pos:
+      - 66
+      - 62
+      - 0
+      scale: 1
+    snack-lamp:
+      prop: neon-tube-floor-lamp
+      pos:
+      - 88
+      - 62
+      - 0
+      scale: 1.2
+    snack-plant:
+      prop: neon-snake-plant
+      pos:
+      - 10
+      - 72
+      - 0
+      scale: 1.1
+    snack-trash:
+      prop: galvanized-trashcan
+      pos:
+      - 88
+      - 86
+      - 0
+      scale: 0.9
+  exits:
+    west:
+      label: Back to the lobby
+      target: lobby
 bot-hangar:
   label: Paintbot Hangar
   description: A cramped offstage rack where the arena paintbots recharge between
@@ -338,5 +691,6 @@ bot-hangar:
   palette:
   - '#120a24'
   - '#4ea8ff'
+  grid: [10, 10, 0]
   props: {}
   exits: {}

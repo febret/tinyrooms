@@ -17,6 +17,7 @@ import time
 import urllib.request
 
 from server.fleet_config import entry_enabled, entry_path, entry_world_id
+from server.mission_control.supervisor import port_is_available
 
 
 REPO_ROOT = Path(__file__).resolve().parent
@@ -168,6 +169,31 @@ def _next_available_port(used_ports: set[int], start: int = DEFAULT_MC_PORT_MIN)
     if port > 65535:
         raise MultiworldConfigError("No free ports remain for the configured worlds.")
     return port
+
+
+def select_mc_port(
+    env: dict[str, str],
+    bind_host: str,
+    used_ports: set[int],
+) -> int:
+    """Return a bindable Mission Control port, honouring an explicit MC_PORT."""
+
+    explicit = env.get("MC_PORT")
+    if explicit is not None:
+        port = _parse_port(explicit, "MC_PORT")
+        if port in used_ports or not port_is_available(bind_host, port):
+            raise MultiworldConfigError(
+                f"Mission Control port {port} is already in use; "
+                "stop the conflicting process or set MC_PORT to a free port."
+            )
+        return port
+
+    port = DEFAULT_MC_PORT
+    while port <= 65535:
+        if port not in used_ports and port_is_available(bind_host, port):
+            return port
+        port += 1
+    raise MultiworldConfigError("No free port is available for Mission Control; set MC_PORT.")
 
 
 def load_multiworld_config(
@@ -409,7 +435,6 @@ def main(argv: list[str] | None = None) -> int:
     try:
         config = load_multiworld_config(config_path, env=env)
         validate_world_directories(config)
-        mc_port = _parse_port(env.get("MC_PORT", str(DEFAULT_MC_PORT)), "MC_PORT")
         public_host = (
             args.public_host if args.public_host is not None else env.get("PUBLIC_HOST", "")
         ).strip()
@@ -423,6 +448,17 @@ def main(argv: list[str] | None = None) -> int:
         bind_host = "127.0.0.1"
         public_host = "127.0.0.1"
     management_host = "127.0.0.1"
+
+    try:
+        mc_port = select_mc_port(env, bind_host, {spec.port for spec in config.worlds})
+    except MultiworldConfigError as exc:
+        print(f"Configuration error: {exc}", file=sys.stderr)
+        return 2
+    if "MC_PORT" not in env and mc_port != DEFAULT_MC_PORT:
+        print(
+            f"Mission Control port {DEFAULT_MC_PORT} is in use; using {mc_port} instead.",
+            file=sys.stderr,
+        )
 
     base_env = env.copy()
     passphrase = env.get("TRSERVER_NEW_ACCOUNT_PASSPHRASE") or "deadbeef"

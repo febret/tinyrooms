@@ -12,10 +12,13 @@
       <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
       <section class="paint-hud" aria-label="Arena status">
         <div class="paint-score"><strong id="status">Paintball Arena</strong><span id="scoreboard" class="muted"></span></div>
-        <div class="paint-meta">
-          <span class="badge">Health <strong id="health">—</strong></span>
-          <span class="badge">Energy <strong id="energy">—</strong></span>
-          <span class="badge">Color <strong id="paint">—</strong></span>
+        <div class="paint-streak" id="streak" data-streak="0" aria-live="polite" aria-label="Hit streak: 0">
+          <span class="paint-streak-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span class="paint-streak-copy">
+            <span class="paint-streak-label">Hit Streak</span>
+            <strong class="paint-streak-count" id="streak-count">0</strong>
+          </span>
+          <span class="paint-streak-best" id="streak-best">Best 0</span>
         </div>
       </section>
       <section class="paint-stage">

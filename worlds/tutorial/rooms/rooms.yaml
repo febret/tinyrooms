@@ -206,7 +206,11 @@ kitchen:
       scale: 0.708928928049511
     custom:0c461757-c53d-456c-856f-b3a33c7b24d6:
       prop: builtin:wall
-      wall_style: {texture: plaster, finish: none, main: '#f1eadb', accent: '#b9a889'}
+      wall_style:
+        texture: plaster
+        finish: none
+        main: '#f1eadb'
+        accent: '#b9a889'
       pos:
       - 0
       - 90
@@ -219,7 +223,11 @@ kitchen:
       exit_to: foyer
     custom:8d0d8a48-da16-4ace-8d4f-705852d7be0f:
       prop: builtin:wall
-      wall_style: {texture: plaster, finish: none, main: '#f1eadb', accent: '#b9a889'}
+      wall_style:
+        texture: plaster
+        finish: none
+        main: '#f1eadb'
+        accent: '#b9a889'
       pos:
       - 100
       - 90
@@ -623,8 +631,8 @@ basement:
     key0:
       prop: keys-cabinet
       pos:
-      - 50
-      - 25
+      - 48.88547576446257
+      - 10.475449927373305
       - 0
       scale: 1.4096059254134254
     bugs0:
@@ -638,47 +646,23 @@ basement:
       - 0
       - 2.4400000000004525
       - 0
-    custom:b6a14d3f-954e-40b5-9758-265ef4c21f80:
-      prop: builtin:wall
-      wall_style: {texture: stone, finish: none, main: '#f1eadb', accent: '#b9a889'}
-      pos:
-      - 20
-      - 0
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 0.996
-    custom:f68a4dcc-248b-4e61-92c1-9ade94625b9f:
-      prop: builtin:wall
-      wall_style: {texture: stone, finish: none, main: '#f1eadb', accent: '#b9a889'}
-      pos:
-      - 80
-      - 0
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 0.996
     custom:39290190-a99e-4bf5-ad69-6047263cbf99:
       prop: oak-stairwell-landing
       pos:
-      - 0
-      - 25
+      - 10
+      - 15
       - 0
       rot:
       - 0
-      - 354.9000000000019
+      - 180.5000000000024
       - 0
       scale: 1.4681454416819915
       exit_to: utility
     custom:0a762312-a66a-4a76-913b-96285b5bd532:
       prop: filing-cabinet
       pos:
-      - 95
-      - 15
+      - 75
+      - 5
       - 0
       rot:
       - 0
@@ -688,25 +672,14 @@ basement:
     custom:4e67b5df-2cf6-423f-be1a-be732b701fa7:
       prop: patchwork-rocking-chair
       pos:
-      - 95
-      - 100
+      - 85
+      - 85
       - 0
       rot:
       - 0
-      - 356.12000000000216
+      - 224.12000000000194
       - 0
       scale: 1.1365530026970612
-    custom:1a545e12-6c35-42ef-940a-fc920d451070:
-      prop: rococo-table-lamp
-      pos:
-      - 90
-      - 20
-      - 37.61101111211594
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1
     custom:dad9e65b-f67f-4df9-960c-bae7c478d1b6:
       prop: galvanized-trashcan
       pos:
@@ -727,6 +700,60 @@ basement:
       rot:
       - 0
       - 0
+      - 0
+      scale: 1
+    custom:3feacb35-c0cc-4431-aa7b-784e0bad1990:
+      prop: builtin:wall
+      pos:
+      - 50
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 3.9590337778412135
+      wall_style:
+        texture: stone
+        finish: none
+        main: '#f1eadb'
+        accent: '#b9a889'
+    custom:97e2ed74-4d00-4582-9b36-7338336b8111:
+      prop: builtin:wall
+      pos:
+      - 100
+      - 50
+      - 0
+      rot:
+      - 0
+      - 270
+      - 0
+      scale: 3.4007636182238548
+      wall_style:
+        texture: stone
+        finish: none
+        main: '#f1eadb'
+        accent: '#b9a889'
+    custom:e23e50a7-f26b-41b3-a055-013f39d62036:
+      prop: circuit-crash-cart
+      pos:
+      - 89.62933555620435
+      - 28.089253420077238
+      - 0
+      rot:
+      - 0
+      - 292.1999999999996
+      - 0
+      scale: 1
+    custom:8aecbc78-fe98-4008-9511-2a0df11a26d6:
+      prop: cryo-cooler
+      pos:
+      - 89.14182231188371
+      - 56.4295970741547
+      - 0
+      rot:
+      - 0
+      - 271.8000000000002
       - 0
       scale: 1
   exits:
@@ -866,7 +893,11 @@ garden:
       scale: 1.1924380586506707
     custom:ea32a20a-19c3-4c1e-9cf1-517d5a8a199b:
       prop: builtin:wall
-      wall_style: {texture: brick, finish: none, main: '#f1eadb', accent: '#b9a889'}
+      wall_style:
+        texture: brick
+        finish: none
+        main: '#f1eadb'
+        accent: '#b9a889'
       pos:
       - 15
       - 0
@@ -878,7 +909,11 @@ garden:
       scale: 0.997
     custom:8a39831f-40f4-4ee4-9b94-16c8b3d83136:
       prop: builtin:wall
-      wall_style: {texture: brick, finish: none, main: '#f1eadb', accent: '#b9a889'}
+      wall_style:
+        texture: brick
+        finish: none
+        main: '#f1eadb'
+        accent: '#b9a889'
       pos:
       - 95
       - 0

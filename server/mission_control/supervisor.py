@@ -46,7 +46,11 @@ def port_is_available(host: str, port: int) -> bool:
 
     family = socket.AF_INET6 if ":" in host else socket.AF_INET
     with socket.socket(family, socket.SOCK_STREAM) as sock:
-        if sys.platform != "win32":
+        if sys.platform == "win32" and host in {"0.0.0.0", "::"}:
+            # Windows lets a wildcard bind succeed alongside a specific-address
+            # listener, so reserve the wildcard port exclusively when probing it.
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        elif sys.platform != "win32":
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             sock.bind((host, port))

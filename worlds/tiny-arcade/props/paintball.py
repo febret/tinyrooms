@@ -13,7 +13,6 @@ import random
 from typing import Any
 
 from server.behaviors.events import PeepRef
-from server.content.cards import FOOD_TAGS
 from server.game.activity_arena import (
     hits_obstacle,
     move_body,
@@ -46,7 +45,6 @@ DEFAULT_OBSTACLE_COUNT = (3, 5)
 DEFAULT_SHOT_SPREAD = {1: 0.095, 2: 0.060, 3: 0.030}
 DEFAULT_BOT_WAYPOINT_SECONDS = (2.0, 5.0)
 DEFAULT_GUN_QUALITY = 1
-DEFAULT_SHOT_ENERGY_COST = 2.0
 DEFAULT_IMMUNITY_SECONDS = 5.0
 PAINT_COLORS = ("#ff4d6d", "#4ea8ff", "#5cf29a", "#ffe066", "#c77dff")
 DEFAULT_FIELD_TEXTURES = ("neon", "jungle", "desert", "urban")
@@ -166,13 +164,6 @@ def _obstacle_textures(config: dict[str, Any]) -> tuple[str, ...]:
         return DEFAULT_OBSTACLE_TEXTURES
     sprites = tuple(str(value).strip() for value in raw if str(value).strip())
     return sprites or DEFAULT_OBSTACLE_TEXTURES
-
-
-def _shot_energy_cost(config: dict[str, Any]) -> float:
-    try:
-        return max(0.0, float(config.get("shot_energy_cost", DEFAULT_SHOT_ENERGY_COST)))
-    except (TypeError, ValueError):
-        return DEFAULT_SHOT_ENERGY_COST
 
 
 def _immunity_seconds(config: dict[str, Any]) -> float:
@@ -523,7 +514,6 @@ def _public(state: dict[str, Any], now: datetime, config: dict[str, Any] | None 
             "move_accel": _config_float(config, "move_accel", DEFAULT_MOVE_ACCEL),
             "move_friction": _config_float(config, "move_friction", DEFAULT_MOVE_FRICTION),
             "fire_cooldown": _config_float(config, "fire_cooldown", DEFAULT_FIRE_COOLDOWN),
-            "shot_energy_cost": _shot_energy_cost(config),
             "immunity_seconds": _immunity_seconds(config),
         },
         "field": str(state.get("field", "") or ""),
@@ -792,39 +782,6 @@ def _spread_for_quality(quality: int) -> float:
 def _is_immune(participant: dict[str, Any], now: datetime) -> bool:
     immune = _parse_timestamp(participant.get("immune_until"))
     return immune is not None and now < immune
-
-
-def _food_candidates(context) -> list[tuple[str, str, float]]:
-    candidates: list[tuple[str, str, float]] = []
-    for card_id in context.card_ids:
-        view = context.card_definition(card_id)
-        if view is None or view.effect != "energy":
-            continue
-        tags = view.tags if isinstance(view.tags, frozenset) else frozenset(view.tags or ())
-        if not (FOOD_TAGS & tags):
-            continue
-        try:
-            amount = float(view.amount or 0.0)
-        except (TypeError, ValueError):
-            amount = 0.0
-        if amount <= 0:
-            continue
-        candidates.append((card_id, str(view.label or card_id), amount))
-    return candidates
-
-
-def _auto_eat_food(context, participant: dict[str, Any]) -> bool:
-    """Restore one random food card when a shooter reaches zero Energy."""
-
-    candidates = _food_candidates(context)
-    if not candidates:
-        return False
-    card_id, label, amount = random.choice(candidates)
-    context.remove_card(card_id, 1)
-    context.apply_counter("energy", amount)
-    context.feedback(f"You ate {label} (+{amount:.0f} Energy).", "info")
-    participant["ate_at"] = context.now.isoformat()
-    return True
 
 
 def _move_tuning(config: dict[str, Any]) -> tuple[float, float]:
@@ -1214,17 +1171,11 @@ def _warn_once(context, participant: dict[str, Any], now: datetime, message: str
 
 
 def _try_human_fire(context, state: dict[str, Any], participant: dict[str, Any], *, now: datetime) -> bool:
-    config = _config(context)
     if _is_immune(participant, now):
         _warn_once(context, participant, now, "Respawn shield is still up — no shooting yet.")
         return False
-    cost = _shot_energy_cost(config)
-    energy = context.counter("energy", 0.0)
-    if cost > 0 and energy < cost:
-        _warn_once(context, participant, now, f"Not enough Energy to shoot ({cost:.0f} required).")
-        return False
     aim = participant.get("aim") if isinstance(participant.get("aim"), list) else [1.0, 0.0]
-    fired = _fire_projectile(
+    return _fire_projectile(
         context,
         state,
         participant,
@@ -1233,13 +1184,6 @@ def _try_human_fire(context, state: dict[str, Any], participant: dict[str, Any],
         color=str(participant.get("color", "#ff4d6d")),
         quality=DEFAULT_GUN_QUALITY,
     )
-    if not fired:
-        return False
-    if cost > 0:
-        context.apply_counter("energy", -cost)
-        if energy - cost <= 0 and not _auto_eat_food(context, participant):
-            context.feedback("Out of Energy.", "info")
-    return True
 
 
 def _reset_human(human: dict[str, Any], slot: tuple[float, float]) -> None:

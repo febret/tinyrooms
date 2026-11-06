@@ -72,6 +72,9 @@
     jobPay: "job-payday.wav",
     jobPage: "job-page.wav",
     jobStamp: "job-stamp.wav",
+    paintballShot: "paintball-shot.wav",
+    paintballSplat: "paintball-splat.wav",
+    paintballRound: "paintball-round.wav",
   };
   const soundBuffers = new Map();
   const soundPending = new Map();

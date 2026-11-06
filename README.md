@@ -108,6 +108,8 @@ and manages the child servers. It uses development credentials and self-signed
 certificates; override `MC_PORT` or `PUBLIC_HOST` as needed, and per-world ports
 with `MULTIWORLD_<WORLD>_PORT` or the legacy `TUTORIAL_PORT`, `SCAMMON_PORT`,
 `ARCADE_PORT`, `TINYTOWN_PORT`, `BACKROOMS_PORT`, `VAULT_PORT`, and `BOBS_PORT`.
+If the default Mission Control port is busy, the launcher uses the next free port;
+an explicit `MC_PORT` must be free.
 
 ```bash
 ./start_multiworld.sh

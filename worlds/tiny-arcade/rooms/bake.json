@@ -11,6 +11,30 @@
         "seed": 95201,
         "steps": 32
       }
+    },
+    {
+      "label": "arcade-restroom-floor",
+      "tool": "image",
+      "prompt": "flat top-down neon restroom floor texture, pale mint and teal rounded tiles with cyan grout, tiny pink diamond accents, seamless, evenly lit, clean, no walls, no furniture, no text, no logos",
+      "output": "worlds/tiny-arcade/rooms/restroom.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 95202,
+        "steps": 32
+      }
+    },
+    {
+      "label": "arcade-snack-bar-floor",
+      "tool": "image",
+      "prompt": "flat top-down neon snack bar floor texture, warm cream and magenta checkerboard tiles with tiny cyan speckles, subtle retro diner style, seamless, evenly lit, no walls, no furniture, no text, no logos",
+      "output": "worlds/tiny-arcade/rooms/snack-bar.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 95203,
+        "steps": 32
+      }
     }
   ]
 }
