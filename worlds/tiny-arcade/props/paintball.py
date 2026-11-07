@@ -421,6 +421,7 @@ def _public_participants(state: dict[str, Any]) -> list[dict[str, Any]]:
                 "flash_until": participant.get("flash_until"),
                 "immune_until": participant.get("immune_until"),
                 "respawn": int(participant.get("respawn", 0) or 0),
+                "hit_streak": max(0, int(participant.get("hit_streak", 0) or 0)),
             }
         )
     rows.sort(key=lambda row: (row["kind"] != USER, str(row["name"]).casefold()))
@@ -528,7 +529,7 @@ def _public(state: dict[str, Any], now: datetime, config: dict[str, Any] | None 
     }
 
 
-_PARTICIPANT_DELTA_FIELDS = ("x", "y", "aim", "color", "flash_until", "immune_until", "respawn")
+_PARTICIPANT_DELTA_FIELDS = ("x", "y", "aim", "color", "flash_until", "immune_until", "respawn", "hit_streak")
 
 
 def _delta(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any] | None:
@@ -668,6 +669,7 @@ def _ensure_participant(
             "spawn": [float(x), float(y)],
             "shots": 0,
             "hits": 0,
+            "hit_streak": 0,
             "respawn": 0,
             "cleanliness": 100.0,
             "max_cleanliness": 100.0,
@@ -688,6 +690,7 @@ def _ensure_participant(
     participant.setdefault("respawn", 0)
     participant.setdefault("last_shot_at", None)
     participant.setdefault("immune_until", None)
+    participant.setdefault("hit_streak", 0)
     if now is not None:
         participant.setdefault("next_shot_at", None)
     return participant
@@ -959,6 +962,7 @@ def _record_hit(
 
 def _apply_hit(context, state: dict[str, Any], victim: dict[str, Any], x: float, y: float, color: str, now: datetime, source: object = None) -> None:
     victim["hits_taken"] = int(victim.get("hits_taken", 0) or 0) + 1
+    victim["hit_streak"] = 0
     victim["flash_until"] = (now + timedelta(milliseconds=650)).isoformat()
     if victim.get("kind") == USER:
         victim_ref = PeepRef(kind="user", peep_id=None, account_id=str(victim.get("id")))
@@ -1111,6 +1115,7 @@ def _advance_projectiles(
             owner = participants.get(str(projectile.get("owner")))
             if isinstance(owner, dict):
                 owner["hits"] = int(owner.get("hits", 0) or 0) + 1
+                owner["hit_streak"] = max(0, int(owner.get("hit_streak", 0) or 0)) + 1
                 scores = _participant_scores(state)
                 entry = scores.setdefault(str(owner.get("id")), {"name": owner.get("name", "Peep"), "hits": 0, "shots": 0, "bot": owner.get("kind") == BOT})
                 entry["hits"] = int(entry.get("hits", 0) or 0) + 1
@@ -1198,6 +1203,7 @@ def _reset_human(human: dict[str, Any], slot: tuple[float, float]) -> None:
     human["vy"] = 0.0
     human["shots"] = 0
     human["hits"] = 0
+    human["hit_streak"] = 0
     human["respawn"] = 0
     human["last_shot_at"] = None
     human["last_input_at"] = None

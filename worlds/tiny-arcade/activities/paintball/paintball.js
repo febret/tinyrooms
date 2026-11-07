@@ -61,10 +61,7 @@ let lastSoundPhase = "";
 let lastSoundRound = 0;
 let streakValue = 0;
 let streakBest = 0;
-let streakRound = 0;
 let streakSeeded = false;
-let lastLocalHits = 0;
-let lastLocalRespawn = 0;
 let streakPopTimer = 0;
 let respawnGlide = null;
 let respawnFade = null;
@@ -292,31 +289,17 @@ function setStreak(value, { bump = 0, reset = false, silent = false } = {}) {
   }
 }
 
-function updateHitStreak(state, me) {
-  const round = Number(state?.round || 0);
-  const score = (state.scoreboard || []).find(entry => String(entry?.id) === String(host?.user?.id));
-  const hits = Math.max(0, Number(score?.hits || 0));
-  const respawn = Math.max(0, Number(me?.respawn || 0));
-  if (!streakSeeded || round !== streakRound) {
-    streakRound = round;
-    lastLocalHits = hits;
-    lastLocalRespawn = respawn;
+function updateHitStreak(me) {
+  const serverStreak = Math.max(0, Number(me?.hit_streak || 0));
+  if (!streakSeeded) {
     streakSeeded = true;
-    setStreak(0, { silent: true });
+    setStreak(serverStreak, { silent: true });
     return;
   }
-  if (respawn !== lastLocalRespawn) {
-    lastLocalRespawn = respawn;
-    lastLocalHits = hits;
-    setStreak(0, { reset: true });
-    return;
-  }
-  if (hits > lastLocalHits) {
-    const gained = hits - lastLocalHits;
-    lastLocalHits = hits;
-    setStreak(streakValue + gained, { bump: gained });
-  } else if (hits < lastLocalHits) {
-    lastLocalHits = hits;
+  if (serverStreak > streakValue) {
+    setStreak(serverStreak, { bump: serverStreak - streakValue });
+  } else if (serverStreak < streakValue) {
+    setStreak(serverStreak, { reset: serverStreak === 0 });
   }
 }
 
@@ -1173,7 +1156,7 @@ function renderHud(state) {
   const me = (state.participants || []).find(entry => String(entry?.id) === String(host?.user?.id));
   if (me) {
     chargeRoundEntry(state);
-    updateHitStreak(state, me);
+    updateHitStreak(me);
   }
   announceRoundSound(state);
   const lastRound = state.last_round;
@@ -1220,7 +1203,7 @@ if (typeof Tiny.subscribeDelta === "function") {
     const state = currentState();
     if (!state) return;
     const now = performance.now();
-    if (now - lastHudAt > 100 || delta.seconds_left !== undefined || delta.phase !== undefined || delta.scoreboard !== undefined) {
+    if (now - lastHudAt > 100 || delta.seconds_left !== undefined || delta.phase !== undefined || delta.scoreboard !== undefined || delta.participants !== undefined || delta.participants_remove !== undefined) {
       lastHudAt = now;
       renderHud(state);
     }
