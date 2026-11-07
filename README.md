@@ -235,7 +235,8 @@ contributes its `mods/` directory, so workshop worlds can ship their required
 mods. Enable comma-separated names or `*` through `TRSERVER_MODS`. Worlds
 declare `requires_mods`; the tutorial world requires `core-boards`. Workshop
 worlds ship their required mods alongside their world files: Scammon Academia
-requires `classrooms` and TinyTown requires `tinytown`.
+requires `classrooms`, TinyTown requires `tinytown`, and the Tiny Vault
+requires `tinyvault`.
 
 ## Editors
 

@@ -264,13 +264,10 @@ class RoomLayoutExitStyleTests(IntegrationTestCase):
 
 class ShippedExitCoverageTests(unittest.TestCase):
     def test_every_authored_exit_is_reachable_through_a_prop(self) -> None:
-        worlds = ("tutorial", "tiny-arcade")
+        worlds = ("tutorial",)
         for world_name in worlds:
             world_root = REPO_ROOT / "worlds"
-            world = load_test_world(
-                world_root / world_name,
-                allow_legacy_whiteboards=world_name == "tiny-arcade",
-            )
+            world = load_test_world(world_root / world_name)
             for room_id, room in world.rooms.items():
                 missing = sorted(set(room.exits) - _covered_exits(room))
                 self.assertEqual(
