@@ -69,8 +69,11 @@ export function createPropViewerManager() {
   const viewers = new Map();
   let frame = null;
   let last = 0;
+  let paused = false;
 
   function tick(now) {
+    frame = null;
+    if (paused) return;
     const delta = Math.min(0.05, Math.max(0, (now - last) / 1000));
     last = now;
     for (const viewer of viewers.values()) viewer.render(delta);
@@ -78,7 +81,7 @@ export function createPropViewerManager() {
   }
 
   function start() {
-    if (frame !== null) return;
+    if (paused || frame !== null) return;
     last = performance.now();
     frame = requestAnimationFrame(tick);
   }
@@ -87,6 +90,18 @@ export function createPropViewerManager() {
     if (viewers.size === 0 && frame !== null) {
       cancelAnimationFrame(frame);
       frame = null;
+    }
+  }
+
+  function setPaused(value) {
+    const next = Boolean(value);
+    if (next === paused) return;
+    paused = next;
+    if (paused) {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+    } else if (viewers.size) {
+      start();
     }
   }
 
@@ -123,5 +138,5 @@ export function createPropViewerManager() {
     stopIfEmpty();
   }
 
-  return { sync, dispose };
+  return { sync, setPaused, dispose };
 }

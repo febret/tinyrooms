@@ -45,7 +45,8 @@ def _prepare_world(directory: Path) -> tuple[Path, Path | None]:
     if scale_arg:
         from tools.perf_world import build_scaled_world, parse_scale
 
-        return build_scaled_world(directory, **parse_scale(scale_arg))
+        world_path = build_scaled_world(directory, **parse_scale(scale_arg))
+        return world_path, _shared_content_root(world_path.name)
     world_name = os.environ.get("TR_TEST_WORLD", "tutorial").strip() or "tutorial"
     world_path = directory / world_name
     shared_content = _shared_content_root(world_name)

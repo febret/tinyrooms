@@ -152,16 +152,17 @@ export function fitBoardCamera(camera, controls, root, {
   controls.target.copy(center);
   camera.far = Math.max(1000, bounds.getSize(new THREE.Vector3()).length() * 200);
   camera.updateProjectionMatrix();
+  const projectedPoint = new THREE.Vector3();
   const projectedBounds = distance => {
     camera.position.copy(center).addScaledVector(direction, distance);
     camera.lookAt(center);
     camera.updateMatrixWorld();
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const corner of corners) {
-      const point = corner.clone().project(camera);
-      if (point.z < -1 || point.z >= 1) return null;
-      const x = (point.x + 1) * width / 2;
-      const y = (1 - point.y) * height / 2;
+      projectedPoint.copy(corner).project(camera);
+      if (projectedPoint.z < -1 || projectedPoint.z >= 1) return null;
+      const x = (projectedPoint.x + 1) * width / 2;
+      const y = (1 - projectedPoint.y) * height / 2;
       minX = Math.min(minX, x);
       maxX = Math.max(maxX, x);
       minY = Math.min(minY, y);

@@ -131,7 +131,10 @@ The server serves these modules under
 `/assets/mods/<mod_id>/boards/...` and lists them in `/api/bootstrap` and the
 World Editor catalog. The client imports them once at login through
 [the design registry](../client/app/js/board/board-designs/registry.js); each
-module registers a factory, and core only routes diorama frames to it. A mod may
+module registers a factory, and core only routes diorama frames to it. A design
+that finishes its own reveal or day-cycle animation may return
+`{ animating: false }` from `update()` so the client idles; omitting the flag
+keeps the previous always-live behaviour. A mod may
 also choose the design through `environment.diorama.design` in its
 `diorama_payload` when the room leaves `board_design` unset; an explicit room
 definition always wins. The tutorial world requires `core-boards`, while
@@ -222,6 +225,11 @@ projectiles.
 Activity guests are same-origin iframes. The host validates origin, activity ID,
 and source window before accepting bridge messages. Guest commands use the
 normal server command pipeline; iframe isolation must not bypass authority.
+A maximized activity window suspends room drawing and the small WebGL preview
+loops; scene state still diffs in the background so restoring the board needs
+only one frame. The host pushes `tinyrooms.host.state` only when the user,
+room, stickers, activity, or audio settings that guests consume change, so
+chat-only room updates do not clone the full payload into every iframe.
 Whiteboard activities save through the `activity.surface` bridge message only
 after the server resolves the bound prop instance from its own activity config.
 The paint activity auto-saves dirty boards every five seconds and flushes

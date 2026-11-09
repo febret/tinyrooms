@@ -6,6 +6,7 @@ import { createViewerStage } from "../viewer-stage.js";
 const CARD_WIDTH = 0.62;
 const CARD_HEIGHT = 0.88;
 const CARD_DEPTH = 0.005;
+const HALO_INTERVAL = 1 / 30;
 const textureLoader = new THREE.TextureLoader();
 
 function studioCanvas() {
@@ -189,6 +190,7 @@ function createCardViewer({ canvas, faceKey, backUrl, interactive, reducedMotion
   let disposed = false;
   let pending = 3;
   let elapsed = 0;
+  let haloClock = 0;
 
   function settle() {
     if (disposed) return;
@@ -262,10 +264,15 @@ function createCardViewer({ canvas, faceKey, backUrl, interactive, reducedMotion
     render(delta) {
       if (disposed) return;
       if (!reducedMotion && rarity.haloOpacity > 0) {
-        elapsed += delta;
-        const pulse = rarity.key === "legendary" ? 0.2 : rarity.key === "epic" ? 0.14 : 0.06;
-        halo.material.opacity = rarity.haloOpacity * (1 + Math.sin(elapsed * 1.7) * pulse);
-        rim.intensity = rimBase * (1 + Math.sin(elapsed * 1.7 + 1) * 0.16);
+        haloClock += delta;
+        if (haloClock >= HALO_INTERVAL) {
+          elapsed += haloClock;
+          haloClock = 0;
+          const pulse = rarity.key === "legendary" ? 0.2 : rarity.key === "epic" ? 0.14 : 0.06;
+          halo.material.opacity = rarity.haloOpacity * (1 + Math.sin(elapsed * 1.7) * pulse);
+          rim.intensity = rimBase * (1 + Math.sin(elapsed * 1.7 + 1) * 0.16);
+          stage.invalidate();
+        }
       }
       stage.renderFrame(delta, !interactive && !reducedMotion);
     },
@@ -287,8 +294,11 @@ export function createCardViewerManager() {
   const viewers = new Map();
   let frame = null;
   let last = 0;
+  let paused = false;
 
   function tick(now) {
+    frame = null;
+    if (paused) return;
     const delta = Math.min(0.05, Math.max(0, (now - last) / 1000));
     last = now;
     for (const viewer of viewers.values()) viewer.render(delta);
@@ -296,7 +306,7 @@ export function createCardViewerManager() {
   }
 
   function start() {
-    if (frame !== null) return;
+    if (paused || frame !== null) return;
     last = performance.now();
     frame = requestAnimationFrame(tick);
   }
@@ -305,6 +315,18 @@ export function createCardViewerManager() {
     if (viewers.size === 0 && frame !== null) {
       cancelAnimationFrame(frame);
       frame = null;
+    }
+  }
+
+  function setPaused(value) {
+    const next = Boolean(value);
+    if (next === paused) return;
+    paused = next;
+    if (paused) {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+    } else if (viewers.size) {
+      start();
     }
   }
 
@@ -341,5 +363,5 @@ export function createCardViewerManager() {
     stopIfEmpty();
   }
 
-  return { sync, dispose };
+  return { sync, setPaused, dispose };
 }

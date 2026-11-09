@@ -3,6 +3,7 @@ import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitContro
 import { disposeBoardTree } from "./board/board-helpers.js";
 
 const AUTO_ROTATION_SPEED = 0.6;
+const AUTO_ROTATION_INTERVAL = 1 / 30;
 
 /**
  * Shared WebGL stage for the small inspectors: renderer, camera, lights, optional
@@ -34,6 +35,12 @@ export function createViewerStage({ canvas, interactive, lighting = {} }) {
 
   let disposed = false;
   let extraRoots = [];
+  let dirty = true;
+  let autoElapsed = 0;
+
+  function invalidate() {
+    dirty = true;
+  }
 
   function frame(displayWidth, displayHeight) {
     const center = displayHeight * 0.5;
@@ -46,6 +53,7 @@ export function createViewerStage({ canvas, interactive, lighting = {} }) {
       controls.maxDistance = radius * 6;
       controls.update();
     }
+    invalidate();
   }
 
   function resize() {
@@ -55,11 +63,13 @@ export function createViewerStage({ canvas, interactive, lighting = {} }) {
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    invalidate();
   }
 
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
   resize();
+  controls?.addEventListener("change", invalidate);
 
   return {
     scene,
@@ -69,19 +79,38 @@ export function createViewerStage({ canvas, interactive, lighting = {} }) {
     renderer,
     frame,
     resize,
+    invalidate,
     /** Own extra GPU roots (e.g. loaded GLTF scenes) that the pivot tree does not reach. */
     addDisposable(...roots) {
       extraRoots = extraRoots.concat(roots);
     },
+    /**
+     * Draw only when something changed. Auto-rotating viewers step at 30fps so
+     * a small preview never runs a full 60fps WebGL pass in the background.
+     * A zero delta forces a draw, which loaders use after binding a texture.
+     */
     renderFrame(delta, autoRotate = false) {
-      if (disposed) return;
-      if (autoRotate) pivot.rotation.y += delta * AUTO_ROTATION_SPEED;
-      else controls?.update();
+      if (disposed) return false;
+      const force = !(delta > 0);
+      if (autoRotate && !force) {
+        autoElapsed += delta;
+        if (autoElapsed < AUTO_ROTATION_INTERVAL) return false;
+        pivot.rotation.y += autoElapsed * AUTO_ROTATION_SPEED;
+        autoElapsed = 0;
+        dirty = true;
+      } else if (!autoRotate) {
+        autoElapsed = 0;
+        controls?.update();
+      }
+      if (!dirty && !force) return false;
+      dirty = false;
       renderer.render(scene, camera);
+      return true;
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      controls?.removeEventListener("change", invalidate);
       observer.disconnect();
       controls?.dispose();
       disposeBoardTree([pivot, ...extraRoots]);

@@ -49,6 +49,8 @@ import { createBoardSprites } from "./board-sprites.js";
 import { createBoardCards } from "./board-cards.js";
 import { createBoardScheduler } from "./board-scheduler.js";
 import { createBoardRecovery } from "./board-recovery.js";
+import { snapCameraAzimuth, snapOrbitAngle } from "./board-orbit.js";
+import { resolveBoardQuality } from "./board-quality.js";
 import { playPropAnimation } from "./board-animations.js";
 import {
   DIORAMA_BOARD_TYPE,
@@ -67,6 +69,10 @@ const CARD_HALF_Z = 0.275;
 const BOARD_LIFT_PX = 0.015;
 const BOARD_LIFT_MIN = -4;
 const BOARD_LIFT_MAX = 6;
+const EMPTY_PROPS = [];
+const EMPTY_CARDS = [];
+const EMPTY_ACTORS = [];
+const EMPTY_BOARD = {};
 
 /** Convert an authoritative position into its board-space target, resting on the floor. */
 function targetPosition(position) {
@@ -90,18 +96,19 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
+  const quality = resolveBoardQuality();
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, stencil: true });
   } catch {
     overlay.textContent = "3D rendering is unavailable. Room cards and room exits remain available.";
     overlay.dataset.status = "error";
-    return { async render() {}, dispose() {} };
+    return { async render() {}, setActivityMaximized() {}, dispose() {} };
   }
   renderer.setClearColor("#417f7c", 0);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.maxPixelRatio));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = quality.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
   // The room is static between edits, so re-rendering the 2048x2048 depth
   // buffer every frame doubled the submitted geometry for no visual change.
   // `invalidateScene` marks it stale when geometry or a caster actually moves.
@@ -127,6 +134,7 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
   controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: null };
   controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE };
   const lights = createBoardLights(scene);
+  lights.sunlight.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
   const propLights = [];
   for (let index = 0; index < MAX_PROP_LIGHTS; index += 1) {
     const point = new THREE.PointLight("#ffd9a1", 0, PROP_LIGHT_DISTANCE, 2);
@@ -241,6 +249,18 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
   let needsRender = true;
   let shadowPasses = 0;
   let shadowInvalidations = 0;
+  let activityMaximized = false;
+  let cameraDirty = false;
+  let cameraWasActive = false;
+  let renderedSnapAzimuth = null;
+  let pendingSnapAzimuth = null;
+  let renderedAzimuth = 0;
+  let renderedRadius = 0;
+  let renderedPolar = 0;
+  let renderedOrbitReady = false;
+  let dioramaAnimates = false;
+  const orbitOffset = new THREE.Vector3();
+  const orbitSpherical = new THREE.Spherical();
   const recovery = createBoardRecovery({
     canvas,
     overlay,
@@ -259,7 +279,40 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
   const scheduler = createBoardScheduler({
     onFrame: animate,
     onError: recovery.frameError,
+    isHidden: () => document.hidden || activityMaximized,
   });
+
+  /** Camera orbit state around the controls target. */
+  function readOrbit() {
+    orbitOffset.subVectors(camera.position, controls.target);
+    return orbitSpherical.setFromVector3(orbitOffset);
+  }
+
+  /** Whether radius or pitch changed since the frame that was actually drawn. */
+  function cameraViewChanged(orbit) {
+    return !renderedOrbitReady
+      || Math.abs(orbit.radius - renderedRadius) > 1e-4
+      || Math.abs(orbit.phi - renderedPolar) > 1e-4;
+  }
+
+  function rememberCameraOrbit() {
+    const orbit = readOrbit();
+    renderedRadius = orbit.radius;
+    renderedPolar = orbit.phi;
+    renderedAzimuth = orbit.theta;
+    renderedOrbitReady = true;
+  }
+
+  /** Yaw of the camera around its orbit target, independent of controls' cache. */
+  function cameraAzimuth() {
+    return readOrbit().theta;
+  }
+
+  /** OrbitControls moves the camera eagerly; defer the draw decision to animate. */
+  function requestCameraFrame() {
+    cameraDirty = true;
+    scheduler.schedule();
+  }
 
   /** Request a color frame. Use invalidateScene when geometry actually moved. */
   function invalidate() {
@@ -773,7 +826,7 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
    */
   let fitFrame = 0;
   function scheduleFit() {
-    if (userAdjusted || fitFrame || disposed || roomTransition) return;
+    if (userAdjusted || fitFrame || disposed || roomTransition || activityMaximized) return;
     fitFrame = requestAnimationFrame(() => {
       fitFrame = 0;
       if (!userAdjusted && current) {
@@ -830,7 +883,18 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
   }
 
   function syncProps(entry, room) {
-    syncRecords(entry.props, (room.props || []).filter(prop => prop.visible !== false), {
+    const source = room.props || EMPTY_PROPS;
+    if (entry.propsSource !== source) {
+      entry.propsSource = source;
+      entry.visibleProps = source.filter(prop => prop.visible !== false);
+    }
+    const visible = entry.visibleProps || EMPTY_PROPS;
+    // Reducers preserve the room/prop array for unrelated events (chat,
+    // presence, counters). Re-walking every prop for each of those was pure
+    // CPU work with no scene change.
+    if (entry.propsSynced === visible) return;
+    entry.propsSynced = visible;
+    syncRecords(entry.props, visible, {
       keyOf: prop => prop.id,
       modelKeyOf: propModelKey,
       create: prop => addProp(entry, prop),
@@ -841,7 +905,10 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
   }
 
   function syncCards(entry, room) {
-    syncRecords(entry.cards, room.roomCards || [], {
+    const cards = room.roomCards || EMPTY_CARDS;
+    if (entry.cardsSynced === cards) return;
+    entry.cardsSynced = cards;
+    syncRecords(entry.cards, cards, {
       keyOf: card => card.stackId,
       modelKeyOf: card => card.definition?.imageUrl || "",
       create: card => cardLayer.add(entry, card),
@@ -852,17 +919,25 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
 
   function syncSprites(entry, room) {
     const enabled = Boolean(room.board?.spritesEnabled);
-    const actors = enabled ? (room.npcs || []) : [];
+    const actors = enabled ? (room.npcs || EMPTY_ACTORS) : EMPTY_ACTORS;
     const spriteScale = Number(room.board?.spriteScale) > 0 ? Number(room.board.spriteScale) : 1;
+    if (entry.spriteSource?.actors === actors && entry.spriteSource.scale === spriteScale) return;
+    entry.spriteSource = { actors, scale: spriteScale };
     spriteLayer.sync(entry, actors, spriteScale);
   }
 
   /** Replace the floor only when the board artwork or palette actually changes. */
   function applyFloor(entry, room) {
-    const board = room.board || {};
-    const dioramaData = room.environment?.diorama || null;
+    const board = room.board || EMPTY_BOARD;
+    const environment = room.environment || null;
+    if (entry.floor && entry.floor.boardRef === board && entry.floor.environmentRef === environment) return;
+    const dioramaData = environment?.diorama || null;
     const key = `${floorKey(board)}|${JSON.stringify(board.designOptions || {})}|${JSON.stringify(dioramaData)}`;
-    if (entry.floor && entry.floor.key === key) return;
+    if (entry.floor && entry.floor.key === key) {
+      entry.floor.boardRef = board;
+      entry.floor.environmentRef = environment;
+      return;
+    }
     invalidateScene();
     if (entry.floor) {
       if (entry.floor.diorama) {
@@ -875,20 +950,21 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
     }
     canvas.dataset.boardType = board.type || "";
     canvas.dataset.diorama = board.type === DIORAMA_BOARD_TYPE ? "true" : "false";
-    const design = board.type === DIORAMA_BOARD_TYPE ? resolveBoardDesign(board, room.environment) : "";
+    const design = board.type === DIORAMA_BOARD_TYPE ? resolveBoardDesign(board, environment) : "";
     canvas.dataset.boardDesign = design;
     if (board.type === DIORAMA_BOARD_TYPE) {
       const factory = getBoardDesign(design);
       if (!factory) {
         entry.diorama = null;
+        dioramaAnimates = false;
         const { group, floor, dispose } = makeFloor(board);
         entry.root.add(group);
-        entry.floor = { group, floor, dispose, key };
+        entry.floor = { group, floor, dispose, key, boardRef: board, environmentRef: environment };
         return;
       }
       const diorama = factory({
         board,
-        environment: room.environment,
+        environment,
         options: board.designOptions || {},
         requestShadow() {
           shadowInvalidations += 1;
@@ -901,13 +977,18 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
       entry.root.add(diorama.group);
       entry.pickables.push(...(diorama.pickables || []));
       entry.diorama = diorama;
-      entry.floor = { group: diorama.group, diorama, dispose: () => diorama.dispose(), key };
+      dioramaAnimates = true;
+      entry.floor = {
+        group: diorama.group, diorama, dispose: () => diorama.dispose(), key,
+        boardRef: board, environmentRef: environment,
+      };
       return;
     }
     entry.diorama = null;
+    dioramaAnimates = false;
     const { group, floor, dispose } = makeFloor(board);
     entry.root.add(group);
-    entry.floor = { group, floor, dispose, key };
+    entry.floor = { group, floor, dispose, key, boardRef: board, environmentRef: environment };
     if (board.dark) return;
     texture(entry, board.imageUrl, "floor artwork", map => {
       applyFloorImageStyle(map, board.imageStyle);
@@ -1029,6 +1110,7 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
     disposeEntry(current);
     canvas.dataset.fxCount = "0";
     current = null;
+    dioramaAnimates = false;
     selectionObject = null;
     editSelectionObject = null;
     selectionRing.visible = false;
@@ -1050,6 +1132,7 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
       root: new THREE.Group(), content, revision, pickables: [],
       props: new Map(), cards: new Map(), sprites: new Map(), floor: null, diorama: null,
       pending: 0, errors: new Set(), label: room.label,
+      propsSource: null, visibleProps: null, propsSynced: null, cardsSynced: null, spriteSource: null,
     };
     current = entry;
     boardLift = 0;
@@ -1093,6 +1176,16 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
     syncCards(entry, room);
     syncSprites(entry, room);
     status(entry);
+  }
+
+  let resizeFrame = 0;
+
+  function scheduleResize() {
+    if (disposed || resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0;
+      resize();
+    });
   }
 
   function resize() {
@@ -1354,12 +1447,12 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
   }
 
   controls.addEventListener("start", markAdjusted);
-  controls.addEventListener("change", invalidate);
+  controls.addEventListener("change", requestCameraFrame);
   canvas.addEventListener("pointerdown", pointerDown);
   canvas.addEventListener("pointermove", pointerMove);
   canvas.addEventListener("pointerup", pointerUp);
   canvas.addEventListener("pointercancel", pointerCancel);
-  const observer = new ResizeObserver(resize);
+  const observer = new ResizeObserver(scheduleResize);
   observer.observe(canvas.parentElement);
   resize();
   /**
@@ -1370,7 +1463,10 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
   function sceneIsAnimating() {
     if (!current) return false;
     if (roomTransition) return true;
-    if (current.diorama) return !blocked;
+    // Diorama designs own their animation loop. A design that returns
+    // `{ animating: false }` from update() can idle like a static room;
+    // designs that omit it keep the previous always-live behaviour.
+    if (current.diorama) return !blocked && dioramaAnimates;
     if (roomScared && !reducedMotion) return true;
     for (const record of current.props.values()) {
       if (record.fade) return true;
@@ -1386,19 +1482,20 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
 
   /** One scheduler frame: advance state, draw if needed, and report whether to continue. */
   function animate() {
-    if (disposed || recovery.renderFailed) return false;
+    if (disposed || recovery.renderFailed || activityMaximized) return false;
     recovery.resetFrameErrors();
     const delta = Math.min(clock.getDelta(), 0.1);
     if (current) {
-      const dioramaFrame = current.diorama?.update(delta, { reducedMotion });
       if (current.diorama) {
+        const dioramaFrame = current.diorama.update(delta, { reducedMotion });
+        dioramaAnimates = dioramaFrame?.animating !== false;
         current.diorama.setSceneLights(lights);
         applyDioramaDaylight(dioramaFrame?.daylight);
       }
       if (roomScared && !reducedMotion && !editEnabled) scaredShake(current.root, clock.elapsedTime);
       for (const record of current.props.values()) {
         for (const mixer of record.mixers) mixer.update(delta);
-        record.effectController?.update(delta);
+        if (record.effectController?.isAnimating?.() !== false) record.effectController?.update(delta);
         advancePropFade(record, delta);
       }
       advanceRecords(current.props.values(), delta, reducedMotion);
@@ -1415,10 +1512,30 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
     if (editSelectionObject && !editSelectionLocked()) {
       gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
     }
+    let controlsActive = false;
     if (!blocked) {
-      // OrbitControls only moves the camera when it is damping or being
-      // dragged, so its own change flag is the cheapest reliable signal.
-      if (controls.update()) invalidate();
+      controlsActive = controls.update();
+      const settling = cameraWasActive && !controlsActive;
+      if (controlsActive || cameraDirty || settling) {
+        cameraDirty = false;
+        const orbit = readOrbit();
+        const snapped = snapOrbitAngle(orbit.theta);
+        const crossed = renderedSnapAzimuth === null || Math.abs(snapped - renderedSnapAzimuth) > 1e-6;
+        // Snap only when a new 5° step is drawn (or once the camera settles).
+        // Snapping every damping frame would erase the tiny per-frame movement
+        // before it could accumulate into the next step.
+        if (crossed || settling) {
+          const moved = snapCameraAzimuth(camera, controls.target);
+          if (moved || crossed) {
+            pendingSnapAzimuth = snapOrbitAngle(cameraAzimuth());
+            needsRender = true;
+          }
+        } else if (cameraViewChanged(orbit)) {
+          // Zoom and pitch still render smoothly; only yaw is quantized.
+          needsRender = true;
+        }
+      }
+      cameraWasActive = controlsActive;
     }
     const animating = sceneIsAnimating();
     if (needsRender || animating) {
@@ -1427,9 +1544,14 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
       const shadowWillRender = renderer.shadowMap.needsUpdate;
       renderer.render(scene, camera);
       if (shadowWillRender) shadowPasses += 1;
+      rememberCameraOrbit();
+      if (pendingSnapAzimuth !== null) {
+        renderedSnapAzimuth = pendingSnapAzimuth;
+        pendingSnapAzimuth = null;
+      }
       outlines.render();
     }
-    return needsRender || animating;
+    return needsRender || animating || controlsActive;
   }
   scheduler.schedule();
 
@@ -1459,8 +1581,17 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
         cards: current ? current.cards.size : 0,
         sprites: current ? current.sprites.size : 0,
         pickables: current ? current.pickables.length : 0,
+        propsMoving: current ? [...current.props.values()].filter(record => record.target && !record.group.position.equals(record.target)).length : 0,
+        propsAnimated: current ? [...current.props.values()].filter(record => record.fade || record.animationActive).length : 0,
+        propsEffects: current ? [...current.props.values()].filter(record => record.effectController?.isAnimating?.()).length : 0,
+        roomScared,
         editEnabled,
         blocked,
+        controlsEnabled: controls.enabled,
+        activityMaximized,
+        dioramaAnimating: dioramaAnimates,
+        cameraAzimuth: cameraAzimuth(),
+        renderedAzimuth,
         shadowAutoUpdate: renderer.shadowMap.autoUpdate,
         shadowMapSize: lights.sunlight.shadow.mapSize.width,
         pixelRatio: renderer.getPixelRatio(),
@@ -1561,6 +1692,15 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
       // A handle press pushes its snapshot lazily, so a click with no drag owes no undo.
       return gesture ? { undo: gesture.began !== false } : null;
     },
+    /** Resume or suspend drawing while a full-screen activity window owns the view. */
+    setActivityMaximized(value) {
+      const next = Boolean(value);
+      if (next === activityMaximized) return;
+      activityMaximized = next;
+      if (next) return;
+      if (!userAdjusted && current && !roomTransition) fit(false);
+      invalidate();
+    },
     /** Release geometry, materials, textures, controls, listeners, and late-loading assets. */
     dispose() {
       if (disposed) return;
@@ -1569,8 +1709,10 @@ export function createBoard({ canvas, overlay, onSelect, onDropPoint, onEditSele
       revision += 1;
       scheduler.stop();
       observer.disconnect();
+      if (resizeFrame) cancelAnimationFrame(resizeFrame);
+      resizeFrame = 0;
       controls.removeEventListener("start", markAdjusted);
-      controls.removeEventListener("change", invalidate);
+      controls.removeEventListener("change", requestCameraFrame);
       controls.dispose();
       canvas.removeEventListener("pointerdown", pointerDown);
       canvas.removeEventListener("pointermove", pointerMove);

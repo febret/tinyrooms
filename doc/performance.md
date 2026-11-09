@@ -126,6 +126,48 @@ The browser budgets in [render.spec.js](../tests/browser/perf/render.spec.js)
 now assert the idle-tick, orbit-shadow, and selection-outline guarantees
 directly.
 
+### Occlusion, orbit, and mobile quality
+
+The board still diffs server state while an activity owns the screen, but it
+does not advance or draw frames behind a maximized activity window. The
+activity manager reports maximize/minimize/close through
+`.activity-maximized`, and the board resumes with one fitted frame. The same
+signal pauses the small prop/card WebGL preview loops, which previously drew
+every frame even when idle.
+
+Camera yaw orbiting is quantized to 5° steps: a drag only draws when it crosses
+a step, and the final settled camera snaps to the grid. Pitch and zoom remain
+continuous because they are not the dominant repeat-render path on touch
+devices. The damping tail still advances the controls, but it no longer
+submits frames.
+
+Diorama designs may return `{ animating: false }` from `update()` once their
+reveal or transition finishes. Designs that omit the flag keep the previous
+always-live behaviour; a static room still idles through `sceneIsAnimating()`.
+
+Coarse-pointer devices resolve a lower-cost board profile: pixel ratio capped
+at 1.5, a 1024px shadow map, and `PCFShadowMap` instead of `PCFSoftShadowMap`.
+Desktop keeps the 2x/2048px profile.
+
+The browser budgets now also assert that an open activity stops board ticks and
+that an orbit lands on a 5° step. Preview viewers render only when their
+camera/model changes and cap auto-rotation at 30fps.
+
+### Shell and activity hot paths
+
+- A burst of socket events is coalesced into one shell render per animation
+  frame; room activity deltas still bypass the shell entirely.
+- Activity host state is only pushed into an iframe when the fields activities
+  consume change. Chat-only room updates no longer clone the full room payload
+  per line.
+- Activity window geometry is cached and refreshed by ResizeObservers instead
+  of reading layout on every render.
+- The board skips prop/card/sprite diffing when the reducer preserved those
+  arrays for an unrelated event.
+- `inert` and connection-status writes are guarded so unchanged values do not
+  cause attribute mutations or observer passes.
+
+
 ## Known follow-up: per-instance prop geometry
 
 Resident **geometries** still track the prop count, because GLTFLoader parses

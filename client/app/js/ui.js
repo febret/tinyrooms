@@ -40,10 +40,10 @@ import { openTextPropDialog } from "./editing/text-prop-dialog.js";
 import { openSignDialog } from "./sign-dialog.js";
 import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createEditorActions } from "./editor-actions.js";
-import { createInertSweep, toggleClass } from "./inert.js";
+import { createInertSweep, setInert, toggleClass } from "./inert.js";
 import { createPeepsView } from "./peeps/peeps.js";
 import { BUBBLE_TIMEOUT_CHOICES, saveFullscreenIntent, savedFullscreenIntent } from "./preferences.js";
-import { escapeHtml, updateMarkup } from "./presentation.js";
+import { escapeHtml, markupMatches, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./props/prop-viewer.js";
 import { createCardViewerManager } from "./cards/card-viewer.js";
 import { createSocketClient, snapshotRefreshForEvent } from "./socket.js";
@@ -317,15 +317,12 @@ function beginMultiverseNavigation(url) {
 function applyMultiverseInert(state) {
   const active = state.views.main === "multiverse";
   for (const selector of [".topbar", ".sidebar", ".board-frame", ".bottom-stack", ".bubble-layer", "#action-log"]) {
-    const node = root.querySelector(selector);
-    if (node) node.inert = active;
+    setInert(root.querySelector(selector), active);
   }
-  if (activityLayer) activityLayer.inert = active;
+  setInert(activityLayer, active);
   if (active) {
-    const picker = $("#room-picker");
-    if (picker) picker.inert = true;
-    const container = $("#container-panel");
-    if (container) container.inert = true;
+    setInert($("#room-picker"), true);
+    setInert($("#container-panel"), true);
   }
 }
 
@@ -857,10 +854,14 @@ function renderActionLog(state) {
     root.classList.toggle("log-open", state.ui.actionLogVisible);
   }
   const log = $("#action-log");
+  const markup = actionLogMarkup(state);
+  // Reading scroll metrics forces layout; most chat/presence events do not
+  // change the log, so compare before touching the DOM.
+  if (markupMatches(log, markup)) return;
   const oldLines = log.querySelector(".log-lines");
   const atBottom = !oldLines || oldLines.scrollTop + oldLines.clientHeight >= oldLines.scrollHeight - 8;
   const oldTop = oldLines?.scrollTop || 0;
-  if (!updateMarkup(log, actionLogMarkup(state))) return;
+  if (!updateMarkup(log, markup)) return;
   log.querySelector("button").onclick = toggleLog;
   const lines = log.querySelector(".log-lines");
   lines.scrollTop = atBottom ? lines.scrollHeight : oldTop;
@@ -868,8 +869,10 @@ function renderActionLog(state) {
 
 function renderTopBar(state) {
   const connection = $("#connection-status");
-  connection.textContent = state.transport.message || "";
-  connection.dataset.status = state.transport.status || "idle";
+  const message = state.transport.message || "";
+  if (connection.textContent !== message) connection.textContent = message;
+  const transportStatus = state.transport.status || "idle";
+  if (connection.dataset.status !== transportStatus) connection.dataset.status = transportStatus;
   const top = $("#top-actions");
   const markup = topBarMarkup(state, canFullscreen);
   if (!updateMarkup(top, markup)) return;
@@ -1184,6 +1187,11 @@ const activities = createActivityManager({
   layer: activityLayer, pillRoot: activityPills, getState: () => store.getState(),
   onActivityBridge: bridgeActivity, onCommand: sendCommand,
   onStickerConfirm: confirmSticker, onToast: toast,
+  onMaximizedChange(maximized) {
+    board.setActivityMaximized(maximized);
+    propViewers.setPaused(maximized);
+    cardViewers.setPaused(maximized);
+  },
 });
 multiverseView = createMultiverseView({
   layer: $("#multiverse-layer"),
@@ -1432,15 +1440,65 @@ const markLeavingPage = () => {
 window.addEventListener("beforeunload", markLeavingPage);
 window.addEventListener("pagehide", markLeavingPage);
 window.addEventListener("pageshow", () => { leavingPage = false; });
-store.subscribe((state, action) => {
-  if (isTransientEditorAction(action)) { renderEditorTransient(state); return; }
+let renderFrame = 0;
+let pendingAction = null;
+let pendingFullRender = false;
+
+// Socket-driven actions arrive in bursts and can wait one frame. Local UI
+// actions render immediately: replacing an interactive form a frame after the
+// click can clear values the player already typed into it.
+const COALESCED_ACTIONS = new Set([
+  "room-event",
+  "snapshot",
+  "transport",
+  "result",
+  "bootstrap",
+  "profile-resync",
+  "session-replaced",
+]);
+
+function coalescesRender(action) {
+  return isTransientEditorAction(action) || COALESCED_ACTIONS.has(action?.type);
+}
+
+/** Coalesce a burst of socket events into one shell render per animation frame. */
+function scheduleRender(action) {
   if (action?.type === "room-event" && action.event?.type === "room.activity.delta") {
     // Realtime activity deltas must not trigger a full app render; the store
     // already merged them, so only stream the small payload to the activity.
     activities.streamActivityDelta(action.event.kind, action.event.delta);
     return;
   }
+  if (!coalescesRender(action)) {
+    if (renderFrame) {
+      cancelAnimationFrame(renderFrame);
+      renderFrame = 0;
+    }
+    pendingAction = null;
+    pendingFullRender = false;
+    void render(store.getState()).catch(showError);
+    return;
+  }
+  pendingAction = action || null;
+  if (!isTransientEditorAction(action)) pendingFullRender = true;
+  if (renderFrame) return;
+  renderFrame = requestAnimationFrame(runScheduledRender);
+}
+
+function runScheduledRender() {
+  renderFrame = 0;
+  const action = pendingAction;
+  const full = pendingFullRender;
+  pendingAction = null;
+  pendingFullRender = false;
+  const state = store.getState();
+  if (!full && isTransientEditorAction(action)) {
+    renderEditorTransient(state);
+    return;
+  }
   void render(state).catch(showError);
-});
+}
+
+store.subscribe((state, action) => scheduleRender(action));
 restoreFullscreenIntent();
 void loadApp().catch(showError);

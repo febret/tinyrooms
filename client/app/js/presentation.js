@@ -13,6 +13,11 @@ export function placeAt(node, left, top) {
 
 const rendered = new WeakMap();
 
+/** True when the node already shows exactly this markup. */
+export function markupMatches(node, markup) {
+  return rendered.get(node) === markup;
+}
+
 /** Replace changed markup only, preserving scroll and focus for live updates. */
 export function updateMarkup(node, markup) {
   if (rendered.get(node) === markup) return false;

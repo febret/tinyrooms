@@ -12,7 +12,7 @@
 //   * a chat message rebuilding every panel in the shell.
 
 import { expect, test as base } from "./fixtures.js";
-import { createReadyAccount } from "../helpers.js";
+import { createReadyAccount, travel } from "../helpers.js";
 import { installDomCounters, reportDomCounts } from "./dom-counters.js";
 import { diagnostics, record, requireDiagnostics, waitForProps } from "./helpers.js";
 
@@ -165,6 +165,13 @@ test.describe("board resource budgets", () => {
 test("a settled room stops ticking and orbiting does not rebuild shadows", async ({ page, runtime }) => {
   await createReadyAccount(page, runtime, "perfsettle");
   await waitForProps(page, PROPS);
+  // The entry hub is an animated diorama. Idle and orbit budgets describe a
+  // static room, so move to the authored living room before sampling.
+  await travel(page);
+  await expect(page.locator("#board-canvas")).toHaveAttribute("data-room-transition", "", { timeout: 20_000 });
+  // Entering the next room can trigger an authored cutscene, which overlays
+  // the board center while it plays.
+  await expect(page.locator("#cutscene-layer")).toHaveAttribute("data-state", "idle", { timeout: 30_000 });
   await page.waitForTimeout(500);
 
   const idleBefore = await requireDiagnostics(page);
@@ -185,12 +192,20 @@ test("a settled room stops ticking and orbiting does not rebuild shadows", async
   const startY = box.y + box.height * 0.5;
   await page.mouse.move(startX, startY);
   await page.mouse.down();
-  await page.mouse.move(startX + 80, startY + 20, { steps: 8 });
+  await page.mouse.move(startX + 80, startY, { steps: 8 });
   await page.mouse.up();
   await page.waitForTimeout(300);
 
   const orbited = await requireDiagnostics(page);
   expect(orbited.frames, "orbiting did not request a frame").toBeGreaterThan(idleAfter.frames);
+  const yawDegrees = (orbited.renderedAzimuth * 180) / Math.PI;
+  const offStep = Math.abs(yawDegrees - Math.round(yawDegrees / 5) * 5);
+  record("client/board/orbit-yaw-off-step", offStep, {
+    unit: "deg",
+    ceiling: 0.01,
+    note: "Camera yaw must land on a 5° step after an orbit gesture.",
+  });
+  expect(offStep, "camera yaw was not snapped to a 5° step").toBeLessThanOrEqual(0.01);
   const orbitShadowInvalidations = orbited.shadowInvalidations - idleAfter.shadowInvalidations;
   record("client/board/shadow-invalidations-orbit", orbitShadowInvalidations, {
     ceiling: 0,
@@ -200,6 +215,35 @@ test("a settled room stops ticking and orbiting does not rebuild shadows", async
     orbitShadowInvalidations,
     "camera movement dirtied the static shadow map",
   ).toBe(0);
+});
+
+test("an open activity window suspends board frames and resumes on close", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime, "perfactivity");
+  await waitForProps(page, 1);
+  await page.waitForTimeout(500);
+
+  await page.locator("#bops-toggle").click();
+  const activity = page.locator(".activity-window");
+  await expect(activity).toBeVisible();
+  await expect(page.locator("#app")).toHaveClass(/activity-maximized/);
+
+  const opened = await requireDiagnostics(page);
+  await page.waitForTimeout(700);
+  const paused = await requireDiagnostics(page);
+  const pausedTicks = paused.ticks - opened.ticks;
+  record("client/board/ticks-activity-open", pausedTicks, {
+    ceiling: 2,
+    note: "Animation ticks over 700ms while an activity window covers the board.",
+  });
+  expect(paused.activityMaximized, "the board was not told the activity is maximized").toBe(true);
+  expect(pausedTicks, `the board kept ticking ${pausedTicks} times behind an activity`).toBeLessThanOrEqual(2);
+
+  await activity.locator('[aria-label="Close activity"]').click();
+  await expect(activity).toHaveCount(0);
+  await expect(page.locator("#app")).not.toHaveClass(/activity-maximized/);
+  await expect
+    .poll(async () => (await diagnostics(page))?.ticks ?? 0, { timeout: 20_000 })
+    .toBeGreaterThan(paused.ticks);
 });
 
 test("selecting a prop uses stencil outlines without render targets or shadow updates", async ({ page, runtime }) => {

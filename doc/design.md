@@ -194,8 +194,10 @@ Main components (red labels above):
 #### The Board
 The Board is displayed in the middle of the game screen. The "Room View" label
 in the screenshot above is outdated and refers to the Board. A room is displayed as
-a floor that can be freely rotated / zoomed by the user. The floor may have 
-3D objects and other features on it (Props). At minimum, rooms can have a different 
+a floor that can be freely rotated / zoomed by the user. Camera yaw snaps to 5°
+steps while orbiting so a drag does not redraw the room on every pointer frame;
+pitch and zoom stay continuous. The floor may have
+3D objects and other features on it (Props). At minimum, rooms can have a different
 floor texture, but other more complex room displays are also supported.
 
 

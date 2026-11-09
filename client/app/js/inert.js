@@ -15,7 +15,7 @@ export function toggleClass(node, name, value) {
   node.classList.toggle(name, value);
 }
 
-function setInert(node, value) {
+export function setInert(node, value) {
   if (!node || node.inert === value) return;
   node.inert = value;
 }

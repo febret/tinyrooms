@@ -34,6 +34,49 @@ function hostPayload(state, activity) {
   };
 }
 
+/**
+ * Fields activities actually consume from the host payload. Chat-only room
+ * updates keep every one of these references stable, so a busy room does not
+ * clone the whole payload into an iframe for every line of chat.
+ */
+export function hostStateSignature(state, activity) {
+  const room = state?.room || null;
+  return {
+    user: state?.user || null,
+    stickers: state?.stickers || null,
+    soundEnabled: Boolean(state?.ui?.soundEnabled),
+    reducedMotion: Boolean(state?.ui?.reducedMotion),
+    roomId: room?.id || "",
+    roomLabel: room?.label || "",
+    roomDescription: room?.description || "",
+    roomBoard: room?.board || null,
+    roomEnvironment: room?.environment || null,
+    roomProps: room?.props || null,
+    roomOccupants: room?.occupants || null,
+    roomNpcs: room?.npcs || null,
+    roomInventory: room?.inventory || null,
+    roomCards: room?.roomCards || null,
+    roomActivities: room?.activities || null,
+    roomGrid: room?.grid || null,
+    roomMinimap: room?.minimap || null,
+    roomExits: room?.exits || null,
+    activityId: activity?.id || "",
+    activityKind: activity?.kind || "",
+    activityTitle: activity?.title || "",
+    activityAttention: Boolean(activity?.attention),
+    activityState: activity?.state || null,
+  };
+}
+
+/** True when two signatures point at the same host state. */
+export function sameHostState(a, b) {
+  if (!a || !b) return false;
+  for (const key of Object.keys(a)) {
+    if (a[key] !== b[key]) return false;
+  }
+  return true;
+}
+
 /** Host activity iframes and bridge strict same-origin messages to HTTP or WebSocket actions. */
 export function createActivityManager({
   layer,
@@ -43,6 +86,7 @@ export function createActivityManager({
   onCommand,
   onStickerConfirm,
   onToast,
+  onMaximizedChange,
 }) {
   const windows = new Map();
   const inertBackground = new Set();
@@ -50,9 +94,14 @@ export function createActivityManager({
   let modalEntry = null;
   let previousFocus = null;
   let titleSequence = 0;
+  let maximized = false;
 
   function syncMaximized() {
-    shell.classList.toggle("activity-maximized", [...windows.values()].some(entry => !entry.minimized));
+    const next = [...windows.values()].some(entry => !entry.minimized);
+    shell.classList.toggle("activity-maximized", next);
+    if (next === maximized) return;
+    maximized = next;
+    onMaximizedChange?.(next);
   }
 
   function bringToFront(entry) {
@@ -116,11 +165,15 @@ export function createActivityManager({
     attributeFilter: ["inert"],
   });
 
-  function sendState(entry) {
+  function sendState(entry, { force = false } = {}) {
+    const state = getState();
+    const signature = hostStateSignature(state, entry.activity);
+    if (!force && entry.hostSignature && sameHostState(entry.hostSignature, signature)) return;
+    entry.hostSignature = signature;
     entry.iframe.contentWindow?.postMessage({
       type: "tinyrooms.host.state",
       activityId: entry.activity.id,
-      state: hostPayload(getState(), entry.activity),
+      state: hostPayload(state, entry.activity),
     }, window.location.origin);
   }
 
@@ -136,11 +189,22 @@ export function createActivityManager({
   function syncPill(entry) {
     if (!entry.pill) return;
     const label = `Restore ${entry.activity.title}`;
-    entry.pill.hidden = !entry.minimized;
+    if (entry.pill.hidden !== !entry.minimized) entry.pill.hidden = !entry.minimized;
     if (entry.pill.textContent !== entry.activity.title) entry.pill.textContent = entry.activity.title;
     entry.pill.classList.toggle("attention", entry.minimized && Boolean(entry.activity.attention));
     if (entry.pill.getAttribute("aria-label") !== label) entry.pill.setAttribute("aria-label", label);
-    entry.pill.title = label;
+    if (entry.pill.title !== label) entry.pill.title = label;
+  }
+
+  const layout = { width: 0, height: 0, top: 0, topbarBottom: 0 };
+
+  /** Cache the two layout reads the activity windows depend on. */
+  function measureLayout() {
+    const bounds = layer.getBoundingClientRect();
+    layout.width = layer.clientWidth || bounds.width;
+    layout.height = layer.clientHeight || bounds.height;
+    layout.top = bounds.top;
+    layout.topbarBottom = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? bounds.top;
   }
 
   /**
@@ -150,7 +214,10 @@ export function createActivityManager({
    */
   function applyGeometry(entry) {
     if (entry.minimized) return;
-    const frame = { width: layer.clientWidth, height: layer.clientHeight };
+    const key = `${layout.width}x${layout.height}:${layout.top}:${layout.topbarBottom}:${entry.required ? 1 : 0}:${mobileLayout() ? 1 : 0}`;
+    if (entry.geometryKey === key) return;
+    entry.geometryKey = key;
+    const frame = layout;
     if (entry.required) {
       const margin = Math.min(8, frame.width / 4, frame.height / 4);
       const availableWidth = Math.max(0, frame.width - margin * 2);
@@ -167,23 +234,36 @@ export function createActivityManager({
     // bottom interaction bars; on desktop it starts below the topbar.
     const top = mobileLayout()
       ? 0
-      : clamp((document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? layer.getBoundingClientRect().top)
-        - layer.getBoundingClientRect().top + 8, 0, frame.height);
+      : clamp(frame.topbarBottom - frame.top + 8, 0, frame.height);
     entry.node.style.left = "0px";
     entry.node.style.top = `${top}px`;
     entry.node.style.width = `${frame.width}px`;
     entry.node.style.height = `${Math.max(0, frame.height - top)}px`;
   }
 
+  function refreshGeometry() {
+    measureLayout();
+    for (const entry of windows.values()) {
+      entry.geometryKey = "";
+      applyGeometry(entry);
+    }
+  }
+
   function updateControls(entry) {
+    const wasRequired = entry.required;
     entry.required = requiredSticker(entry.activity);
     if (entry.required) entry.minimized = false;
     entry.node.classList.toggle("required", entry.required);
-    entry.node.setAttribute("aria-modal", String(entry.required));
-    entry.min.hidden = entry.required;
-    entry.close.hidden = entry.required;
-    entry.node.hidden = entry.minimized;
-    entry.iframe.title = entry.activity.title;
+    const ariaModal = String(entry.required);
+    if (entry.node.getAttribute("aria-modal") !== ariaModal) entry.node.setAttribute("aria-modal", ariaModal);
+    if (entry.min.hidden !== entry.required) entry.min.hidden = entry.required;
+    if (entry.close.hidden !== entry.required) entry.close.hidden = entry.required;
+    if (entry.node.hidden !== entry.minimized) entry.node.hidden = entry.minimized;
+    if (entry.iframe.title !== entry.activity.title) entry.iframe.title = entry.activity.title;
+    if (wasRequired !== entry.required) {
+      entry.geometryKey = "";
+      if (entry.node.isConnected) applyGeometry(entry);
+    }
     syncPill(entry);
   }
 
@@ -281,6 +361,8 @@ export function createActivityManager({
       close: node.querySelector(".activity-close"),
       minimized: false,
       height: activity.kind === "sticker-designer" ? 640 : 560,
+      geometryKey: "",
+      hostSignature: null,
     };
     if (pillRoot) {
       entry.pill = document.createElement("button");
@@ -355,7 +437,7 @@ export function createActivityManager({
       } catch (error) {
         onToast(`Activity could not report ready: ${error instanceof Error ? error.message : String(error)}`, "error");
       }
-      sendState(entry);
+      sendState(entry, { force: true });
       return;
     }
     if (event.data.type === "tinyrooms.activity.before-close-result") {
@@ -503,9 +585,12 @@ export function createActivityManager({
     }
   });
 
-  new ResizeObserver(() => {
-    windows.forEach(entry => applyGeometry(entry));
-  }).observe(layer);
+  measureLayout();
+  const layerObserver = new ResizeObserver(refreshGeometry);
+  layerObserver.observe(layer);
+  const topbar = document.querySelector(".topbar");
+  const topbarObserver = topbar ? new ResizeObserver(refreshGeometry) : null;
+  topbarObserver?.observe(topbar);
 
   return {
     streamActivityDelta(kind, delta) {
@@ -522,8 +607,9 @@ export function createActivityManager({
       for (const activity of activities || []) {
         const entry = windows.get(activity.id) || makeWindow(activity);
         entry.activity = activity;
-        entry.title.textContent = activity.title;
-        entry.subtitle.textContent = activity.attention ? "Needs attention" : "";
+        if (entry.title.textContent !== activity.title) entry.title.textContent = activity.title;
+        const subtitle = activity.attention ? "Needs attention" : "";
+        if (entry.subtitle.textContent !== subtitle) entry.subtitle.textContent = subtitle;
         entry.node.classList.toggle("attention", Boolean(activity.attention));
         updateControls(entry);
         const nextUrl = new URL(activity.iframeUrl, window.location.origin).href;
