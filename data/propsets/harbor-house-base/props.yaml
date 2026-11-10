@@ -15,7 +15,7 @@ harbor-leather-club-chair:
   description: A brass-studded leather club chair, broken in by captains.
   model: harbor-leather-club-chair.glb
   decorative: true
-  scale: 1.1
+  scale: 0.9
   tags:
   - seating
   - chair
@@ -25,7 +25,7 @@ harbor-rope-stool:
   description: A dock-rope stool with a solid oak seat.
   model: harbor-rope-stool.glb
   decorative: true
-  scale: 0.7
+  scale: 0.45
   tags:
   - seating
   - stool
@@ -45,7 +45,7 @@ harbor-brass-desk-lamp:
   description: A banker's lamp in harbor brass.
   model: harbor-brass-desk-lamp.glb
   decorative: true
-  scale: 0.8
+  scale: 0.45
   tags:
   - lighting
   - lamp
@@ -54,7 +54,7 @@ harbor-cage-pendant:
   description: A caged bulkhead pendant from a retired trawler.
   model: harbor-cage-pendant.glb
   decorative: true
-  scale: 0.9
+  scale: 1.826
   tags:
   - lighting
   - lamp
@@ -63,7 +63,7 @@ harbor-mast-floor-lamp:
   description: A floor lamp shaped like a ship's mast.
   model: harbor-mast-floor-lamp.glb
   decorative: true
-  scale: 1.3
+  scale: 1.5
   tags:
   - lighting
   - lamp
@@ -81,7 +81,7 @@ harbor-coffee-table:
   description: A coffee table built like a ship's hatch.
   model: harbor-coffee-table.glb
   decorative: true
-  scale: 1.2
+  scale: 1
   tags:
   - table
   - furniture
@@ -90,7 +90,7 @@ harbor-side-table:
   description: A side table painted like a harbour buoy.
   model: harbor-side-table.glb
   decorative: true
-  scale: 0.9
+  scale: 0.55
   tags:
   - table
   - furniture
@@ -99,7 +99,7 @@ harbor-map-cabinet:
   description: A flat-drawer cabinet for charts and tide books.
   model: harbor-map-cabinet.glb
   decorative: true
-  scale: 1.2
+  scale: 0.9
   tags:
   - storage
   - cabinet
@@ -109,7 +109,7 @@ harbor-rope-bookshelf:
   description: Oak shelves hung on thick dock rope.
   model: harbor-rope-bookshelf.glb
   decorative: true
-  scale: 1.2
+  scale: 1.5
   tags:
   - storage
   - shelf
@@ -119,7 +119,7 @@ harbor-kit-chest:
   description: A sailor's chest with rope beckets.
   model: harbor-kit-chest.glb
   decorative: true
-  scale: 1.0
+  scale: 0.75
   tags:
   - storage
   - furniture
@@ -128,7 +128,7 @@ harbor-berth-bed:
   description: A snug berth bed with navy wool blankets.
   model: harbor-berth-bed.glb
   decorative: true
-  scale: 1.5
+  scale: 1.7
   tags:
   - bed
   - furniture
@@ -137,7 +137,7 @@ harbor-runner-rug:
   description: A long runner in navy and rope beige.
   model: harbor-runner-rug.glb
   decorative: true
-  scale: 1.5
+  scale: 2.045
   tags:
   - rug
   - decoration
@@ -146,7 +146,7 @@ harbor-brass-mirror:
   description: A round porthole mirror in polished brass.
   model: harbor-brass-mirror.glb
   decorative: true
-  scale: 0.8
+  scale: 0.757
   tags:
   - mirror
   - decoration
@@ -155,7 +155,7 @@ harbor-barometer:
   description: A brass barometer that takes the weather personally.
   model: harbor-barometer.glb
   decorative: true
-  scale: 0.6
+  scale: 0.4
   tags:
   - clock
   - decoration
@@ -164,7 +164,7 @@ harbor-knot-plant-pot:
   description: A fern in a pot wrapped with sailor knots.
   model: harbor-knot-plant-pot.glb
   decorative: true
-  scale: 0.7
+  scale: 0.504
   tags:
   - plant
   - decoration
@@ -173,7 +173,7 @@ harbor-signal-flags:
   description: A string of harbour signal flags for the wall.
   model: harbor-signal-flags.glb
   decorative: true
-  scale: 0.9
+  scale: 1.213
   tags:
   - decoration
 harbor-coat-stand:
@@ -181,7 +181,7 @@ harbor-coat-stand:
   description: An oak stand with pegs for oilskins.
   model: harbor-coat-stand.glb
   decorative: true
-  scale: 1.2
+  scale: 1.6
   tags:
   - storage
   - furniture

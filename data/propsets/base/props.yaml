@@ -7,7 +7,7 @@ city-trashcan:
   model: city-trashcan.glb
   decorative: true
   behavior: trashcan
-  scale: 1.0
+  scale: 0.784
   tags:
   - outdoor
   - trashcan
@@ -17,7 +17,7 @@ galvanized-trashcan:
   description: A classic ribbed silver can with a clattery lid. Oscar would approve.
   model: galvanized-trashcan.glb
   decorative: true
-  scale: 0.9
+  scale: 0.704
   tags:
   - trashcan
   - utility
@@ -28,7 +28,7 @@ mustard-armchair:
     Sit back, dude.
   model: mustard-armchair.glb
   decorative: true
-  scale: 1.0
+  scale: 0.9
   tags:
   - seating
   - chair
@@ -39,7 +39,7 @@ patchwork-rocking-chair:
     in the house. Rad.
   model: patchwork-rocking-chair.glb
   decorative: true
-  scale: 1.15
+  scale: 0.954
   tags:
   - seating
   - chair
@@ -61,7 +61,7 @@ teal-egg-chair:
     baby.
   model: teal-egg-chair.glb
   decorative: true
-  scale: 1
+  scale: 0.945
   tags:
   - seating
   - chair
@@ -72,7 +72,7 @@ window-daybed:
     up.
   model: window-daybed.glb
   decorative: true
-  scale: 1.3
+  scale: 1.7
   tags:
   - seating
   - bed
@@ -83,7 +83,7 @@ braided-rainbow-rug:
     rainbow.
   model: braided-rainbow-rug.glb
   decorative: true
-  scale: 1.5
+  scale: 1.7
   tags:
   - rug
   - decoration
@@ -94,7 +94,7 @@ persian-medallion-rug:
     own ASMR.
   model: persian-medallion-rug.glb
   decorative: true
-  scale: 1.45
+  scale: 2.2
   tags:
   - rug
   - decoration
@@ -115,7 +115,7 @@ sunset-runner-rug:
     for your floor.
   model: sunset-runner-rug.glb
   decorative: true
-  scale: 1.5
+  scale: 2.258
   tags:
   - rug
   - decoration
@@ -125,7 +125,7 @@ leaf-rug:
     for botanical flex.
   model: leaf-rug.glb
   decorative: true
-  scale: 1.4
+  scale: 1.806
   tags:
   - rug
   - decoration
@@ -135,7 +135,7 @@ mushroom-table-lamp:
     pure rad.
   model: mushroom-table-lamp.glb
   decorative: true
-  scale: 0.7
+  scale: 0.45
   tags:
   - lighting
   - lamp
@@ -144,7 +144,7 @@ blossom-paper-lantern:
   description: Cherry blossoms on paper, hanging like it is hosting a 90s anime opening.
   model: blossom-paper-lantern.glb
   decorative: true
-  scale: 0.95
+  scale: 0.503
   tags:
   - lighting
   - lantern
@@ -154,7 +154,7 @@ dragonfly-tiffany-lamp:
     back.
   model: dragonfly-tiffany-lamp.glb
   decorative: true
-  scale: 0.7
+  scale: 0.496
   tags:
   - lighting
   - lamp
@@ -164,7 +164,7 @@ purple-lava-lamp:
     it long enough and you are legally hypnotized.
   model: purple-lava-lamp.glb
   decorative: true
-  scale: 0.85
+  scale: 0.4
   tags:
   - lighting
   - lamp
@@ -174,7 +174,7 @@ brass-arc-floor-lamp:
     lamp, no notes.
   model: brass-arc-floor-lamp.glb
   decorative: true
-  scale: 1.35
+  scale: 1.6
   tags:
   - lighting
   - lamp
@@ -184,7 +184,7 @@ beeswax-candle-sconce:
     and they know it.
   model: beeswax-candle-sconce.glb
   decorative: true
-  scale: 0.6
+  scale: 0.347
   tags:
   - lighting
   - sconce
@@ -200,7 +200,7 @@ orange-gooseneck-lamp:
     internet decisions.
   model: orange-gooseneck-lamp.glb
   decorative: true
-  scale: 0.9
+  scale: 0.45
   tags:
   - lighting
   - lamp
@@ -216,7 +216,7 @@ brass-oil-lantern:
     has entered the chat.
   model: brass-oil-lantern.glb
   decorative: true
-  scale: 0.95
+  scale: 0.404
   tags:
   - lighting
   - lantern
@@ -233,7 +233,7 @@ cat-night-lamp:
     watching. Awww.
   model: cat-night-lamp.glb
   decorative: true
-  scale: 0.65
+  scale: 0.3
   tags:
   - lighting
   - lamp
@@ -252,7 +252,7 @@ rattan-side-table:
   description: It is giving breezy sunroom realness.
   model: rattan-side-table.glb
   decorative: true
-  scale: 0.75
+  scale: 0.557
   tags:
   - table
   - furniture
@@ -261,7 +261,7 @@ milking-stool-table:
   description: Fake it till you make it, apprentice.
   model: milking-stool-table.glb
   decorative: true
-  scale: 0.9
+  scale: 0.503
   tags:
   - stool
   - table
@@ -271,7 +271,7 @@ floral-nightstand:
   description: Stores your retainer and your biggest dreams.
   model: floral-nightstand.glb
   decorative: true
-  scale: 0.75
+  scale: 0.55
   tags:
   - nightstand
   - storage
@@ -283,7 +283,7 @@ live-edge-slab-table:
   description: Live-edgy.
   model: live-edge-slab-table.glb
   decorative: true
-  scale: 1.1
+  scale: 1
   tags:
   - table
   - furniture
@@ -292,7 +292,7 @@ terrazzo-tripod-table:
   description: It is terrazzo-core.
   model: terrazzo-tripod-table.glb
   decorative: true
-  scale: 1.0
+  scale: 0.55
   tags:
   - table
   - furniture
@@ -310,7 +310,7 @@ cactus-trio:
   description: A Spice Girls lineup, but spikier.
   model: cactus-trio.glb
   decorative: true
-  scale: 0.7
+  scale: 0.459
   tags:
   - plant
   - succulent
@@ -319,7 +319,7 @@ hanging-pothos:
   description: 70s plant energy that never once left.
   model: hanging-pothos.glb
   decorative: true
-  scale: 1.1
+  scale: 0.7
   tags:
   - plant
   - decoration
@@ -328,7 +328,7 @@ snake-plant:
   description: Please do not water it with soda.
   model: snake-plant.glb
   decorative: true
-  scale: 1.15
+  scale: 0.946
   tags:
   - plant
   - decoration
@@ -337,7 +337,7 @@ potted-bonsai:
   description: Twenty years of patience in one teacup-sized vibe.
   model: potted-bonsai.glb
   decorative: true
-  scale: 0.6
+  scale: 0.35
   tags:
   - plant
   - bonsai
@@ -346,7 +346,7 @@ venus-flytrap-pot:
   description: Feed me, Seymour. Nom nom nom.
   model: venus-flytrap-pot.glb
   decorative: true
-  scale: 0.65
+  scale: 0.3
   tags:
   - plant
   - decoration
@@ -355,7 +355,7 @@ pink-orchid:
   description: Elegant, dramatic, completely unbothered.
   model: pink-orchid.glb
   decorative: true
-  scale: 0.85
+  scale: 0.453
   tags:
   - plant
   - flower
@@ -364,7 +364,7 @@ sunflower-bucket:
   description: Summer said, hold my lemonade.
   model: sunflower-bucket.glb
   decorative: true
-  scale: 0.8
+  scale: 0.7
   tags:
   - plant
   - flower
@@ -373,7 +373,7 @@ tulip-window-box:
   description: Spring is doing the running man.
   model: tulip-window-box.glb
   decorative: true
-  scale: 1.1
+  scale: 0.9
   tags:
   - plant
   - flower
@@ -382,7 +382,7 @@ wicker-fern-basket:
   description: Chaotic good.
   model: wicker-fern-basket.glb
   decorative: true
-  scale: 0.75
+  scale: 0.796
   tags:
   - plant
   - fern
@@ -392,7 +392,7 @@ apothecary-cabinet:
     Nobody knows. That is the fun part.
   model: apothecary-cabinet.glb
   decorative: true
-  scale: 1.35
+  scale: 1.5
   tags:
   - storage
   - cabinet
@@ -403,7 +403,7 @@ china-hutch:
     Nana said so.
   model: china-hutch.glb
   decorative: true
-  scale: 1.2
+  scale: 1.613
   tags:
   - storage
   - cabinet
@@ -415,7 +415,7 @@ record-cabinet:
     bangers live.
   model: record-cabinet.glb
   decorative: true
-  scale: 1.2
+  scale: 0.854
   tags:
   - storage
   - cabinet
@@ -426,7 +426,7 @@ tall-wardrobe:
     Probably just coats.
   model: tall-wardrobe.glb
   decorative: true
-  scale: 1.8
+  scale: 1.65
   tags:
   - storage
   - wardrobe
@@ -452,7 +452,7 @@ medicine-cabinet:
   default_actions:
   - - Take medicine
     - .dispense @self
-  scale: 1
+  scale: 0.7
   tags:
   - storage
   - cabinet
@@ -464,7 +464,7 @@ filing-cabinet:
     coupon from 2003.
   model: filing-cabinet.glb
   decorative: true
-  scale: 1
+  scale: 1.3
   tags:
   - storage
   - cabinet
@@ -552,7 +552,7 @@ kitchen-dresser:
   default_actions:
   - - Take an ingredient
     - .dispense @self
-  scale: 1.5
+  scale: 1.605
   tags:
   - storage
   - shelf
@@ -563,7 +563,7 @@ butterfly-curio-cabinet:
     and slightly haunted.
   model: butterfly-curio-cabinet.glb
   decorative: true
-  scale: 1.3
+  scale: 1.506
   tags:
   - storage
   - cabinet
@@ -574,7 +574,7 @@ shoe-cabinet:
     They got this.
   model: shoe-cabinet.glb
   decorative: false
-  scale: 1.1
+  scale: 0.793
   tags:
   - storage
   - cabinet
@@ -586,7 +586,7 @@ gym-lockers:
     class and big ambition.
   model: gym-lockers.glb
   decorative: true
-  scale: 1.45
+  scale: 1.706
   tags:
   - storage
   - cabinet
@@ -597,7 +597,7 @@ oak-stairwell-landing:
     of the house.
   model: oak-stairwell-landing.glb
   decorative: true
-  scale: 1.5
+  scale: 1.942
   tags:
   - stairs
   - building
@@ -607,7 +607,7 @@ stone-spiral-stairwell:
     snack time.
   model: stone-spiral-stairwell.glb
   decorative: true
-  scale: 1.4
+  scale: 1.893
   tags:
   - stairs
   - building
@@ -616,7 +616,7 @@ white-cottage-stairwell:
   description: Whitewashed treads and turned spindles. Half-landing, full cottagecore.
   model: white-cottage-stairwell.glb
   decorative: true
-  scale: 1.5
+  scale: 1.8
   tags:
   - stairs
   - building
@@ -625,7 +625,7 @@ metal-industrial-stairwell:
   description: Open grated treads and pipe rails. Every step makes a satisfying clang.
   model: metal-industrial-stairwell.glb
   decorative: true
-  scale: 1.6
+  scale: 1.8
   tags:
   - stairs
   - building
@@ -635,7 +635,7 @@ garden-deck-stairwell:
     extra charge.
   model: garden-deck-stairwell.glb
   decorative: true
-  scale: 1.5
+  scale: 2.429
   tags:
   - stairs
   - building
@@ -662,7 +662,7 @@ glass-french-door:
   description: White mullions and divided glass. Light in, drama out.
   model: glass-french-door.glb
   decorative: true
-  scale: 1.4
+  scale: 1.7
   tags:
   - door
   - building
@@ -672,7 +672,7 @@ rustic-barn-door:
     heart.
   model: rustic-barn-door.glb
   decorative: true
-  scale: 1.4
+  scale: 1.7
   tags:
   - door
   - building
@@ -681,7 +681,7 @@ arched-iron-door:
   description: Arched oak with iron bands and a ring pull. Very castle, zero drafts.
   model: arched-iron-door.glb
   decorative: true
-  scale: 1.35
+  scale: 1.807
   tags:
   - door
   - building
@@ -691,7 +691,7 @@ beadboard-cottage-door:
     a mug of tea appear.
   model: beadboard-cottage-door.glb
   decorative: true
-  scale: 1.35
+  scale: 1.7
   tags:
   - door
   - interior
@@ -701,7 +701,7 @@ black-steel-glass-door:
   description: Slim black steel and glass. Suddenly your hallway is a design magazine.
   model: black-steel-glass-door.glb
   decorative: true
-  scale: 1.4
+  scale: 1.7
   tags:
   - door
   - interior
@@ -711,7 +711,7 @@ sliding-barn-door:
   description: Whitewashed planks on a black rail. Rustic, smooth-sliding, very HGTV.
   model: sliding-barn-door.glb
   decorative: true
-  scale: 1.45
+  scale: 1.7
   tags:
   - door
   - interior
@@ -722,7 +722,7 @@ open-arched-doorway:
     mysterious.
   model: open-arched-doorway.glb
   decorative: true
-  scale: 1.4
+  scale: 1.8
   tags:
   - door
   - doorway
@@ -746,7 +746,7 @@ bay-window:
   description: Three angled panes and a seat ledge. Prime people-watching real estate.
   model: bay-window.glb
   decorative: true
-  scale: 1.8
+  scale: 1.349
   tags:
   - window
   - building
@@ -755,7 +755,7 @@ casement-window:
   description: White frame, side-hinged sashes, maximum breeze.
   model: casement-window.glb
   decorative: true
-  scale: 1.3
+  scale: 1.2
   tags:
   - window
   - building
@@ -764,7 +764,7 @@ stained-glass-window:
   description: Jewel-toned diamonds and roundels. Instant cathedral.
   model: stained-glass-window.glb
   decorative: true
-  scale: 1.8
+  scale: 1.304
   tags:
   - window
   - building
@@ -773,7 +773,7 @@ round-porthole-window:
   description: Riveted brass circle. Set sail for the living room.
   model: round-porthole-window.glb
   decorative: true
-  scale: 1.0
+  scale: 0.804
   tags:
   - window
   - building
@@ -782,7 +782,7 @@ arched-cottage-window:
   description: Arched top, diamond lattice. Storybook, but functional.
   model: arched-cottage-window.glb
   decorative: true
-  scale: 1.5
+  scale: 1.304
   tags:
   - window
   - building
@@ -798,7 +798,7 @@ supermarket-prep-table:
   - - Craft at the prep table
     - .craft @self
     - true
-  scale: 1.15
+  scale: 1.6
   tags:
   - crafting
   - kitchen
@@ -816,7 +816,7 @@ supermarket-oven:
   - - Craft at the oven
     - .craft @self
     - true
-  scale: 1.0
+  scale: 0.882
   tags:
   - crafting
   - kitchen
@@ -833,7 +833,7 @@ supermarket-mixer:
   - - Craft at the mixer
     - .craft @self
     - true
-  scale: 0.6
+  scale: 0.4
   tags:
   - crafting
   - kitchen
@@ -850,7 +850,7 @@ supermarket-recipe-book:
   - - Read the recipe book
     - .act read @self
     - true
-  scale: 0.8
+  scale: 0.35
   tags:
   - crafting
   - book

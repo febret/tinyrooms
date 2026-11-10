@@ -5,7 +5,7 @@ gilded-armchair:
   description: An overstuffed armchair of carved gold leaf and crimson damask.
   model: gilded-armchair.glb
   decorative: true
-  scale: 1.3
+  scale: 0.95
   tags:
   - chair
   - seating
@@ -15,7 +15,7 @@ crimson-chaise:
   description: A curving velvet chaise draped in tasselled gold fringe.
   model: crimson-chaise.glb
   decorative: true
-  scale: 1.8
+  scale: 1.496
   resizable: true
   tags:
   - sofa
@@ -26,7 +26,7 @@ marble-console-table:
   description: Marble on gilded cabriole legs, carved with a scallop shell.
   model: marble-console-table.glb
   decorative: true
-  scale: 1.4
+  scale: 0.911
   tags:
   - table
   - furniture
@@ -35,7 +35,7 @@ gilt-mirror:
   description: A tall mirror wreathed in acanthus leaves and golden scrolls.
   model: gilt-mirror.glb
   decorative: true
-  scale: 1.1
+  scale: 1.5
   tags:
   - mirror
   - decoration
@@ -44,7 +44,7 @@ mahogany-writing-desk:
   description: A mahogany desk in gilt-bronze mounts with a secret drawer.
   model: mahogany-writing-desk.glb
   decorative: true
-  scale: 1.5
+  scale: 1.4
   tags:
   - desk
   - furniture
@@ -53,7 +53,7 @@ canopy-bed:
   description: A grand four-poster in crimson velvet, watched over by cherubs.
   model: canopy-bed.glb
   decorative: true
-  scale: 1.8
+  scale: 2.2
   tags:
   - bed
   - furniture
@@ -62,7 +62,7 @@ marble-fireplace:
   description: A carved mantel of gilded putti and lions beneath an oval mirror.
   model: marble-fireplace.glb
   decorative: true
-  scale: 1.7
+  scale: 1.795
   tags:
   - decoration
   - furniture
@@ -71,7 +71,7 @@ emerald-velvet-sofa:
   description: Deep emerald velvet set in a gilded carved frame.
   model: emerald-velvet-sofa.glb
   decorative: true
-  scale: 1.6
+  scale: 1.817
   tags:
   - sofa
   - seating
@@ -81,7 +81,7 @@ gilt-mantel-clock:
   description: A gilded clock on cherub feet, its porcelain face dusted with gold.
   model: gilt-mantel-clock.glb
   decorative: true
-  scale: 0.9
+  scale: 0.4
   tags:
   - clock
   - decoration
@@ -90,7 +90,7 @@ marquetry-cabinet:
   description: Tortoiseshell and brass inlay crowned with gleaming ormolu.
   model: marquetry-cabinet.glb
   decorative: true
-  scale: 1.5
+  scale: 1.605
   tags:
   - cabinet
   - storage
@@ -100,7 +100,7 @@ gilt-side-table:
   description: A slender marble-topped table on carved golden legs.
   model: gilt-side-table.glb
   decorative: true
-  scale: 0.75
+  scale: 0.55
   tags:
   - table
   - furniture
@@ -109,7 +109,7 @@ baroque-dresser:
   description: An imposing dresser carved with fruit and ribbons, gilded and marbled.
   model: baroque-dresser.glb
   decorative: true
-  scale: 1.7
+  scale: 1.141
   tags:
   - cabinet
   - storage
@@ -119,7 +119,7 @@ gilded-birdcage:
   description: A golden pavilion of a cage, with a porcelain bird within.
   model: gilded-birdcage.glb
   decorative: true
-  scale: 1.2
+  scale: 1.3
   tags:
   - ornament
   - decoration
@@ -128,7 +128,7 @@ marble-column:
   description: Veined marble beneath a gilded capital on a carved plinth.
   model: marble-column.glb
   decorative: true
-  scale: 1.7
+  scale: 2
   tags:
   - ornament
   - decoration
@@ -137,7 +137,7 @@ gilt-candelabra:
   description: Five scrolled golden arms, five candles, endless wax.
   model: gilt-candelabra.glb
   decorative: true
-  scale: 1.2
+  scale: 0.45
   tags:
   - lighting
   - ornament
@@ -146,7 +146,7 @@ porcelain-urn-vase:
   description: Pastoral scenes on painted porcelain with rococo gold handles.
   model: porcelain-urn-vase.glb
   decorative: true
-  scale: 1.1
+  scale: 0.398
   tags:
   - ornament
   - decoration
@@ -155,7 +155,7 @@ gilded-putto:
   description: A golden cherub holding up a scallop shell.
   model: gilded-putto.glb
   decorative: true
-  scale: 0.9
+  scale: 0.4
   tags:
   - statue
   - ornament
@@ -164,7 +164,7 @@ gilt-urn:
   description: A domed golden urn with scrolled handles and a proud finial.
   model: gilt-urn.glb
   decorative: true
-  scale: 1.0
+  scale: 0.35
   tags:
   - ornament
   - decoration
@@ -173,7 +173,7 @@ marble-bust:
   description: A stern nobleman in lace, frozen forever in white marble.
   model: marble-bust.glb
   decorative: true
-  scale: 1.1
+  scale: 0.6
   resizable: true
   tags:
   - statue
@@ -183,7 +183,7 @@ cherub-fountain:
   description: Two marble cherubs and a spouting fish, always mid-splash.
   model: cherub-fountain.glb
   decorative: true
-  scale: 1.3
+  scale: 2.039
   tags:
   - statue
   - decoration
@@ -192,7 +192,7 @@ gilt-oval-tray:
   description: A gilded oval mirror on scrolled feet.
   model: gilt-oval-tray.glb
   decorative: true
-  scale: 0.8
+  scale: 0.35
   tags:
   - mirror
   - decoration
@@ -201,7 +201,7 @@ porcelain-dish:
   description: Hand-painted flowers ringed in gold, raised on a stand.
   model: porcelain-dish.glb
   decorative: true
-  scale: 0.8
+  scale: 0.3
   tags:
   - ornament
   - decoration
@@ -210,7 +210,7 @@ rococo-table-lamp:
   description: A gilded bronze base beneath a fringed silk shade.
   model: rococo-table-lamp.glb
   decorative: true
-  scale: 1.1
+  scale: 0.55
   tags:
   - lamp
   - lighting
@@ -219,7 +219,7 @@ bronze-eagle:
   description: A gilded eagle perched atop a polished marble sphere.
   model: bronze-eagle.glb
   decorative: true
-  scale: 1.0
+  scale: 0.619
   tags:
   - statue
   - ornament
@@ -228,7 +228,7 @@ gold-trophy-urn:
   description: Laurel wreaths and scroll handles on a gleaming golden cup.
   model: gold-trophy-urn.glb
   decorative: true
-  scale: 1.0
+  scale: 0.35
   tags:
   - ornament
   - decoration
@@ -237,7 +237,7 @@ marble-pedestal-urn:
   description: Acanthus leaves carved in marble on a fluted pedestal.
   model: marble-pedestal-urn.glb
   decorative: true
-  scale: 1.3
+  scale: 1.205
   tags:
   - ornament
   - decoration
@@ -246,7 +246,7 @@ marble-hero:
   description: A classical hero caught between one pose and the next.
   model: marble-hero.glb
   decorative: true
-  scale: 1.6
+  scale: 1.823
   tags:
   - statue
   - art
@@ -255,7 +255,7 @@ marble-goddess:
   description: A goddess in carved, flowing drapery.
   model: marble-goddess.glb
   decorative: true
-  scale: 1.6
+  scale: 1.817
   resizable: true
   tags:
   - statue
@@ -265,7 +265,7 @@ marble-rearing-horse:
   description: A marble horse frozen mid-rear on its plinth.
   model: marble-rearing-horse.glb
   decorative: true
-  scale: 1.7
+  scale: 1.988
   tags:
   - statue
   - art
@@ -274,7 +274,7 @@ marble-cherub-archer:
   description: A plump marble cherub drawing a gilded bow.
   model: marble-cherub-archer.glb
   decorative: true
-  scale: 1.2
+  scale: 0.7
   tags:
   - statue
   - art
@@ -283,7 +283,7 @@ marble-lion:
   description: A regal marble lion with one paw resting on a sphere.
   model: marble-lion.glb
   decorative: true
-  scale: 1.8
+  scale: 1.714
   resizable: true
   tags:
   - statue
@@ -293,7 +293,7 @@ marble-discobolus:
   description: A marble athlete winding up a throw that never comes.
   model: marble-discobolus.glb
   decorative: true
-  scale: 1.6
+  scale: 1.794
   resizable: true
   tags:
   - statue
@@ -303,7 +303,7 @@ marble-harvest-goddess:
   description: A goddess crowned in grain, holding a marble sheaf of wheat.
   model: marble-harvest-goddess.glb
   decorative: true
-  scale: 1.6
+  scale: 1.811
   tags:
   - statue
   - art
@@ -312,7 +312,7 @@ marble-faun:
   description: A marble faun forever playing a silent flute.
   model: marble-faun.glb
   decorative: true
-  scale: 1.5
+  scale: 1.7
   tags:
   - statue
   - art
@@ -321,7 +321,7 @@ portrait-noblewoman:
   description: Oil on canvas in heavy gold, a lady in lace and pearls.
   model: portrait-noblewoman.glb
   decorative: true
-  scale: 0.9
+  scale: 0.964
   tags:
   - painting
   - art
@@ -330,7 +330,7 @@ landscape-dramatic-clouds:
   description: A valley under a sky that is clearly up to something.
   model: landscape-dramatic-clouds.glb
   decorative: true
-  scale: 1.5
+  scale: 1.2
   tags:
   - painting
   - art
@@ -339,7 +339,7 @@ still-life-fruit:
   description: Grapes, silver, and one very patient apple.
   model: still-life-fruit.glb
   decorative: true
-  scale: 1.2
+  scale: 1
   tags:
   - painting
   - art
@@ -348,7 +348,7 @@ oval-cherub-painting:
   description: Cherubs tumbling through pink clouds in a gilded oval.
   model: oval-cherub-painting.glb
   decorative: true
-  scale: 1.0
+  scale: 0.9
   tags:
   - painting
   - art
@@ -357,7 +357,7 @@ battle-scene-painting:
   description: Cavalry, smoke, and drama in a broad gilt frame.
   model: battle-scene-painting.glb
   decorative: true
-  scale: 1.7
+  scale: 1.2
   tags:
   - painting
   - art
@@ -366,7 +366,7 @@ stag-moonlit-painting:
   description: A stag in a moonlit glade, half-hidden in gold.
   model: stag-moonlit-painting.glb
   decorative: true
-  scale: 1.3
+  scale: 1.405
   tags:
   - painting
   - art
@@ -375,7 +375,7 @@ madonna-painting:
   description: A serene madonna behind a generous gilt halo.
   model: madonna-painting.glb
   decorative: true
-  scale: 1.3
+  scale: 1.135
   tags:
   - painting
   - art
@@ -384,7 +384,7 @@ storm-ship-painting:
   description: A ship tossed by waves inside a very calm frame.
   model: storm-ship-painting.glb
   decorative: true
-  scale: 1.5
+  scale: 1.204
   tags:
   - painting
   - art
@@ -393,7 +393,7 @@ floral-bouquet-painting:
   description: Roses and peonies overflowing a gilded frame.
   model: floral-bouquet-painting.glb
   decorative: true
-  scale: 1.3
+  scale: 1.008
   tags:
   - painting
   - art
@@ -402,7 +402,7 @@ crystal-chandelier:
   description: Teardrop prisms and a constellation of candles.
   model: crystal-chandelier.glb
   decorative: true
-  scale: 1.4
+  scale: 1.212
   tags:
   - lighting
   - ornament
@@ -412,7 +412,7 @@ gilt-wall-sconce:
   description: Curling gold arms holding two candles.
   model: gilt-wall-sconce.glb
   decorative: true
-  scale: 0.9
+  scale: 0.4
   tags:
   - sconce
   - lighting
@@ -431,7 +431,7 @@ crystal-candelabra:
   description: Silver arms and hanging prisms that catch every flame.
   model: crystal-candelabra.glb
   decorative: true
-  scale: 1.1
+  scale: 0.45
   tags:
   - lighting
   - ornament
@@ -440,7 +440,7 @@ gilt-floor-candlestick:
   description: A single tall candle on a towering gilded stem.
   model: gilt-floor-candlestick.glb
   decorative: true
-  scale: 1.8
+  scale: 1.496
   resizable: true
   tags:
   - lighting

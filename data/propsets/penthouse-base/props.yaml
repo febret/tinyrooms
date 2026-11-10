@@ -5,7 +5,7 @@ penthouse-velvet-sofa:
   description: A deep emerald velvet sofa with brass feet.
   model: penthouse-velvet-sofa.glb
   decorative: true
-  scale: 1.5
+  scale: 1.8
   tags:
   - seating
   - sofa
@@ -15,7 +15,7 @@ penthouse-barrel-chair:
   description: A cream bouclé barrel chair that hugs back.
   model: penthouse-barrel-chair.glb
   decorative: true
-  scale: 1.1
+  scale: 0.85
   tags:
   - seating
   - chair
@@ -25,7 +25,7 @@ penthouse-dining-chair:
   description: A dining chair in cognac leather and brass.
   model: penthouse-dining-chair.glb
   decorative: true
-  scale: 1.0
+  scale: 0.85
   tags:
   - seating
   - chair
@@ -45,7 +45,7 @@ penthouse-arc-lamp:
   description: A marble-based arc lamp over the reading corner.
   model: penthouse-arc-lamp.glb
   decorative: true
-  scale: 1.4
+  scale: 1.6
   tags:
   - lighting
   - lamp
@@ -54,7 +54,7 @@ penthouse-globe-lamp:
   description: A smoked-glass globe table lamp.
   model: penthouse-globe-lamp.glb
   decorative: true
-  scale: 0.8
+  scale: 0.5
   tags:
   - lighting
   - lamp
@@ -63,7 +63,7 @@ penthouse-chandelier:
   description: A brass chandelier of glass rods with opinions about lighting.
   model: penthouse-chandelier.glb
   decorative: true
-  scale: 1.0
+  scale: 0.9
   tags:
   - lighting
   - lamp
@@ -72,7 +72,7 @@ penthouse-marble-coffee-table:
   description: A black marble coffee table with brass trim.
   model: penthouse-marble-coffee-table.glb
   decorative: true
-  scale: 1.3
+  scale: 1
   tags:
   - table
   - furniture
@@ -81,7 +81,7 @@ penthouse-glass-side-table:
   description: A smoked-glass side table on a brass stem.
   model: penthouse-glass-side-table.glb
   decorative: true
-  scale: 0.9
+  scale: 0.55
   tags:
   - table
   - furniture
@@ -99,7 +99,7 @@ penthouse-display-shelf:
   description: A brass-and-glass display shelf for objects.
   model: penthouse-display-shelf.glb
   decorative: true
-  scale: 1.3
+  scale: 1.55
   tags:
   - storage
   - shelf
@@ -109,7 +109,7 @@ penthouse-credenza:
   description: A walnut credenza with brass inlay.
   model: penthouse-credenza.glb
   decorative: true
-  scale: 1.4
+  scale: 1.5
   tags:
   - storage
   - cabinet
@@ -119,7 +119,7 @@ penthouse-bar-cart:
   description: A brass bar cart, always stocked.
   model: penthouse-bar-cart.glb
   decorative: true
-  scale: 1.0
+  scale: 0.812
   tags:
   - storage
   - furniture
@@ -128,7 +128,7 @@ penthouse-king-bed:
   description: A king bed with a channel-tufted headboard.
   model: penthouse-king-bed.glb
   decorative: true
-  scale: 1.7
+  scale: 2
   tags:
   - bed
   - furniture
@@ -137,7 +137,7 @@ penthouse-silk-rug:
   description: A champagne silk rug, shoes off.
   model: penthouse-silk-rug.glb
   decorative: true
-  scale: 1.7
+  scale: 2.314
   tags:
   - rug
   - decoration
@@ -146,7 +146,7 @@ penthouse-floor-mirror:
   description: A tall brass cheval mirror.
   model: penthouse-floor-mirror.glb
   decorative: true
-  scale: 1.2
+  scale: 1.513
   tags:
   - mirror
   - decoration
@@ -155,7 +155,7 @@ penthouse-deco-clock:
   description: An art-deco marble mantel clock.
   model: penthouse-deco-clock.glb
   decorative: true
-  scale: 0.6
+  scale: 0.3
   tags:
   - clock
   - decoration
@@ -164,7 +164,7 @@ penthouse-orchid-pot:
   description: A white orchid in a marble pot.
   model: penthouse-orchid-pot.glb
   decorative: true
-  scale: 0.8
+  scale: 0.4
   tags:
   - plant
   - decoration
@@ -173,7 +173,7 @@ penthouse-decanter-vase:
   description: A cut-crystal vase that catches the skyline.
   model: penthouse-decanter-vase.glb
   decorative: true
-  scale: 0.7
+  scale: 0.3
   tags:
   - decoration
 penthouse-room-divider:
@@ -181,7 +181,7 @@ penthouse-room-divider:
   description: A smoked-glass and brass room divider.
   model: penthouse-room-divider.glb
   decorative: true
-  scale: 1.3
+  scale: 1.5
   tags:
   - decoration
   - furniture

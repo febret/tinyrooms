@@ -60,53 +60,114 @@ foyer:
     - palette
     - board_image_style
   props:
+    wall-back-w:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: wainscot
+        main: '#efdbaf'
+        accent: '#81aa94'
+      pos:
+      - 20.5
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.647
+    wall-back-e:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: wainscot
+        main: '#efdbaf'
+        accent: '#81aa94'
+      pos:
+      - 79.5
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.647
+    wall-west-n:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: wainscot
+        main: '#efdbaf'
+        accent: '#81aa94'
+      pos:
+      - 0
+      - 18.5
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1.24
+    wall-west-s:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: wainscot
+        main: '#efdbaf'
+        accent: '#81aa94'
+      pos:
+      - 0
+      - 76.5
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1.575
+    wall-east-n:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: wainscot
+        main: '#efdbaf'
+        accent: '#81aa94'
+      pos:
+      - 100
+      - 18.0
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1.206
+    wall-east-s:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: wainscot
+        main: '#efdbaf'
+        accent: '#81aa94'
+      pos:
+      - 100
+      - 82.0
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1.206
     custom:bf14a86a-8069-4f8d-b684-f0aa3cbf1da3:
       prop: oak-panel-door
       pos:
       - 50
-      - 0
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1.4333294145603401
-      exit_to: garden
-    custom:cd33ce3b-9f49-4b9c-bade-9d8b1d15c056:
-      prop: dusty-rose-sofa
-      pos:
-      - 10
-      - 55
+      - 1.5
       - 0
       rot:
       - 0
-      - 1.5399999999999636
       - 0
-      scale: 1.6955378396018224
-    custom:509075d5-2c6e-480b-bd60-8248fab42157:
-      prop: white-cottage-stairwell
-      pos:
-      - 95
-      - 95
-      - 0
-      rot:
-      - 0
-      - 356.4800000000014
       - 0
       scale: 1
-      exit_to: bedroom
-    custom:ec7b05f7-88b2-4d84-94fa-cd91e4a004eb:
-      prop: open-french-doorway
-      pos:
-      - 100
-      - 45
-      - 0
-      rot:
-      - 0
-      - 359.7000000000003
-      - 0
-      scale: 1.4105786355076788
-      exit_to: kitchen
+      exit_to: garden
     hub-door0:
       prop: builtin:door
       pos:
@@ -124,6 +185,162 @@ foyer:
         main: '#b07a4a'
         accent: '#6b4a2f'
         texture: wood
+    custom:ec7b05f7-88b2-4d84-94fa-cd91e4a004eb:
+      prop: open-french-doorway
+      pos:
+      - 95
+      - 50
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+      exit_to: kitchen
+    custom:509075d5-2c6e-480b-bd60-8248fab42157:
+      prop: white-cottage-stairwell
+      pos:
+      - 87
+      - 19
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+      exit_to: bedroom
+    living-bookshelf:
+      prop: bookshelf
+      pos:
+      - 24
+      - 8
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    living-floor-lamp:
+      prop: brass-arc-floor-lamp
+      pos:
+      - 67
+      - 10
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    living-rug:
+      prop: persian-medallion-rug
+      pos:
+      - 44
+      - 60
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+    living-sofa:
+      prop: dusty-rose-sofa
+      pos:
+      - 44
+      - 43
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    living-coffee-table:
+      prop: jarvi-coffee-table
+      pos:
+      - 44
+      - 62
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    living-candles:
+      prop: kynttila-candle-holder
+      pos:
+      - 44
+      - 62
+      - 7.5
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    living-armchair:
+      prop: mustard-armchair
+      pos:
+      - 69
+      - 61
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+    living-egg-chair:
+      prop: teal-egg-chair
+      pos:
+      - 19
+      - 62
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+    living-side-table:
+      prop: rattan-side-table
+      pos:
+      - 22
+      - 42
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    living-table-lamp:
+      prop: dragonfly-tiffany-lamp
+      pos:
+      - 22
+      - 42
+      - 11
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    living-monstera:
+      prop: monstera-in-pot
+      pos:
+      - 92
+      - 86
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    living-snake-plant:
+      prop: snake-plant
+      pos:
+      - 7
+      - 90
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
   exits:
     hub:
       label: Out of the dollhouse
@@ -160,84 +377,285 @@ kitchen:
     - palette
     - board_image_style
   props:
+    wall-back:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#eee6c9'
+        accent: '#789f96'
+      pos:
+      - 50.0
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 4.017
+    wall-west-n:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#eee6c9'
+        accent: '#789f96'
+      pos:
+      - 0
+      - 21.0
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1.407
+    wall-west-s:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#eee6c9'
+        accent: '#789f96'
+      pos:
+      - 0
+      - 79.0
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1.407
+    wall-east-n:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#eee6c9'
+        accent: '#789f96'
+      pos:
+      - 100
+      - 32.0
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 2.144
+    wall-east-s:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#eee6c9'
+        accent: '#789f96'
+      pos:
+      - 100
+      - 90.0
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 0.67
+    custom:0c461757-c53d-456c-856f-b3a33c7b24d6:
+      prop: builtin:door
+      pos:
+      - 0
+      - 50
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+      exit_to: foyer
+      exit_style:
+        style: arch
+        main: '#b07a4a'
+        accent: '#6b4a2f'
+        texture: wood
+    custom:8d0d8a48-da16-4ace-8d4f-705852d7be0f:
+      prop: builtin:door
+      pos:
+      - 100
+      - 72
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+      exit_to: utility
+      exit_style:
+        style: arch
+        main: '#b07a4a'
+        accent: '#6b4a2f'
+        texture: wood
     breakfast0:
       prop: kitchen-counter
       pos:
-      - 90
-      - 10
+      - 50
+      - 12
       - 0
-      scale: 1.513408307361747
+      scale: 1
       rot:
       - 0
-      - 1.5599999999998886
       - 0
-    custom:f8788ba0-c0f0-472e-ad6e-93a9249c1e0b:
-      prop: rattan-side-table
+      - 0
+    kitchen-dresser:
+      prop: kitchen-dresser
       pos:
-      - 20
+      - 17
+      - 7
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    kitchen-pantry:
+      prop: cottage-pantry-shelf
+      pos:
+      - 80
+      - 6
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    kitchen-clock:
+      prop: family-wall-clock
+      pos:
+      - 66
+      - 1
+      - 19
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    kitchen-geranium:
+      prop: cottage-geranium-pot
+      pos:
+      - 46
+      - 6
+      - 18
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    kitchen-rug:
+      prop: satu-rug
+      pos:
       - 45
+      - 60
       - 0
       rot:
       - 0
       - 0
       - 0
-      scale: 0.8386179833370742
-    custom:39fd9f34-7183-41af-a747-004f3d2999f9:
-      prop: milking-stool-table
+      scale: 1
+    kitchen-table:
+      prop: seavilla-dining-table
       pos:
-      - 25
-      - 70
+      - 45
+      - 60
       - 0
       rot:
       - 0
-      - 0.39999999999997726
       - 0
-      scale: 0.7032801219763413
-    custom:d6a1f1e6-f1e8-4891-8aee-67e3f22bc82b:
-      prop: milking-stool-table
+      - 0
+      scale: 1
+    kitchen-chair-nw:
+      prop: koivu-dining-chair
       pos:
-      - 35
-      - 35
+      - 38
+      - 42
       - 0
       rot:
       - 0
-      - 357.6200000000007
       - 0
-      scale: 0.708928928049511
-    custom:0c461757-c53d-456c-856f-b3a33c7b24d6:
-      prop: builtin:wall
-      wall_style:
-        texture: plaster
-        finish: none
-        main: '#f1eadb'
-        accent: '#b9a889'
+      - 0
+      scale: 1
+    kitchen-chair-ne:
+      prop: koivu-dining-chair
       pos:
+      - 52
+      - 42
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    kitchen-chair-w:
+      prop: koivu-dining-chair
+      pos:
+      - 27
+      - 60
+      - 0
+      rot:
       - 0
       - 90
       - 0
-      rot:
-      - 0
-      - 90
-      - 0
-      scale: 0.662
-      exit_to: foyer
-    custom:8d0d8a48-da16-4ace-8d4f-705852d7be0f:
-      prop: builtin:wall
-      wall_style:
-        texture: plaster
-        finish: none
-        main: '#f1eadb'
-        accent: '#b9a889'
+      scale: 1
+    kitchen-chair-e:
+      prop: koivu-dining-chair
       pos:
-      - 100
-      - 90
+      - 63
+      - 60
       - 0
       rot:
       - 0
-      - 270
+      - -90
       - 0
-      scale: 0.662
-      exit_to: utility
+      scale: 1
+    kitchen-table-lamp:
+      prop: family-gingham-lamp
+      pos:
+      - 41
+      - 60
+      - 11
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    kitchen-candles:
+      prop: kynttila-candle-holder
+      pos:
+      - 50
+      - 60
+      - 11
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    kitchen-floor-lamp:
+      prop: kielo-floor-lamp
+      pos:
+      - 90
+      - 42
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    kitchen-trash:
+      prop: galvanized-trashcan
+      pos:
+      - 8
+      - 88
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
   exits:
     foyer:
       label: Back to the foyer
@@ -265,105 +683,86 @@ bathroom:
     - palette
     - board_image_style
   props:
-    shower0:
-      prop: shower
+    wall-back:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#c9e0d1'
+        accent: '#cf8a91'
       pos:
-      - 15
-      - 15
+      - 50.0
       - 0
-      scale: 1.9412074566593076
+      - 0
       rot:
       - 0
-      - 0.9000000000002046
       - 0
-    medicine0:
-      prop: medicine-cabinet
+      - 0
+      scale: 4.017
+    wall-west-n:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#c9e0d1'
+        accent: '#cf8a91'
       pos:
       - 0
-      - 72.13867331631442
-      - 19.96625935609626
-      scale: 1.5038071611701174
+      - 18.5
+      - 0
       rot:
       - 0
-      - 1.559999999999775
-      - 0
-    litter0:
-      prop: litter-tray
-      pos:
       - 90
-      - 15
       - 0
-      scale: 0.7230780876371641
-      rot:
-      - 0
-      - 356.32000000000085
-      - 0
-    custom:631c88dc-9dae-4721-9698-8be79851649a:
-      prop: sunset-runner-rug
-      pos:
-      - 35
-      - 50
-      - 0
-      rot:
-      - 0
-      - 0.7000000000001592
-      - 0
-      scale: 1.6820276496988877
-    custom:15e405d1-3f7b-4920-937f-4d1ef6e40846:
-      prop: cottage-toilet
-      pos:
-      - 60
-      - 10
-      - 1.85984266862559
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1.6031973837265792
-    custom:52a33c8a-0424-4037-9b7f-f8347e341a2e:
-      prop: saari-cabinet
+      scale: 1.24
+    wall-west-s:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#c9e0d1'
+        accent: '#cf8a91'
       pos:
       - 0
-      - 75
+      - 76.5
       - 0
       rot:
       - 0
-      - 1.5799999999998136
+      - 90
       - 0
-      scale: 0.8869204367171585
-    custom:1972d7d4-721b-4aa0-a633-9c8b2b45c906:
-      prop: kori-basket
-      pos:
-      - 10
-      - 95
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1.3231298123374382
-    custom:ea8d4f75-da2a-4937-983d-35901768f054:
-      prop: kuusi-wall-shelf
+      scale: 1.575
+    wall-east-n:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#c9e0d1'
+        accent: '#cf8a91'
       pos:
       - 100
-      - 60
-      - 19.400000000000027
+      - 21.0
+      - 0
       rot:
       - 0
-      - 356.5999999999999
+      - -90
       - 0
-      scale: 1.1641602364321162
-    custom:e7249e14-3f94-4ff9-9a11-aa1f2f24d362:
-      prop: oksa-vase
+      scale: 1.407
+    wall-east-s:
+      prop: builtin:wall
+      wall_style:
+        texture: subway-tile
+        finish: baseboard
+        main: '#c9e0d1'
+        accent: '#cf8a91'
       pos:
       - 100
-      - 65
-      - 27.747731898226675
+      - 79.0
+      - 0
       rot:
       - 0
+      - -90
       - 0
-      - 0
-      scale: 0.7378608664505918
+      scale: 1.407
     utility-door0:
       prop: builtin:door
       pos:
@@ -380,14 +779,157 @@ bathroom:
       prop: builtin:door
       pos:
       - 100
-      - 90
+      - 50
       - 0
       rot:
       - 0
-      - 268.6400000000008
+      - -90
       - 0
       scale: 1
       exit_to: bedroom
+    shower0:
+      prop: shower
+      pos:
+      - 16
+      - 12
+      - 0
+      scale: 1
+      rot:
+      - 0
+      - 0
+      - 0
+    toilet:
+      prop: cottage-toilet
+      pos:
+      - 62
+      - 9
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    medicine0:
+      prop: medicine-cabinet
+      pos:
+      - 62
+      - 1
+      - 17
+      scale: 1
+      rot:
+      - 0
+      - 0
+      - 0
+    vanity:
+      prop: saari-cabinet
+      pos:
+      - 80
+      - 6
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    vanity-orchid:
+      prop: pink-orchid
+      pos:
+      - 80
+      - 6
+      - 18
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    mirror:
+      prop: beachhut-round-mirror
+      pos:
+      - 41
+      - 2
+      - 6
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    hamper:
+      prop: seavilla-woven-hamper
+      pos:
+      - 6
+      - 31
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+    runner:
+      prop: sunset-runner-rug
+      pos:
+      - 45
+      - 56
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    towel-basket:
+      prop: kori-basket
+      pos:
+      - 24
+      - 86
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    litter0:
+      prop: litter-tray
+      pos:
+      - 84
+      - 84
+      - 0
+      scale: 1
+      rot:
+      - 0
+      - 0
+      - 0
+    sconce-west:
+      prop: beeswax-candle-sconce
+      pos:
+      - 1
+      - 72
+      - 17
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+    sconce-east:
+      prop: beeswax-candle-sconce
+      pos:
+      - 99
+      - 28
+      - 17
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+    snake-plant:
+      prop: snake-plant
+      pos:
+      - 92
+      - 9
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
   exits:
     utility:
       label: Back to the utility room
@@ -415,42 +957,90 @@ bedroom:
     - palette
     - board_image_style
   props:
-    bed0:
-      prop: bed
+    wall-back:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: crown-base
+        main: '#b7c8cd'
+        accent: '#c48a9b'
       pos:
-      - 15
-      - 25
+      - 50.0
       - 0
-      scale: 1.3
-    bedside-lamp:
-      prop: lamp
-      pos:
-      - 50
-      - 5
-      - 19.667089757248615
-      scale: 0.85
-    quilt-rug:
-      prop: rug
-      pos:
-      - 80
-      - 80
-      - 0
-      scale: 1.3934210945096364
-    custom:a6336c61-6884-46b2-a609-312e3baac5d9:
-      prop: floral-nightstand
-      pos:
-      - 50
-      - 5
       - 0
       rot:
       - 0
       - 0
       - 0
-      scale: 1.3125870013111094
+      scale: 4.017
+    wall-west-n:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: crown-base
+        main: '#b7c8cd'
+        accent: '#c48a9b'
+      pos:
+      - 0
+      - 16.5
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1.105
+    wall-west-s:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: crown-base
+        main: '#b7c8cd'
+        accent: '#c48a9b'
+      pos:
+      - 0
+      - 83.5
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1.105
+    wall-east-n:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: crown-base
+        main: '#b7c8cd'
+        accent: '#c48a9b'
+      pos:
+      - 100
+      - 21.0
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1.407
+    wall-east-s:
+      prop: builtin:wall
+      wall_style:
+        texture: plaster
+        finish: crown-base
+        main: '#b7c8cd'
+        accent: '#c48a9b'
+      pos:
+      - 100
+      - 79.0
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1.407
     foyer-stairs0:
       prop: builtin:stairs
       pos:
-      - 0
+      - 7
       - 50
       - 0
       rot:
@@ -476,6 +1066,160 @@ bedroom:
       - 0
       scale: 1
       exit_to: bathroom
+    bed0:
+      prop: bed
+      pos:
+      - 45
+      - 21
+      - 0
+      scale: 1
+      rot:
+      - 0
+      - 0
+      - 0
+    nightstand-w:
+      prop: floral-nightstand
+      pos:
+      - 28
+      - 6
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    nightstand-e:
+      prop: floral-nightstand
+      pos:
+      - 62
+      - 6
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    lamp-w:
+      prop: dragonfly-tiffany-lamp
+      pos:
+      - 28
+      - 6
+      - 11
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    lamp-e:
+      prop: taika-table-lamp
+      pos:
+      - 62
+      - 6
+      - 11
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    bedside-lamp:
+      prop: lamp
+      pos:
+      - 10
+      - 12
+      - 0
+      scale: 1
+      rot:
+      - 0
+      - 0
+      - 0
+    quilt-rug:
+      prop: rug
+      pos:
+      - 45
+      - 54
+      - 0
+      scale: 1
+      rot:
+      - 0
+      - 0
+      - 0
+    monstera:
+      prop: monstera-in-pot
+      pos:
+      - 77
+      - 9
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    wardrobe:
+      prop: tall-wardrobe
+      pos:
+      - 93
+      - 22
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+    desk:
+      prop: sade-desk
+      pos:
+      - 92
+      - 79
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+    desk-chair:
+      prop: koivu-dining-chair
+      pos:
+      - 80
+      - 79
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+    desk-lamp:
+      prop: orange-gooseneck-lamp
+      pos:
+      - 93
+      - 70
+      - 16
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+    reading-rug:
+      prop: sheepskin-rug
+      pos:
+      - 18
+      - 84
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    rocking-chair:
+      prop: patchwork-rocking-chair
+      pos:
+      - 18
+      - 80
+      - 0
+      rot:
+      - 0
+      - 30
+      - 0
+      scale: 1
   exits:
     foyer:
       label: Downstairs to the foyer
@@ -503,75 +1247,102 @@ utility:
     - palette
     - board_image_style
   props:
-    supplies0:
-      prop: supply-shelf
+    wall-back-w:
+      prop: builtin:wall
+      wall_style:
+        texture: beadboard
+        finish: baseboard
+        main: '#e1cfac'
+        accent: '#88a59e'
       pos:
-      - 10
-      - 20
+      - 31.5
       - 0
-      scale: 1.0154279810252993
-      only_missing: true
+      - 0
       rot:
       - 0
-      - 357.320000000002
       - 0
-    vacuum0:
-      prop: vacuum-stand
+      - 0
+      scale: 2.53
+    wall-back-e:
+      prop: builtin:wall
+      wall_style:
+        texture: beadboard
+        finish: baseboard
+        main: '#e1cfac'
+        accent: '#88a59e'
       pos:
-      - 95
-      - 10
+      - 90.5
       - 0
-      scale: 1.1641602364321135
-      only_missing: true
+      - 0
       rot:
       - 0
-      - 357.5000000000002
       - 0
-    custom:28e3f8e1-3c72-4a7a-9872-9450c487ff42:
-      prop: arched-iron-door
+      - 0
+      scale: 0.763
+    wall-west-n:
+      prop: builtin:wall
+      wall_style:
+        texture: beadboard
+        finish: baseboard
+        main: '#e1cfac'
+        accent: '#88a59e'
       pos:
-      - 100
+      - 0
+      - 18.5
+      - 0
+      rot:
+      - 0
       - 90
       - 0
+      scale: 1.24
+    wall-west-s:
+      prop: builtin:wall
+      wall_style:
+        texture: beadboard
+        finish: baseboard
+        main: '#e1cfac'
+        accent: '#88a59e'
+      pos:
+      - 0
+      - 76.5
+      - 0
       rot:
       - 0
-      - 1.579999999999984
+      - 90
       - 0
-      scale: 1.503807161170112
-      exit_to: basement
-    custom:fb71bccc-bf7f-4b71-90b9-0a022bc8e037:
-      prop: satu-rug
+      scale: 1.575
+    wall-east-n:
+      prop: builtin:wall
+      wall_style:
+        texture: beadboard
+        finish: baseboard
+        main: '#e1cfac'
+        accent: '#88a59e'
       pos:
-      - 20
-      - 80
-      - 0
-      rot:
-      - 0
-      - 358.8400000000006
-      - 0
-      scale: 1.3231298123374406
-    custom:8f9b90ce-9a8e-4343-b0f0-9fa9235d6b0a:
-      prop: oksa-vase
-      pos:
-      - 15
       - 100
-      - 1.4392173630779042
+      - 18.5
+      - 0
       rot:
       - 0
+      - -90
       - 0
-      - 0
-      scale: 1
-    custom:7327cbe2-83fe-4fab-baeb-881f32adb481:
-      prop: tyyny-cushions
+      scale: 1.24
+    wall-east-s:
+      prop: builtin:wall
+      wall_style:
+        texture: beadboard
+        finish: baseboard
+        main: '#e1cfac'
+        accent: '#88a59e'
       pos:
+      - 100
+      - 76.5
       - 0
-      - 95
-      - 1.4392173630779042
       rot:
       - 0
+      - -90
       - 0
-      - 0
-      scale: 1
+      scale: 1.575
     kitchen-door0:
       prop: builtin:door
       pos:
@@ -596,6 +1367,152 @@ utility:
       - 0
       scale: 1
       exit_to: bathroom
+    custom:28e3f8e1-3c72-4a7a-9872-9450c487ff42:
+      prop: arched-iron-door
+      pos:
+      - 72
+      - 1.5
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+      exit_to: basement
+    supplies0:
+      prop: supply-shelf
+      pos:
+      - 22
+      - 13
+      - 0
+      scale: 1
+      only_missing: true
+      rot:
+      - 0
+      - 0
+      - 0
+    vacuum0:
+      prop: vacuum-stand
+      pos:
+      - 46
+      - 9
+      - 0
+      scale: 1
+      only_missing: true
+      rot:
+      - 0
+      - 0
+      - 0
+    lockers:
+      prop: gym-lockers
+      pos:
+      - 93
+      - 20
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+    pantry-shelf:
+      prop: cottage-pantry-shelf
+      pos:
+      - 7
+      - 76
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+    laundry-basket:
+      prop: kori-basket
+      pos:
+      - 26
+      - 84
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:fb71bccc-bf7f-4b71-90b9-0a022bc8e037:
+      prop: satu-rug
+      pos:
+      - 52
+      - 64
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:7327cbe2-83fe-4fab-baeb-881f32adb481:
+      prop: tyyny-cushions
+      pos:
+      - 60
+      - 70
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    side-table:
+      prop: rattan-side-table
+      pos:
+      - 72
+      - 56
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    lantern:
+      prop: cottage-mason-lantern
+      pos:
+      - 70
+      - 55
+      - 11
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:8f9b90ce-9a8e-4343-b0f0-9fa9235d6b0a:
+      prop: oksa-vase
+      pos:
+      - 75
+      - 57
+      - 11
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    floor-lamp:
+      prop: kielo-floor-lamp
+      pos:
+      - 88
+      - 64
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    trash:
+      prop: galvanized-trashcan
+      pos:
+      - 90
+      - 89
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
   exits:
     kitchen:
       label: Back to the kitchen
@@ -628,63 +1545,137 @@ basement:
     - board_image_style
   dark: true
   props:
-    key0:
-      prop: keys-cabinet
+    custom:3feacb35-c0cc-4431-aa7b-784e0bad1990:
+      prop: builtin:wall
+      wall_style:
+        texture: stone
+        finish: none
+        main: '#8a8a80'
+        accent: '#5a5a52'
       pos:
-      - 48.88547576446257
-      - 10.475449927373305
+      - 50.0
       - 0
-      scale: 1.4096059254134254
-    bugs0:
-      prop: centipedes
-      pos:
-      - 50
-      - 70
       - 0
-      scale: 1.3326154984518817
       rot:
       - 0
-      - 2.4400000000004525
       - 0
+      - 0
+      scale: 4.017
+    wall-west:
+      prop: builtin:wall
+      wall_style:
+        texture: stone
+        finish: none
+        main: '#8a8a80'
+        accent: '#5a5a52'
+      pos:
+      - 0
+      - 50.0
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 3.35
+    custom:97e2ed74-4d00-4582-9b36-7338336b8111:
+      prop: builtin:wall
+      wall_style:
+        texture: stone
+        finish: none
+        main: '#8a8a80'
+        accent: '#5a5a52'
+      pos:
+      - 100
+      - 50.0
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 3.35
     custom:39290190-a99e-4bf5-ad69-6047263cbf99:
       prop: oak-stairwell-landing
       pos:
-      - 10
-      - 15
+      - 11
+      - 23
       - 0
       rot:
       - 0
-      - 180.5000000000024
       - 0
-      scale: 1.4681454416819915
+      - 0
+      scale: 1
       exit_to: utility
-    custom:0a762312-a66a-4a76-913b-96285b5bd532:
-      prop: filing-cabinet
+    key0:
+      prop: keys-cabinet
       pos:
-      - 75
-      - 5
+      - 50
+      - 6
+      - 0
+      scale: 1
+      rot:
+      - 0
+      - 0
+      - 0
+    bugs0:
+      prop: centipedes
+      pos:
+      - 52
+      - 62
+      - 0
+      scale: 1
+      rot:
+      - 0
+      - 0
+      - 0
+    kit-chest:
+      prop: harbor-kit-chest
+      pos:
+      - 31
+      - 8
       - 0
       rot:
       - 0
       - 0
       - 0
-      scale: 1.881369558148766
+      scale: 1
+    old-bookshelf:
+      prop: metsa-bookshelf
+      pos:
+      - 72
+      - 6
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:e23e50a7-f26b-41b3-a055-013f39d62036:
+      prop: circuit-crash-cart
+      pos:
+      - 92
+      - 35
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
     custom:4e67b5df-2cf6-423f-be1a-be732b701fa7:
       prop: patchwork-rocking-chair
       pos:
-      - 85
-      - 85
+      - 80
+      - 60
       - 0
       rot:
       - 0
-      - 224.12000000000194
+      - -60
       - 0
-      scale: 1.1365530026970612
+      scale: 1
     custom:dad9e65b-f67f-4df9-960c-bae7c478d1b6:
       prop: galvanized-trashcan
       pos:
-      - 0
-      - 85
+      - 90
+      - 86
       - 0
       rot:
       - 0
@@ -694,66 +1685,34 @@ basement:
     custom:0a396633-bfcf-4c8d-abce-af11c638875c:
       prop: galvanized-trashcan
       pos:
-      - 15
-      - 100
+      - 80
+      - 91
+      - 0
+      rot:
+      - 0
+      - 20
+      - 0
+      scale: 1
+    hamper:
+      prop: seavilla-woven-hamper
+      pos:
+      - 20
+      - 84
       - 0
       rot:
       - 0
       - 0
       - 0
       scale: 1
-    custom:3feacb35-c0cc-4431-aa7b-784e0bad1990:
-      prop: builtin:wall
+    toadstools:
+      prop: toadstool-cluster
       pos:
-      - 50
-      - 0
+      - 10
+      - 62
       - 0
       rot:
       - 0
       - 0
-      - 0
-      scale: 3.9590337778412135
-      wall_style:
-        texture: stone
-        finish: none
-        main: '#f1eadb'
-        accent: '#b9a889'
-    custom:97e2ed74-4d00-4582-9b36-7338336b8111:
-      prop: builtin:wall
-      pos:
-      - 100
-      - 50
-      - 0
-      rot:
-      - 0
-      - 270
-      - 0
-      scale: 3.4007636182238548
-      wall_style:
-        texture: stone
-        finish: none
-        main: '#f1eadb'
-        accent: '#b9a889'
-    custom:e23e50a7-f26b-41b3-a055-013f39d62036:
-      prop: circuit-crash-cart
-      pos:
-      - 89.62933555620435
-      - 28.089253420077238
-      - 0
-      rot:
-      - 0
-      - 292.1999999999996
-      - 0
-      scale: 1
-    custom:8aecbc78-fe98-4008-9511-2a0df11a26d6:
-      prop: cryo-cooler
-      pos:
-      - 89.14182231188371
-      - 56.4295970741547
-      - 0
-      rot:
-      - 0
-      - 271.8000000000002
       - 0
       scale: 1
   exits:
@@ -780,100 +1739,220 @@ garden:
     - palette
     - board_image_style
   props:
-    custom:0ff53339-813c-4c9c-84e5-88af66283442:
-      prop: locked-front-door
+    custom:ea32a20a-19c3-4c1e-9cf1-517d5a8a199b:
+      prop: builtin:wall
+      wall_style:
+        texture: brick
+        finish: none
+        main: '#c9876a'
+        accent: '#8a5a42'
       pos:
-      - 55
-      - 5
+      - 17.5
+      - 0
       - 0
       rot:
       - 0
       - 0
       - 0
-      scale: 1.7228846360108903
+      scale: 1.406
+    custom:8a39831f-40f4-4ee4-9b94-16c8b3d83136:
+      prop: builtin:wall
+      wall_style:
+        texture: brick
+        finish: none
+        main: '#c9876a'
+        accent: '#8a5a42'
+      pos:
+      - 82.5
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.406
+    custom:0ff53339-813c-4c9c-84e5-88af66283442:
+      prop: locked-front-door
+      pos:
+      - 50
+      - 15
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
       exit_to: foyer
     garden-trashcan:
       prop: city-trashcan
       pos:
-      - 10
-      - 85
+      - 88
+      - 24
       - 0
       rot:
       - 0
-      - 15
       - 0
-      scale: 1.513343674593997
+      - 0
+      scale: 1
+    birch:
+      prop: silver-birch
+      pos:
+      - 10
+      - 42
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    pond:
+      prop: lotus-pond
+      pos:
+      - 73
+      - 62
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    path-near:
+      prop: stepping-stones
+      pos:
+      - 50
+      - 45
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+    path-far:
+      prop: stepping-stones
+      pos:
+      - 50
+      - 76
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+    bench:
+      prop: reppu-bench
+      pos:
+      - 24
+      - 64
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+    lantern-w:
+      prop: poolhouse-lantern-table
+      pos:
+      - 33
+      - 25
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    lantern-e:
+      prop: poolhouse-lantern-table
+      pos:
+      - 67
+      - 25
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    tulips:
+      prop: tulip-patch
+      pos:
+      - 24
+      - 9
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    lavender:
+      prop: lavender-row
+      pos:
+      - 13
+      - 9
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    roses:
+      prop: rose-bush
+      pos:
+      - 78
+      - 9
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    hydrangea:
+      prop: hydrangea-bush
+      pos:
+      - 92
+      - 50
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
     custom:9ed0bd5f-2876-4e78-b7e4-3e2689d53206:
       prop: boxwood-ball
       pos:
-      - 60
-      - 100
+      - 36
+      - 92
       - 0
       rot:
       - 0
       - 0
       - 0
-      scale: 0.9231163463866385
+      scale: 1
     custom:0dbe6501-5d7f-45d9-a85e-d0d3ed6f2459:
       prop: boxwood-ball
       pos:
-      - 70
-      - 80
+      - 64
+      - 92
       - 0
       rot:
       - 0
       - 0
       - 0
-      scale: 1.0000000000000002
-    custom:1d90a005-47a4-4729-8c13-c2619f26bc30:
-      prop: river-reeds
-      pos:
-      - 5
-      - 100
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 0.799315134369365
+      scale: 1
     custom:5a9fdbe9-2c06-45c1-a56d-8546f7834aff:
       prop: fern-clump
       pos:
-      - 70
-      - 100
+      - 8
+      - 88
       - 0
       rot:
       - 0
       - 0
       - 0
       scale: 1
-    custom:52e06ffa-cb13-4190-b4c0-a8441972fb83:
-      prop: gorse-bush
+    custom:1d90a005-47a4-4729-8c13-c2619f26bc30:
+      prop: river-reeds
       pos:
-      - 100
-      - 30
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1
-    custom:819cf4ce-8870-4f22-ae2e-87b4b05f599b:
-      prop: gorse-bush
-      pos:
-      - 95
-      - 60
-      - 0
-      rot:
-      - 0
-      - 0.5199999999999818
-      - 0
-      scale: 0.7378608664505929
-    custom:1dd7befb-cc04-45a6-934b-9f5fa9f5dd05:
-      prop: tall-grass-tuft
-      pos:
-      - 90
-      - 0
+      - 88
+      - 72
       - 0
       rot:
       - 0
@@ -883,46 +1962,14 @@ garden:
     custom:e3e94ea7-1032-422c-8c1b-61b21e315caa:
       prop: tree-stump
       pos:
-      - 100
-      - 100
+      - 91
+      - 91
       - 0
       rot:
       - 0
       - 0
       - 0
-      scale: 1.1924380586506707
-    custom:ea32a20a-19c3-4c1e-9cf1-517d5a8a199b:
-      prop: builtin:wall
-      wall_style:
-        texture: brick
-        finish: none
-        main: '#f1eadb'
-        accent: '#b9a889'
-      pos:
-      - 15
-      - 0
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 0.997
-    custom:8a39831f-40f4-4ee4-9b94-16c8b3d83136:
-      prop: builtin:wall
-      wall_style:
-        texture: brick
-        finish: none
-        main: '#f1eadb'
-        accent: '#b9a889'
-      pos:
-      - 95
-      - 0
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 0.997
+      scale: 1
   exits:
     foyer:
       label: Back inside

@@ -7,7 +7,7 @@ portal:
   model: portal.glb
   decorative: false
   animation: auto
-  scale: 0.2
+  scale: 0.347
   effects:
     idle:
     - smoke
@@ -39,7 +39,7 @@ shower:
   default_actions:
   - - Take a shower
     - .act shower @self
-  scale: 2.006
+  scale: 1.801
   sounds:
     select: water1.wav
     action: water1.wav
@@ -50,7 +50,7 @@ litter-tray:
   model: litter-tray.glb
   decorative: false
   behavior: litter-tray
-  scale: 1.038
+  scale: 0.699
 locked-front-door:
   label: The Front Door
   description: The way out of the house. The key is in the dark basement, once the
@@ -71,7 +71,7 @@ keys-cabinet:
   default_actions:
   - - Take the key
     - .act take_key @self
-  scale: 1.636
+  scale: 1.501
   sounds:
     select: tick.wav
     action: open-metal.wav
@@ -101,7 +101,7 @@ vacuum-stand:
   default_actions:
   - - Take tools
     - .dispense @self
-  scale: 1.229
+  scale: 1.099
   sounds:
     select: click3.wav
     action: mech1.wav
@@ -119,7 +119,7 @@ supply-shelf:
   default_actions:
   - - Take supplies
     - .dispense @self
-  scale: 1.464
+  scale: 1.553
   sounds:
     select: click2.wav
     action: draw.wav
@@ -135,7 +135,7 @@ kitchen-counter:
   - - Craft at the counter
     - .craft @self
     - true
-  scale: 1.214
+  scale: 1.056
   tags:
   - crafting
   - kitchen
@@ -147,28 +147,28 @@ sofa:
     crumbs, which are not friends.
   model: sofa.glb
   decorative: true
-  scale: 1.546
+  scale: 1.801
 bed:
   label: Patchwork Bed
   description: A quilt stitched from the colors of the house and the remnants of your
     last good decision.
   model: bed.glb
   decorative: true
-  scale: 1.75
+  scale: 1.9
 plant:
   label: Monstera
   description: Glossy leaves, a wonky terracotta pot, and one new shoot that is absolutely
     plotting something.
   model: quaternius_cc0-cactus-775.glb
   decorative: true
-  scale: 0.76
+  scale: 0.495
 bookshelf:
   label: Story Shelf
   description: Hand-bound books and a dollhouse keepsake. The books are arranged by
     vibes, not author.
   model: bookshelf.glb
   decorative: true
-  scale: 1.155
+  scale: 1.5
   effects: {}
 framed-picture:
   label: A Sunny Picture
@@ -176,21 +176,21 @@ framed-picture:
     with good lighting.
   model: framed-picture.glb
   decorative: true
-  scale: 1.593
+  scale: 0.885
 rug:
   label: Woven Flower Rug
   description: A scalloped rug with a cheerful embroidered flower. It has hidden more
     than one crime against housekeeping.
   model: rug.glb
   decorative: true
-  scale: 1.366
+  scale: 1.801
 lamp:
   label: Reading Lamp
   description: Warm light under a pleated marigold shade. Comes with a faint sense
     of being watched by upholstery.
   model: lamp.glb
   decorative: true
-  scale: 1.065
+  scale: 1.5
 vending:
   label: Card Shop
   description: Base, Tutorial, and Memebase packs. Three cards for 10 Bops; unlimited

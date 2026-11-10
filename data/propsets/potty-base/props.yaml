@@ -9,7 +9,7 @@ cottage-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1.15
+  scale: 0.833
   tags:
   - plumbing
   - toilet
@@ -22,7 +22,7 @@ victorian-high-tank:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1.2
+  scale: 1.556
   tags:
   - plumbing
   - toilet
@@ -51,7 +51,7 @@ marble-imperial-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1.2
+  scale: 1.111
   tags:
   - plumbing
   - toilet
@@ -65,7 +65,7 @@ piano-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1.25
+  scale: 1.004
   tags:
   - plumbing
   - toilet
@@ -80,7 +80,7 @@ rocket-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1.3
+  scale: 1.207
   tags:
   - plumbing
   - toilet
@@ -94,7 +94,7 @@ hollow-log-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1.1
+  scale: 0.829
   tags:
   - plumbing
   - toilet
@@ -107,7 +107,7 @@ shark-jaws-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1.3
+  scale: 1.111
   tags:
   - plumbing
   - toilet
@@ -121,7 +121,7 @@ royal-frog-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1
+  scale: 0.889
   tags:
   - plumbing
   - toilet
@@ -135,7 +135,7 @@ disco-glam-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1.15
+  scale: 0.898
   tags:
   - plumbing
   - toilet

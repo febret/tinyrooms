@@ -5,7 +5,7 @@ seavilla-aqua-sofa:
   description: A curved sofa the colour of shallow water.
   model: seavilla-aqua-sofa.glb
   decorative: true
-  scale: 1.4
+  scale: 1.706
   tags:
   - seating
   - sofa
@@ -15,7 +15,7 @@ seavilla-shell-armchair:
   description: An armchair shaped like an open shell.
   model: seavilla-shell-armchair.glb
   decorative: true
-  scale: 1.1
+  scale: 0.9
   tags:
   - seating
   - chair
@@ -25,7 +25,7 @@ seavilla-rattan-dining-chair:
   description: A bleached rattan chair with a sea-foam pad.
   model: seavilla-rattan-dining-chair.glb
   decorative: true
-  scale: 1.0
+  scale: 0.85
   tags:
   - seating
   - chair
@@ -35,7 +35,7 @@ seavilla-poolside-lounger:
   description: A white lounger with a rolled towel, always.
   model: seavilla-poolside-lounger.glb
   decorative: true
-  scale: 1.4
+  scale: 1.7
   tags:
   - seating
   - lounger
@@ -45,7 +45,7 @@ seavilla-glass-orb-lamp:
   description: A floor lamp like a fisherman's float.
   model: seavilla-glass-orb-lamp.glb
   decorative: true
-  scale: 1.2
+  scale: 1.5
   tags:
   - lighting
   - lamp
@@ -54,7 +54,7 @@ seavilla-coral-table-lamp:
   description: A table lamp branched like white coral.
   model: seavilla-coral-table-lamp.glb
   decorative: true
-  scale: 0.8
+  scale: 0.5
   tags:
   - lighting
   - lamp
@@ -63,7 +63,7 @@ seavilla-drift-pendant:
   description: A pendant of frosted glass discs like sea coins.
   model: seavilla-drift-pendant.glb
   decorative: true
-  scale: 0.9
+  scale: 0.7
   tags:
   - lighting
   - lamp
@@ -72,7 +72,7 @@ seavilla-oval-coffee-table:
   description: A travertine oval that stays cool all day.
   model: seavilla-oval-coffee-table.glb
   decorative: true
-  scale: 1.2
+  scale: 1
   tags:
   - table
   - furniture
@@ -81,7 +81,7 @@ seavilla-mosaic-side-table:
   description: A side table set with a sea-glass mosaic.
   model: seavilla-mosaic-side-table.glb
   decorative: true
-  scale: 0.9
+  scale: 0.619
   tags:
   - table
   - furniture
@@ -99,7 +99,7 @@ seavilla-arched-shelf:
   description: A plaster arched shelf for shells and novels.
   model: seavilla-arched-shelf.glb
   decorative: true
-  scale: 1.0
+  scale: 1.2
   tags:
   - storage
   - shelf
@@ -109,7 +109,7 @@ seavilla-cane-cabinet:
   description: A cane-front cabinet in washed oak.
   model: seavilla-cane-cabinet.glb
   decorative: true
-  scale: 1.2
+  scale: 1.5
   tags:
   - storage
   - cabinet
@@ -119,7 +119,7 @@ seavilla-woven-hamper:
   description: A lidded hamper for pool towels.
   model: seavilla-woven-hamper.glb
   decorative: true
-  scale: 0.9
+  scale: 0.7
   tags:
   - storage
   - furniture
@@ -128,7 +128,7 @@ seavilla-canopy-bed:
   description: A white canopy bed with gauze curtains.
   model: seavilla-canopy-bed.glb
   decorative: true
-  scale: 1.6
+  scale: 2
   tags:
   - bed
   - furniture
@@ -137,7 +137,7 @@ seavilla-wave-rug:
   description: A soft rug patterned with pale waves.
   model: seavilla-wave-rug.glb
   decorative: true
-  scale: 1.6
+  scale: 2.166
   tags:
   - rug
   - decoration
@@ -146,7 +146,7 @@ seavilla-arch-mirror:
   description: A tall arched mirror that doubles the light.
   model: seavilla-arch-mirror.glb
   decorative: true
-  scale: 1.1
+  scale: 1.416
   tags:
   - mirror
   - decoration
@@ -155,7 +155,7 @@ seavilla-sun-clock:
   description: A sunburst clock in brushed gold.
   model: seavilla-sun-clock.glb
   decorative: true
-  scale: 0.7
+  scale: 0.4
   tags:
   - clock
   - decoration
@@ -164,7 +164,7 @@ seavilla-olive-pot:
   description: An olive tree settled into a limewashed pot.
   model: seavilla-olive-pot.glb
   decorative: true
-  scale: 1.0
+  scale: 1.263
   tags:
   - plant
   - decoration
@@ -173,7 +173,7 @@ seavilla-urchin-vase:
   description: A spiky ceramic vase glazed sea-foam.
   model: seavilla-urchin-vase.glb
   decorative: true
-  scale: 0.7
+  scale: 0.35
   tags:
   - decoration
 seavilla-linen-curtain:
@@ -181,6 +181,6 @@ seavilla-linen-curtain:
   description: A breezy linen curtain panel on a brass rod.
   model: seavilla-linen-curtain.glb
   decorative: true
-  scale: 1.3
+  scale: 1.5
   tags:
   - decoration

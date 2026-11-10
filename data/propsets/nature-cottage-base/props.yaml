@@ -5,7 +5,7 @@ cottage-patchwork-sofa:
   description: A sofa quilted from every good curtain.
   model: cottage-patchwork-sofa.glb
   decorative: true
-  scale: 1.4
+  scale: 1.7
   tags:
   - seating
   - sofa
@@ -15,7 +15,7 @@ cottage-rocking-chair:
   description: A pine rocker that creaks in a friendly way.
   model: cottage-rocking-chair.glb
   decorative: true
-  scale: 1.1
+  scale: 0.9
   tags:
   - seating
   - chair
@@ -25,7 +25,7 @@ cottage-windsor-chair:
   description: A windsor chair worn smooth by breakfasts.
   model: cottage-windsor-chair.glb
   decorative: true
-  scale: 1.0
+  scale: 0.85
   tags:
   - seating
   - chair
@@ -45,7 +45,7 @@ cottage-tole-lamp:
   description: A painted tole floor lamp with flowers.
   model: cottage-tole-lamp.glb
   decorative: true
-  scale: 1.2
+  scale: 1.5
   tags:
   - lighting
   - lamp
@@ -54,7 +54,7 @@ cottage-mason-lantern:
   description: A mason-jar lantern full of fireflies (probably).
   model: cottage-mason-lantern.glb
   decorative: true
-  scale: 0.7
+  scale: 0.35
   tags:
   - lighting
   - lantern
@@ -63,7 +63,7 @@ cottage-pendant-shade:
   description: A pressed-flower pendant shade.
   model: cottage-pendant-shade.glb
   decorative: true
-  scale: 0.9
+  scale: 1.615
   tags:
   - lighting
   - lamp
@@ -81,7 +81,7 @@ cottage-gateleg-table:
   description: A gateleg table that folds for dances.
   model: cottage-gateleg-table.glb
   decorative: true
-  scale: 1.1
+  scale: 1.388
   tags:
   - table
   - furniture
@@ -90,7 +90,7 @@ cottage-stool-table:
   description: A milking-stool side table.
   model: cottage-stool-table.glb
   decorative: true
-  scale: 0.8
+  scale: 0.519
   tags:
   - table
   - furniture
@@ -99,7 +99,7 @@ cottage-dresser:
   description: A dresser with plates on parade.
   model: cottage-dresser.glb
   decorative: true
-  scale: 1.3
+  scale: 1.5
   tags:
   - storage
   - cabinet
@@ -109,7 +109,7 @@ cottage-pantry-shelf:
   description: A shelf of jars, jams, and twine.
   model: cottage-pantry-shelf.glb
   decorative: true
-  scale: 1.1
+  scale: 1.5
   tags:
   - storage
   - shelf
@@ -119,7 +119,7 @@ cottage-blanket-chest:
   description: A chest of wool blankets against drafts.
   model: cottage-blanket-chest.glb
   decorative: true
-  scale: 1.2
+  scale: 0.81
   tags:
   - storage
   - furniture
@@ -128,7 +128,7 @@ cottage-fourposter-bed:
   description: A pine fourposter with a flower quilt.
   model: cottage-fourposter-bed.glb
   decorative: true
-  scale: 1.6
+  scale: 2
   tags:
   - bed
   - furniture
@@ -137,7 +137,7 @@ cottage-braided-rug:
   description: An oval braided rug in meadow colours.
   model: cottage-braided-rug.glb
   decorative: true
-  scale: 1.5
+  scale: 1.993
   tags:
   - rug
   - decoration
@@ -146,7 +146,7 @@ cottage-oval-mirror:
   description: An oval mirror in a pine frame.
   model: cottage-oval-mirror.glb
   decorative: true
-  scale: 0.9
+  scale: 0.791
   tags:
   - mirror
   - decoration
@@ -155,7 +155,7 @@ cottage-cuckoo-clock:
   description: A cuckoo clock with a very punctual bird.
   model: cottage-cuckoo-clock.glb
   decorative: true
-  scale: 0.7
+  scale: 0.4
   tags:
   - clock
   - decoration
@@ -164,7 +164,7 @@ cottage-geranium-pot:
   description: Geraniums in a terracotta pot, always blooming.
   model: cottage-geranium-pot.glb
   decorative: true
-  scale: 0.7
+  scale: 0.403
   tags:
   - plant
   - decoration
@@ -173,7 +173,7 @@ cottage-jug-vase:
   description: A creamware jug of wildflowers.
   model: cottage-jug-vase.glb
   decorative: true
-  scale: 0.7
+  scale: 0.3
   tags:
   - decoration
   - plant
@@ -182,7 +182,7 @@ cottage-quilt-screen:
   description: A screen hung with a star quilt.
   model: cottage-quilt-screen.glb
   decorative: true
-  scale: 1.3
+  scale: 1.405
   tags:
   - decoration
   - furniture
