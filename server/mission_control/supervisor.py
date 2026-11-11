@@ -446,6 +446,19 @@ class Supervisor:
                 if "legacy_features" not in config:
                     config["legacy_features"] = DEFAULT_CHILD_LEGACY_FEATURES
                     self._write_identity(path, instance_id, config)
+                if "custom_stickers_path" not in config:
+                    try:
+                        users_raw = config.get("users_path")
+                        users_for_stickers = (
+                            Path(str(users_raw)) if users_raw else self._config.users_path
+                        )
+                        config["custom_stickers_path"] = str(
+                            self.custom_stickers_path_for(users_for_stickers)
+                        )
+                    except OSError:
+                        pass
+                    else:
+                        self._write_identity(path, instance_id, config)
                 if self._config.same_origin_worlds:
                     config["host"] = self._config.instance_host
                     config["base_path"] = same_origin_base_path(self._config.base_path, instance_id)
@@ -520,6 +533,7 @@ class Supervisor:
         instance_id = validate_instance_id(instance_id or resolved_dir.name) or self._registry.allocate_id()
         resolved_worldstate = Path(worldstate_path) if worldstate_path else resolved_dir / "worldstate.sqlite3"
         resolved_users = Path(users_path) if users_path else self._config.users_path
+        resolved_stickers = self.custom_stickers_path_for(resolved_users)
         if self._config.same_origin_worlds:
             resolved_base_path = same_origin_base_path(self._config.base_path, instance_id)
             client_url = same_origin_client_url(
@@ -536,6 +550,7 @@ class Supervisor:
             "world_path": str(world_path),
             "worldstate_path": str(resolved_worldstate),
             "users_path": str(resolved_users),
+            "custom_stickers_path": str(resolved_stickers),
             "host": host,
             "port": allocated_port,
             "features": features,
@@ -570,6 +585,39 @@ class Supervisor:
         self._changed()
         return record
 
+    def custom_stickers_path_for(self, users_path: Path) -> Path:
+        """Return the sticker directory belonging with *users_path*.
+
+        Instances sharing the fleet profile directory share one folder;
+        instances with their own users path keep stickers beside those
+        profiles so user data stays together.
+        """
+
+        try:
+            shared = self._config.users_path.resolve()
+            given = Path(users_path).expanduser().resolve()
+        except OSError:
+            given = Path(users_path).expanduser()
+            shared = self._config.users_path
+        if given == shared:
+            self._config.custom_stickers_path.mkdir(parents=True, exist_ok=True)
+            return self._config.custom_stickers_path
+        target = Path(users_path).expanduser() / "stickers"
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    def _ensure_custom_stickers_config(self, config: dict[str, object]) -> Path:
+        """Backfill ``custom_stickers_path`` on a saved/spawn config."""
+
+        raw = config.get("custom_stickers_path")
+        if isinstance(raw, str) and raw:
+            return Path(raw)
+        users_raw = config.get("users_path")
+        users_path = Path(str(users_raw)) if users_raw else self._config.users_path
+        resolved = self.custom_stickers_path_for(users_path)
+        config["custom_stickers_path"] = str(resolved)
+        return resolved
+
     def _taken_routes(self, *, exclude: str | None = None) -> set[str]:
         taken = {
             record.base_path.lstrip("/")
@@ -581,11 +629,13 @@ class Supervisor:
 
     def _spawn_process(self, config: dict[str, object]) -> subprocess.Popen:
         raw_legacy = config.get("legacy_features")
+        stickers_path = self._ensure_custom_stickers_config(config)
         env = self._build_env(
             name=str(config["name"]),
             world_path=Path(str(config["world_path"])),
             worldstate_path=Path(str(config["worldstate_path"])),
             users_path=Path(str(config["users_path"])),
+            custom_stickers_path=Path(stickers_path),
             host=str(config["host"]),
             port=int(config["port"]),
             features=str(config.get("features") or ""),
@@ -627,6 +677,7 @@ class Supervisor:
         world_path: Path,
         worldstate_path: Path,
         users_path: Path,
+        custom_stickers_path: Path | None = None,
         host: str,
         port: int,
         features: str,
@@ -643,6 +694,13 @@ class Supervisor:
         env["TRSERVER_WORLD_PATH"] = str(world_path)
         env["TRSERVER_WORLDSTATE_PATH"] = str(worldstate_path)
         env["TRSERVER_USERS_PATH"] = str(users_path)
+        resolved_stickers = (
+            custom_stickers_path
+            if custom_stickers_path is not None
+            else self.custom_stickers_path_for(users_path)
+        )
+        resolved_stickers.mkdir(parents=True, exist_ok=True)
+        env["TRSERVER_CUSTOM_STICKERS_PATH"] = str(resolved_stickers)
         env["TRSERVER_HOST"] = host
         env["TRSERVER_PORT"] = str(port)
         env["TRSERVER_BASE_PATH"] = base_path
@@ -766,6 +824,7 @@ class Supervisor:
             )
         record.spawn_config["instance_id"] = record.instance_id
         record.spawn_config.setdefault("client_url", record.client_url or f"{record.endpoint}{record.base_path}")
+        self._ensure_custom_stickers_config(record.spawn_config)
         if not self.stop(instance_id, actor=actor):
             LOGGER.warning(json.dumps({
                 "event": "mc.restart_refused",
@@ -808,6 +867,7 @@ class Supervisor:
         if not can_start:
             return None
         self._recover_conflicting_port(record)
+        self._ensure_custom_stickers_config(record.spawn_config)
         self._persist_identity(record)
         try:
             process = self._spawn_process(dict(record.spawn_config))

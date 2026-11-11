@@ -55,6 +55,11 @@ class MCConfig:
     # Invitation changes do not invalidate existing accounts.
     new_account_passphrase: str
     features: frozenset[str]
+    # Shared player-designed sticker PNGs. Children receive this as
+    # TRSERVER_CUSTOM_STICKERS_PATH so a sticker saved by one version stays
+    # visible after upgrades; it lives beside profiles, never inside a
+    # version checkout. Defaults to the users directory.
+    custom_stickers_path: Path
     # Default child mod selection; a start request can override it.
     mods: str = "*"
     # Optional MC URL prefix; independent of direct worlds' saved base paths.
@@ -342,6 +347,18 @@ def load_mc_config(
         else users_path / "instance-policy.json"
     )
 
+    custom_stickers_raw = values.get("TRSERVER_MC_CUSTOM_STICKERS_PATH", "").strip()
+    custom_stickers_path = (
+        Path(custom_stickers_raw).expanduser()
+        if custom_stickers_raw
+        else users_path / "stickers"
+    )
+    custom_stickers_path.mkdir(parents=True, exist_ok=True)
+    if not custom_stickers_path.is_dir():
+        raise ConfigError(
+            f"TRSERVER_MC_CUSTOM_STICKERS_PATH must be a directory: {custom_stickers_path}"
+        )
+
     return MCConfig(
         repo_root=root,
         host=host,
@@ -373,4 +390,5 @@ def load_mc_config(
         instance_certfile=instance_certfile,
         instance_keyfile=instance_keyfile,
         instance_policy_path=instance_policy_path,
+        custom_stickers_path=custom_stickers_path,
     )

@@ -399,6 +399,56 @@ def _recovery_response(
     )
 
 
+async def _auto_switch_to_default(
+    request: Request,
+    account_id: str,
+    profile,
+    *,
+    saved_instance_id: str,
+) -> Response | None:
+    """Redirect a missing saved instance to the operator default, if usable.
+
+    Only applies when the saved instance is no longer registered at all.
+    Returns a success response after rebinding the profile, or None when the
+    default is unset/unusable so callers keep the explicit-repair error.
+    """
+
+    runtime = request.app.state.mc
+    default_id = runtime.entry_settings.default_instance_id
+    if not default_id or default_id == saved_instance_id:
+        return None
+    try:
+        record, client_url = await _destination(request, default_id)
+    except HTTPException:
+        return None
+    if not record.entry_room_id:
+        return None
+    previous_world_id = profile.last_world_id
+    runtime.profiles.ensure_user_profile(account_id, record.world_id, record.entry_room_id)
+    runtime.profiles.remember_instance(account_id, record.instance_id)
+    runtime.audit.record(
+        f"account:{account_id}",
+        "player.destination.auto_switch",
+        target=record.instance_id,
+        detail={
+            "previous_instance_id": saved_instance_id,
+            "previous_world_id": previous_world_id,
+            "world_id": record.world_id,
+        },
+    )
+    return JSONResponse(
+        {
+            "ok": True,
+            "instance_id": record.instance_id,
+            "world_id": record.world_id,
+            "client_url": client_url,
+            "auto_switched": True,
+            "previous_instance_id": saved_instance_id,
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @router.get("/api/entry/session")
 async def session_status(request: Request) -> Response:
     """Report player authentication without loading or changing world state."""
@@ -479,7 +529,7 @@ async def logout(request: Request) -> Response:
 
 @router.get("/api/entry/resolve")
 async def resolve(request: Request) -> Response:
-    """Resolve the exact saved instance, offering same-world recovery when it is gone."""
+    """Resolve the exact saved instance, auto-switching to the default when it is gone."""
 
     runtime = request.app.state.mc
     session = _session(request)
@@ -501,12 +551,28 @@ async def resolve(request: Request) -> Response:
             )
         instance_id = matches[0].instance_id
     record = runtime.registry.get(instance_id)
-    if record is None or not _is_runnable(runtime, record):
+    if record is None:
+        auto = await _auto_switch_to_default(
+            request,
+            session.account_id,
+            profile,
+            saved_instance_id=instance_id,
+        )
+        if auto is not None:
+            return auto
         return _recovery_response(
             runtime,
             request,
             profile,
-            code="entry_instance_missing" if record is None else "entry_instance_not_running",
+            code="entry_instance_missing",
+            saved_instance_id=instance_id,
+        )
+    if not _is_runnable(runtime, record):
+        return _recovery_response(
+            runtime,
+            request,
+            profile,
+            code="entry_instance_not_running",
             saved_instance_id=instance_id,
         )
     try:

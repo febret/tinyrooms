@@ -51,12 +51,17 @@ processes; external lifecycle actions use cooperative world endpoints.
   are rejected.
   External instances require operator verification of that shared-DB setup.
 - Resolve reads `user_profiles.profile_json.last_instance_id` **exactly** and
-  validates it before any alternative. Only when that instance is no longer
-  registered (or a legacy profile has zero/multiple world matches) does entry
-  return explicit same-world alternatives. The player must confirm one through
-  `POST /api/entry/repair`; entry never falls back automatically to the default,
-  another world, or a different instance. A saved instance that is healthy but now
-  serves a different world is reported as `entry_instance_world_mismatch` with the
+  validates it before any alternative. When that instance is no longer
+  registered, resolve automatically switches the player to the operator
+  default (when set and healthy), rebinding `last_instance_id`/`last_world_id`
+  to the default's world and auditing it as `player.destination.auto_switch`
+  with the previous instance/world in the detail. Only when the default is
+  unset or unusable does entry return explicit same-world alternatives for
+  `POST /api/entry/repair`. Any other unavailable state (stopped,
+  unreachable, world mismatch, ambiguous legacy profile) still requires
+  explicit player confirmation; entry never falls back automatically in those
+  cases. A saved instance that is healthy but now
+  serves a different world is reported as `entry_instance_world_mismatch` with
   same-world candidates. Retired-instance records may rank a designated
   successor first, but confirmation remains explicit.
 - If no same-world instance is running, the mismatch response also carries
@@ -110,6 +115,16 @@ Operational settings:
 - `TRSERVER_MC_USERS_PATH` must identify the shared profile directory.
   `TRSERVER_MC_CONTENT_PATH` defaults to the versions directory's parent;
   `TRSERVER_MC_INSTALL_PATH` overrides Server Info's auto-detected install root.
+- `TRSERVER_MC_CUSTOM_STICKERS_PATH` defaults to `<users>/stickers` and is
+  passed to every spawned child as `TRSERVER_CUSTOM_STICKERS_PATH`, so a
+  player-designed sticker saved under one server version stays visible after
+  upgrades or version changes. Spawned instances with their own users path
+  keep stickers in `<users>/stickers` beside those profiles instead. The
+  folder lives outside version checkouts, so deleting a version never removes
+  it. On startup MC copies any `custom-*.png` files left under
+  `versions/*/.local/stickers` or `<repo>/.local/stickers` into the shared
+  folder (and into per-instance folders for saved custom users paths),
+  without overwriting existing files.
 - `TRSERVER_MC_PUBLIC_ORIGIN` adds allowed origins; its first origin determines
   advertised player entry. `TRSERVER_MC_BASE_PATH` is optional; deployment uses
   an empty prefix. `TRSERVER_MC_KEEPALIVE` enables **Reboot**.

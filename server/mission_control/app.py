@@ -72,6 +72,12 @@ def build_runtime(config: MCConfig) -> McRuntime:
     """Build the mission-control runtime graph."""
 
     ensure_profile_database(config.profiles_db_path)
+    try:
+        from server.mission_control.sticker_migration import migrate_legacy_custom_stickers
+
+        migrate_legacy_custom_stickers(config)
+    except Exception:  # noqa: BLE001 - sticker recovery must never block startup
+        LOGGER.exception("mc.sticker_migration_failed")
     hub = DatabaseHub(config.profiles_db_path)
     policy_store = InstancePolicyStore(
         config.instance_policy_path or (config.users_path / "instance-policy.json"),

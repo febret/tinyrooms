@@ -430,6 +430,47 @@ class EntryRecoveryTests(McHttpTestCase):
         self.assertEqual(candidates[0]["instance_id"], replacement.instance_id)
         self.assertTrue(candidates[0]["replacement"])
 
+    def test_missing_saved_instance_auto_switches_to_default(self) -> None:
+        default = self.add_running_instance("mc-default", world_id="other-world", port=10003)
+        self.mock_health(default)
+        runtime = self.app.state.mc
+        runtime.entry_settings.set_default(default.instance_id)
+        account, _ = self.sign_in("mc-missing")
+
+        response = self.client.get("/api/entry/resolve")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["instance_id"], default.instance_id)
+        self.assertEqual(data["world_id"], "other-world")
+        self.assertTrue(data["auto_switched"])
+        self.assertEqual(data["previous_instance_id"], "mc-missing")
+        profile = runtime.profiles.get_user_profile(account.id)
+        self.assertEqual(profile.last_instance_id, default.instance_id)
+        self.assertEqual(profile.last_world_id, "other-world")
+        entries = runtime.audit.entries()
+        self.assertTrue(
+            any(
+                entry["action"] == "player.destination.auto_switch"
+                and entry["target"] == default.instance_id
+                for entry in entries
+            )
+        )
+        self.assertEqual(self.client.get("/api/entry/resolve").status_code, 200)
+
+    def test_missing_saved_instance_keeps_repair_when_default_unusable(self) -> None:
+        default = self.add_running_instance("mc-default", port=10003)
+        runtime = self.app.state.mc
+        runtime.entry_settings.set_default(default.instance_id)
+        runtime.registry.set_status(default.instance_id, STATUS_STOPPED)
+        self.sign_in("mc-missing")
+
+        response = self.client.get("/api/entry/resolve")
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["code"], "entry_instance_missing")
+
 
 if __name__ == "__main__":
     unittest.main()
