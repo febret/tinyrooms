@@ -1,0 +1,127 @@
+/* Inventory: an open leather satchel. Stitched hide frame, canvas-lined pockets,
+   a specimen card on a lit stand, and a paper label describing it. */
+.inventory-view { --hide: #4a2b17; --hide-hi: #7a4c2a; --hide-lo: #24130a; --stitch: #d8b472; --lining: #0c2a30; --lining-lo: #061a1f; --label: #f1e4c8; --label-ink: #3a2b1d; --label-soft: #6f5a43; gap: 0; padding-top: 14px; padding-left: max(clamp(12px, 3vw, 40px), calc(var(--sidebar-width) + 6px)); }
+.inventory-view > .modal-header, .inventory-view > .inventory-layout { width: min(100%, 1180px); }
+.inventory-view .modal-header { position: relative; z-index: 1; padding-inline: 18px 12px; }
+.inventory-view .modal-header h2 { font-size: clamp(20px, 2vw, 26px); }
+.inventory-controls { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; width: 100%; margin-top: 8px; }
+.inventory-tabs { display: inline-flex; flex: 0 1 auto; min-width: 0; gap: 4px; }
+.inventory-tabs button { position: relative; min-height: 38px; min-width: 44px; padding: 4px 16px 8px; border: 1px solid var(--hide-lo); border-bottom: 0; border-radius: 12px 12px 0 0; background: linear-gradient(#5a3620, #3b2212); color: #e9d2ad; font-family: var(--heading-font); font-size: 15px; font-weight: 600; letter-spacing: .02em; box-shadow: inset 0 1px 0 #ffffff26, inset 0 0 0 3px #00000026; transform: translateY(4px); transition: transform .2s var(--ease-spring), filter .15s; }
+.inventory-tabs button::after { content: ""; position: absolute; inset: 4px 4px 0; border: 1px dashed #d8b47259; border-bottom: 0; border-radius: 8px 8px 0 0; pointer-events: none; }
+.inventory-tabs button:active:not(:disabled) { transform: translateY(5px); box-shadow: inset 0 1px 0 #ffffff26; }
+.inventory-tabs button.selected { background: linear-gradient(#f3ddb0, #d9b679); color: #2b1a06; text-shadow: 0 1px 0 #fff5; transform: none; box-shadow: inset 0 1px 0 #fff9, 0 -3px 10px #ffd98a40; }
+.inventory-tabs button.selected::after { border-color: #7a4c2a80; }
+.inventory-actions { flex: 0 0 auto; margin-left: auto; display: flex; align-items: center; gap: 5px; padding-bottom: 7px; }
+.inventory-action { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; min-width: 34px; padding: 3px 11px; border-radius: 999px; font-size: 12px; }
+.inventory-action svg { flex: 0 0 auto; width: 15px; height: 15px; pointer-events: none; }
+.inventory-action[aria-pressed="true"] { background: linear-gradient(#f6dfa4, #d9ad62 55%, #b98a3a); border-color: #4a3212; color: #2b1a06; text-shadow: 0 1px 0 #fff6; }
+.inventory-action.negative[aria-pressed="true"] { background: linear-gradient(#b3534b, #7d2d28 52%, #65221f); border-color: #3c1210; color: #fff; text-shadow: 0 1px 1px #0009; }
+.inventory-action.inventory-close { background: linear-gradient(#5a3620, #3b2212); border-color: var(--hide-lo); color: #f3ddb0; }
+
+.inventory-layout { position: relative; flex: 1 1 auto; min-height: 0; margin-inline: auto; display: grid; grid-template-columns: minmax(250px, 330px) minmax(0, 1fr); gap: 12px; padding: 16px; border-radius: 20px; background: url("../assets/journal-leather.svg") 0 0 / 160px, linear-gradient(var(--hide-hi), var(--hide)); box-shadow: inset 0 1px 0 #ffffff33, inset 0 0 0 1px #000, inset 0 0 40px #0009, 0 2px 0 #1a0d06, 0 24px 44px #000c; animation: satchel-open .34s var(--ease-out) both; }
+.inventory-layout::before { content: ""; position: absolute; inset: 6px; border: 2px dashed var(--stitch); border-radius: 15px; opacity: .5; pointer-events: none; }
+@keyframes satchel-open { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+.inventory-preview, .inventory-content { position: relative; min-width: 0; min-height: 0; border-radius: 12px; background: repeating-linear-gradient(45deg, #ffffff06 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, #00000026 0 1px, transparent 1px 4px), linear-gradient(var(--lining), var(--lining-lo)); box-shadow: inset 0 0 0 1px #000, inset 0 3px 10px #000c, 0 1px 0 #ffffff26; }
+.inventory-preview { align-self: stretch; max-height: 100%; display: flex; flex-direction: column; gap: 12px; padding: 16px 14px 14px; overflow: hidden; }
+.inventory-preview::before { content: ""; position: absolute; inset: 0 0 auto; height: 62%; border-radius: inherit; background: radial-gradient(ellipse at 50% 34%, #ffe9b82e, #7fd0e014 42%, transparent 68%); pointer-events: none; }
+.inventory-preview-card { position: relative; flex: 0 1 auto; width: min(100%, 250px); max-width: 250px; min-height: 0; aspect-ratio: 310 / 440; margin-inline: auto; border-radius: 8px; filter: drop-shadow(0 16px 18px #000b); }
+.inventory-preview-card::after { content: ""; position: absolute; left: 8%; right: 8%; bottom: -12px; height: 16px; border-radius: 50%; background: radial-gradient(closest-side, var(--card-glow, #ffd98a) 0%, transparent 100%); opacity: .34; pointer-events: none; }
+.inventory-preview-card.rarity-uncommon { filter: drop-shadow(0 16px 18px #000b) drop-shadow(0 0 12px #5fd36f44); }
+.inventory-preview-card.rarity-rare { filter: drop-shadow(0 16px 18px #000b) drop-shadow(0 0 16px #5aa9ff66); }
+.inventory-preview-card.rarity-epic { filter: drop-shadow(0 16px 18px #000b) drop-shadow(0 0 20px #c07bff77); }
+.inventory-preview-card.rarity-legendary { filter: drop-shadow(0 16px 18px #000b) drop-shadow(0 0 24px #ffcf5f99); }
+.inventory-preview-info { --rarity: #8a7a62; position: relative; flex: 1 1 auto; min-height: 84px; padding: 13px 14px 12px 16px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #a58a65 transparent; overflow-wrap: anywhere; border-radius: 4px 10px 10px 4px; background: url("../assets/journal-paper.svg") center / 220px, linear-gradient(#fbf4e2, var(--label)); color: var(--label-ink); box-shadow: inset 5px 0 0 var(--rarity), inset 6px 0 0 #00000026, 0 2px 0 #b9a27a, 0 6px 12px #0009; transform: rotate(-.6deg); }
+.rarity-uncommon + .inventory-preview-info { --rarity: #4f9c4a; }
+.rarity-rare + .inventory-preview-info { --rarity: #3f7fc4; }
+.rarity-epic + .inventory-preview-info { --rarity: #8e55c9; }
+.rarity-legendary + .inventory-preview-info { --rarity: #d49a1f; }
+.inventory-preview-name { font-family: var(--heading-font); font-size: clamp(18px, 1.7vw, 22px); font-weight: 700; line-height: 1.15; color: var(--label-ink); }
+.inventory-preview-description { margin-top: 5px; font-family: var(--heading-font); font-size: 13.5px; font-style: italic; line-height: 1.45; color: var(--label-soft); }
+.inventory-preview-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 14px; margin: 10px 0 0; padding-top: 8px; border-top: 1px dashed #78583a66; font-size: 12px; line-height: 1.5; }
+.inventory-preview-metrics > div { display: flex; flex-wrap: nowrap; align-items: baseline; justify-content: space-between; gap: 6px; border-bottom: 1px dotted #78583a59; }
+.inventory-preview-metrics dt { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--label-soft); white-space: nowrap; }
+.inventory-preview-metrics dd { font-weight: 700; text-transform: capitalize; }
+.inventory-preview-info .card-tag-list { margin-top: 9px; gap: 5px; }
+.inventory-preview-info .card-tag { border: 1px solid #3a2b1d59; background: #3a2b1d14; color: var(--label-ink); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; box-shadow: inset 3px 0 0 var(--tag-color); padding-left: 9px; }
+.inventory-preview-empty { position: relative; display: grid; place-content: center; gap: 6px; flex: 1 1 auto; min-height: 180px; padding: 22px; border: 2px dashed #d8b47240; border-radius: 12px; color: #9db4ba; text-align: center; }
+.inventory-preview-empty p { font-family: var(--heading-font); color: #e9d2ad; font-size: 17px; }
+.inventory-preview-empty span { font-size: 13px; }
+
+.inventory-content { display: flex; flex-direction: column; gap: 4px; padding: 12px 6px 10px 14px; }
+.inventory-content .modal-scroll { flex: 1 1 auto; min-height: 0; width: 100%; max-width: none; margin: 0; padding-right: 8px; scrollbar-width: thin; scrollbar-color: #d8b47280 transparent; }
+.inventory-view .inventory-packs { flex: 0 0 auto; padding-right: 8px; }
+.inventory-group { margin-bottom: 12px; }
+.inventory-group > header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.inventory-group > header::after { content: ""; flex: 1 1 auto; height: 0; border-top: 1px dashed #d8b47247; }
+.inventory-group h3 { font-family: var(--heading-font); font-size: 17px; font-weight: 600; letter-spacing: .03em; color: #f3ddb0; text-shadow: 0 1px 0 #000; }
+.inventory-group > header span { min-width: 22px; padding: 0 6px; border-radius: 999px; background: linear-gradient(#f6dfa4, #d9ad62); color: #2b1a06; font-size: 12px; font-weight: 800; line-height: 18px; text-align: center; box-shadow: 0 1px 2px #0009; font-variant-numeric: tabular-nums; }
+.inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 16px 14px; padding: 6px 4px 10px; }
+.inventory-view .cards-grid .game-card { max-width: 132px; animation: card-settle .3s var(--ease-out) both; }
+@keyframes card-settle { from { opacity: 0; transform: translateY(8px) scale(.94); } to { opacity: 1; transform: none; } }
+.inventory-view.is-compact .cards-grid { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 10px; }
+.inventory-view.is-compact .cards-grid .game-card { width: 100%; max-width: 68px; border-radius: 12px; }
+.inventory-view .game-card > .card-illustration-wrap { border-radius: 12px; box-shadow: inset 0 0 0 1px #ffffff2e, inset 0 2px 0 #ffffff26; }
+.inventory-view .game-card > .card-illustration { aspect-ratio: 1 / 1; object-fit: cover; }
+.inventory-view .empty-state { margin: 4px 0; padding: 26px 12px; border: 2px dashed #d8b47233; border-radius: 12px; color: #9db4ba; font-family: var(--heading-font); font-size: 15px; font-style: italic; }
+.sell-mode .inventory-view .game-card { cursor: cell; box-shadow: 0 0 0 2px #f6dfa4, 0 0 12px #ffd98a80, 0 6px 10px #0009; }
+.sell-mode .inventory-view .game-card:hover { filter: brightness(1.12); }
+.sell-mode .inventory-layout::before { border-color: #ffd98a; opacity: .9; }
+
+@media (max-width: 1100px) {
+  .inventory-action-label { display: none; }
+  .inventory-action { padding-inline: 9px; }
+}
+@media (max-width: 780px), (orientation: portrait) {
+  .app-shell.full-view .sidebar { visibility: hidden; }
+  .inventory-view { padding: 6px 6px 8px; }
+  .inventory-view .modal-header { padding: 0 8px 0 10px; }
+  .inventory-view .modal-header h2 { font-size: 18px; }
+  .inventory-controls { gap: 4px 6px; margin-top: 4px; }
+  .inventory-tabs { gap: 3px; }
+  .inventory-tabs button { min-height: 36px; padding: 3px 12px 7px; font-size: 14px; }
+  .inventory-action { min-height: 34px; min-width: 38px; }
+  .inventory-action[data-compact-mode] { display: none; }
+  .inventory-layout { display: flex; flex-direction: column; gap: 8px; padding: 11px; border-radius: 16px; }
+  .inventory-layout::before { inset: 4px; border-width: 1px; border-radius: 12px; }
+  .inventory-content { order: 1; flex: 1 1 auto; padding: 10px 4px 8px 10px; }
+  .inventory-preview { order: 2; flex: 0 0 auto; align-self: auto; max-height: none; display: grid; grid-template-columns: 124px minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px 10px; }
+  .inventory-preview::before { width: 150px; height: 100%; }
+  .inventory-preview-card { width: 124px; max-width: none; margin: 0; }
+  .inventory-preview-info { align-self: stretch; max-height: min(30vh, 200px); min-height: 0; padding: 10px 10px 9px 13px; transform: none; }
+  .inventory-preview-description { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; }
+  .inventory-preview-name { font-size: 17px; }
+  .inventory-preview-metrics { margin-top: 6px; padding-top: 5px; gap: 2px 10px; font-size: 11.5px; }
+  .inventory-preview-empty { grid-column: 1 / -1; min-height: 96px; padding: 12px; }
+  /* Portrait phones always use the compact grid; the toggle is hidden above. */
+  .inventory-view .cards-grid, .inventory-view.is-compact .cards-grid { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 9px; }
+  .inventory-view .cards-grid .game-card, .inventory-view.is-compact .cards-grid .game-card { width: 100%; max-width: 66px; border-radius: 12px; }
+  .inventory-view .cards-grid .game-card:not(:has(.card-illustration-wrap)) { border-radius: 5px; }
+}
+@media (max-width: 400px) {
+  .inventory-preview { grid-template-columns: 104px minmax(0, 1fr); gap: 9px; }
+  .inventory-preview-card { width: 104px; }
+  .inventory-preview-metrics { grid-template-columns: 1fr; }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .app-shell.full-view .sidebar { visibility: hidden; }
+  .inventory-view { padding: 4px 8px 4px; }
+  .inventory-view .modal-header h2 { display: none; }
+  .inventory-controls { margin-top: 0; }
+  .inventory-tabs button { min-height: 32px; padding: 2px 14px 6px; }
+  .inventory-actions { padding-bottom: 5px; }
+  .inventory-action { min-height: 30px; }
+  .inventory-action[data-compact-mode] { display: none; }
+  .inventory-layout { grid-template-columns: minmax(230px, 38%) minmax(0, 1fr); gap: 8px; padding: 9px; border-radius: 16px; }
+  .inventory-layout::before { inset: 4px; border-width: 1px; border-radius: 12px; }
+  .inventory-content { padding: 8px 4px 6px 10px; }
+  .inventory-preview { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: center; gap: 10px; padding: 8px; }
+  .inventory-preview-card { width: clamp(78px, 25vh, 124px); max-width: none; margin: 0; }
+  .inventory-preview-info { align-self: stretch; min-height: 0; padding: 9px 10px 8px 13px; transform: none; }
+  .inventory-preview-name { font-size: 16px; }
+  .inventory-preview-description { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12.5px; }
+  .inventory-preview-metrics { grid-template-columns: 1fr; margin-top: 6px; padding-top: 5px; font-size: 11.5px; }
+  .inventory-preview-empty { grid-column: 1 / -1; min-height: 0; padding: 10px; }
+  .inventory-view .cards-grid, .inventory-view.is-compact .cards-grid { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 9px; }
+  .inventory-view .cards-grid .game-card, .inventory-view.is-compact .cards-grid .game-card { width: 100%; max-width: 66px; border-radius: 12px; }
+  .inventory-view .cards-grid .game-card:not(:has(.card-illustration-wrap)) { border-radius: 5px; }
+}

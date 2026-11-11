@@ -5,6 +5,7 @@
   const detailRoot = document.getElementById("detail");
   const connection = document.getElementById("connection");
   const energyValue = document.getElementById("energy-value");
+  const energyFill = document.getElementById("energy-fill");
   const recipeCount = document.getElementById("recipe-count");
   const result = document.getElementById("result");
   const resultCards = document.getElementById("result-cards");
@@ -63,8 +64,8 @@
     recipeCount.textContent = `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}${unavailable ? ` · ${unavailable} unavailable` : ""}`;
     if (!recipes.length) {
       const empty = document.createElement("p");
-      empty.className = "empty";
-      empty.innerHTML = `${icon("icon-pot")} No recipes learned here yet.`;
+      empty.className = "empty recipe-empty";
+      empty.innerHTML = `${icon("icon-pot")}<strong>No recipes learned here yet.</strong><span>These pages are waiting. Recipes you learn will be pinned here.</span>`;
       recipesRoot.replaceChildren(empty);
       return;
     }
@@ -157,10 +158,13 @@
 
   function renderDetail() {
     if (!preview) {
+      const hint = configuredRecipes().length
+        ? "Pick a recipe to see what it needs."
+        : "The bench is swept and ready for your first recipe.";
       detailRoot.innerHTML = `
         <div class="detail-empty">
-          ${icon("icon-pot", "icon detail-empty-icon")}
-          <p>Pick a recipe to see what it needs.</p>
+          <div class="ghost-bench" aria-hidden="true"><i></i><i></i><i></i>${icon("icon-pot", "icon detail-empty-icon")}</div>
+          <p>${hint}</p>
         </div>`;
       return;
     }
@@ -169,6 +173,7 @@
     const ingredients = (preview.ingredients || []).map(ingredient => {
       const total = selectedTotal(ingredient.card_id);
       const satisfied = total === ingredient.quantity;
+      const owned = (ingredient.stacks || []).reduce((sum, stack) => sum + Number(stack.quantity || 0), 0);
       const art = imageUrl(ingredient);
       const artMarkup = art
         ? `<img src="${TinyActivity.escape(art)}" alt="">`
@@ -177,7 +182,10 @@
         <div class="ingredient-art">${artMarkup}</div>
         <div class="ingredient-main">
           <div class="ingredient-head">
-            <h3>${TinyActivity.escape(ingredient.label)}</h3>
+            <div class="ingredient-title">
+              <h3>${TinyActivity.escape(ingredient.label)}</h3>
+              <span class="ingredient-have">Have ${owned} · need ${ingredient.quantity}</span>
+            </div>
             <span class="need ${satisfied ? "ok" : "missing"}" data-need="${TinyActivity.escape(ingredient.card_id)}" data-required="${ingredient.quantity}">${total}/${ingredient.quantity}</span>
           </div>
           <div class="stacks">${stacksMarkup(ingredient)}</div>
@@ -330,7 +338,11 @@
     if (!state) return;
     connection.textContent = "";
     const counters = state.user?.counters || {};
-    energyValue.textContent = `${Math.round(counters.energy ?? 0)} Energy`;
+    const energy = Math.round(counters.energy ?? 0);
+    const maxEnergy = Number(counters.maxEnergy ?? counters.max_energy ?? 0);
+    energyValue.textContent = `${energy} Energy`;
+    energyFill.parentElement.hidden = !(maxEnergy > 0);
+    energyFill.style.transform = `scaleX(${maxEnergy > 0 ? Math.max(0, Math.min(1, energy / maxEnergy)) : 0})`;
     const recipes = configuredRecipes();
     if (selectedRecipeId && !recipes.some(recipe => recipe.id === selectedRecipeId)) {
       selectedRecipeId = null;
@@ -338,6 +350,7 @@
     }
     renderRecipeList();
     if (selectedRecipeId && preview) renderDetail();
+    else if (!selectedRecipeId) renderDetail();
   }
 
   resultClose.onclick = closeResult;

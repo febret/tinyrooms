@@ -20,11 +20,11 @@ from tests.common import (
 class ContainerBehaviorTests(ServiceTestCase):
     def test_container_tag_rule(self) -> None:
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
-        self.assertEqual(world.props["saari-cabinet"].behavior, "container")
+        self.assertEqual(world.props["tutorial-saari-cabinet"].behavior, "container")
         self.assertEqual(world.props["galvanized-trashcan"].behavior, "container")
         self.assertEqual(world.props["floral-nightstand"].behavior, "container")
         actions = {
-            action.command for action in world.props["saari-cabinet"].default_actions
+            action.command for action in world.props["tutorial-saari-cabinet"].default_actions
         }
         self.assertIn(".open @self", actions)
 
@@ -33,7 +33,7 @@ class ContainerBehaviorTests(ServiceTestCase):
         self.assertEqual(world.props["medicine-cabinet"].behavior, "dispenser")
         self.assertEqual(world.props["kitchen-dresser"].behavior, "dispenser")
         self.assertEqual(world.props["city-trashcan"].behavior, "trashcan")
-        self.assertIsNone(world.props["kuusi-wall-shelf"].behavior)
+        self.assertIsNone(world.props["tutorial-cottage-pantry-shelf"].behavior)
 
 
 class ContainerServiceTests(ServiceTestCase):
@@ -58,7 +58,7 @@ class ContainerServiceTests(ServiceTestCase):
     def test_deposit_open_take_roundtrip_is_shared(self) -> None:
         first = self.create_account("container-first")
         second = self.create_account("container-second")
-        instance_id = self._instance_id("bathroom", "saari-cabinet")
+        instance_id = self._instance_id("bathroom", "tutorial-saari-cabinet")
         stack_id = self.grant_card(first, "poop", 3)
         before_energy = self.reload_account(first).shared_energy
 
@@ -89,7 +89,7 @@ class ContainerServiceTests(ServiceTestCase):
 
     def test_one_use_cards_are_stored_not_consumed(self) -> None:
         account = self.create_account("container-keeper")
-        instance_id = self._instance_id("bathroom", "saari-cabinet")
+        instance_id = self._instance_id("bathroom", "tutorial-saari-cabinet")
         stack_id = self.grant_card(account, "juicy-drink", 2)
         before_energy = self.reload_account(account).shared_energy
 
@@ -108,7 +108,7 @@ class ContainerServiceTests(ServiceTestCase):
 
     def test_rejects_non_containers_and_over_takes(self) -> None:
         account = self.create_account("container-reject")
-        instance_id = self._instance_id("bathroom", "saari-cabinet")
+        instance_id = self._instance_id("bathroom", "tutorial-saari-cabinet")
         stack_id = self.grant_card(account, "poop", 1)
         shower_id = self._instance_id("bathroom", "shower")
         with self.assertRaises(ValueError):
@@ -124,7 +124,7 @@ class ContainerServiceTests(ServiceTestCase):
 
     def test_room_reset_clears_containers(self) -> None:
         account = self.create_account("container-reset")
-        instance_id = self._instance_id("bathroom", "saari-cabinet")
+        instance_id = self._instance_id("bathroom", "tutorial-saari-cabinet")
         stack_id = self.grant_card(account, "poop", 1)
         self.containers.deposit(account, "bathroom", instance_id, stack_id)
         self.assertEqual(len(self.containers.contents("bathroom", instance_id)["cards"]), 1)
@@ -146,7 +146,7 @@ class ContainerCommandTests(IntegrationTestCase):
         instance_id = next(
             prop.id
             for prop in runtime.world.rooms["bathroom"].props.values()
-            if prop.prop_id == "saari-cabinet"
+            if prop.prop_id == "tutorial-saari-cabinet"
         )
         with self.client.websocket_connect(
             "/ws",
@@ -187,7 +187,7 @@ class ContainerCommandTests(IntegrationTestCase):
             )
         room = runtime.world.rooms["bathroom"]
         instance_id = next(
-            prop.id for prop in room.props.values() if prop.prop_id == "saari-cabinet"
+            prop.id for prop in room.props.values() if prop.prop_id == "tutorial-saari-cabinet"
         )
         shower_id = next(
             prop.id for prop in room.props.values() if prop.prop_id == "shower"

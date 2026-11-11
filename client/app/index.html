@@ -8,6 +8,7 @@
     <link rel="icon" href="/assets/stickers/s1.png">
     <link rel="stylesheet" href="/app/css/main.css">
     <link rel="stylesheet" href="/app/css/cards.css">
+    <link rel="stylesheet" href="/app/css/inventory.css">
     <link rel="stylesheet" href="/app/css/journal.css">
     <link rel="stylesheet" href="/app/css/id-card.css">
     <link rel="stylesheet" href="/app/css/room-picker.css">
@@ -66,13 +67,13 @@
               </button>
               <input id="chat-input" name="chat" autocomplete="off" maxlength="240" placeholder="Chat or command" aria-label="Chat message or command" role="combobox" aria-expanded="false" aria-controls="chat-completions" aria-autocomplete="list" aria-haspopup="listbox">
               <div id="chat-completions" class="chat-completions" role="listbox" aria-label="Completions" hidden></div>
-              <button type="submit" class="icon-button send-button" data-sound="none" aria-label="Send message" title="Send">&#8599;</button>
+              <button type="submit" class="icon-button send-button" data-sound="none" aria-label="Send message" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 10.5 13.5"></path><path d="M21 3 14.5 21l-4-7.5L3 9.5 21 3Z" fill="currentColor" fill-opacity=".22"></path></svg></button>
               <button id="push-to-talk" type="button" class="icon-button talk-button" aria-label="Push to talk" title="Push to talk" aria-pressed="false">
                 <svg class="talk-ring" viewBox="0 0 36 36" aria-hidden="true">
                   <circle class="talk-ring-track" cx="18" cy="18" r="16"></circle>
                   <circle class="talk-ring-progress" cx="18" cy="18" r="16"></circle>
                 </svg>
-                <span class="talk-icon" aria-hidden="true">&#127908;</span>
+                <span class="talk-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" fill-opacity=".22"></rect><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"></path></svg></span>
               </button>
               <div id="emote-menu" class="emote-menu" role="group" aria-label="Emotes" inert></div>
             </form>

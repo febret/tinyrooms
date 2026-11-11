@@ -16,13 +16,21 @@
           <p id="status" role="status">Loading whiteboard…</p>
         </div>
         <div class="paint-actions" role="toolbar" aria-label="Whiteboard actions">
-          <button type="button" id="palette-toggle" aria-expanded="true" aria-controls="side-panel">
-            Color <span id="current-swatch" aria-hidden="true"></span>
+          <button type="button" id="palette-toggle" title="Color" aria-expanded="true" aria-controls="side-panel">
+            <span class="label">Color</span> <span id="current-swatch" aria-hidden="true"></span>
           </button>
-          <button type="button" id="frame-toggle" aria-expanded="false" aria-controls="side-panel">Frame</button>
-          <button type="button" class="quiet" id="undo">Undo</button>
-          <button type="button" class="quiet" id="redo">Redo</button>
-          <button type="button" class="quiet" id="clear">Clear</button>
+          <button type="button" id="frame-toggle" title="Frame" aria-expanded="false" aria-controls="side-panel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3zM7 8v8h10V8z" fill="currentColor" fill-rule="evenodd"/></svg><span class="label">Frame</span>
+          </button>
+          <button type="button" class="quiet" id="undo" title="Undo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5L4 10l5 5M4 10h10a6 6 0 0 1 0 12h-3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="label">Undo</span>
+          </button>
+          <button type="button" class="quiet" id="redo" title="Redo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l5 5-5 5M20 10H10a6 6 0 0 0 0 12h3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="label">Redo</span>
+          </button>
+          <button type="button" class="quiet" id="clear" title="Clear">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="label">Clear</span>
+          </button>
         </div>
       </header>
       <div class="paint-workspace">
@@ -40,12 +48,13 @@
       </div>
       <footer class="paint-footer">
         <label class="tool-field">Size
+          <span class="brush-tip" aria-hidden="true"></span>
           <input id="brush-size" type="range" min="1" max="96" value="10" aria-label="Brush size">
         </label>
         <label class="tool-field">Opacity
           <input id="brush-opacity" type="range" min="5" max="100" value="95" aria-label="Brush opacity">
         </label>
-        <button type="button" class="quiet" id="eraser" aria-pressed="false">Eraser</button>
+        <button type="button" id="eraser" aria-pressed="false">Eraser</button>
         <p id="lock-note" class="paint-lock" hidden>Signed print — this artwork cannot be modified.</p>
       </footer>
     </main>

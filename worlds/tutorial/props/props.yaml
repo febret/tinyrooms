@@ -205,3 +205,349 @@ stairs:
   model: stairs.glb
   decorative: false
   scale: 2
+
+tutorial-beachhut-round-mirror:
+  label: Portside Mirror
+  description: A round mirror ringed with pale rope.
+  model: beachhut-round-mirror.glb
+  decorative: true
+  scale: 1.018
+  tags:
+  - mirror
+  - decoration
+tutorial-boxwood-ball:
+  label: Boxwood Ball
+  description: A bush clipped into a perfect green sphere.
+  model: boxwood-ball.glb
+  decorative: true
+  scale: 1.133
+  tags:
+  - shrub
+  - topiary
+tutorial-circuit-crash-cart:
+  label: Circuit Crash Cart
+  description: A rolling cart of salvaged boards and glowing spare parts.
+  model: circuit-crash-cart.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - furniture
+  - storage
+  - tech
+tutorial-cottage-geranium-pot:
+  label: Geranium Pot
+  description: Geraniums in a terracotta pot, always blooming.
+  model: cottage-geranium-pot.glb
+  decorative: true
+  scale: 0.403
+  tags:
+  - plant
+  - decoration
+tutorial-cottage-mason-lantern:
+  label: Mason Lantern
+  description: A mason-jar lantern full of fireflies (probably).
+  model: cottage-mason-lantern.glb
+  decorative: true
+  scale: 0.35
+  tags:
+  - lighting
+  - lantern
+tutorial-cottage-pantry-shelf:
+  label: Pantry Shelf
+  description: A shelf of jars, jams, and twine.
+  model: cottage-pantry-shelf.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - storage
+  - shelf
+  - furniture
+tutorial-cottage-toilet:
+  label: Cottage Toilet
+  description: A dependable white ceramic loo with a plain wooden seat.
+  model: cottage-toilet.glb
+  decorative: true
+  behavior: toilet
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
+  scale: 0.7497
+  tags:
+  - plumbing
+  - toilet
+tutorial-family-gingham-lamp:
+  label: Gingham Lamp
+  description: A table lamp with a gingham shade.
+  model: family-gingham-lamp.glb
+  decorative: true
+  scale: 0.5
+  tags:
+  - lighting
+  - lamp
+tutorial-family-wall-clock:
+  label: Wall Clock
+  description: A schoolhouse wall clock.
+  model: family-wall-clock.glb
+  decorative: true
+  scale: 0.4
+  tags:
+  - clock
+  - decoration
+tutorial-fern-clump:
+  label: Fern Clump
+  description: Tall ferns arching out of the undergrowth.
+  model: fern-clump.glb
+  decorative: true
+  scale: 1.021
+  tags:
+  - fern
+  - plant
+tutorial-harbor-kit-chest:
+  label: Kit Chest
+  description: A sailor's chest with rope beckets.
+  model: harbor-kit-chest.glb
+  decorative: true
+  scale: 0.75
+  tags:
+  - storage
+  - furniture
+tutorial-hydrangea-bush:
+  label: Hydrangea Bush
+  description: Big blue and pink flower heads on a leafy bush.
+  model: hydrangea-bush.glb
+  decorative: true
+  scale: 1.008
+  tags:
+  - shrub
+  - plant
+  - flower
+tutorial-jarvi-coffee-table:
+  label: Jarvi Coffee Table
+  description: A round pale-wood table with just three legs to argue with.
+  model: jarvi-coffee-table.glb
+  decorative: true
+  scale: 1
+  tags:
+  - table
+  - furniture
+tutorial-kielo-floor-lamp:
+  label: Kielo Floor Lamp
+  description: A slim lamp under a plain paper shade.
+  model: kielo-floor-lamp.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - lighting
+  - lamp
+tutorial-koivu-dining-chair:
+  label: Koivu Dining Chair
+  description: A plain birch chair with a wipe-clean white seat.
+  model: koivu-dining-chair.glb
+  decorative: true
+  scale: 0.85
+  tags:
+  - seating
+  - chair
+  - furniture
+tutorial-kori-basket:
+  label: Kori Basket
+  description: A woven basket with a folded grey blanket tucked inside.
+  model: kori-basket.glb
+  decorative: true
+  scale: 0.699
+  tags:
+  - storage
+  - decoration
+tutorial-kynttila-candle-holder:
+  label: Kynttila Candles
+  description: Three white block candles on a pine tray.
+  model: kynttila-candle-holder.glb
+  decorative: true
+  scale: 0.45
+  tags:
+  - lighting
+  - lantern
+tutorial-lavender-row:
+  label: Lavender Row
+  description: Fragrant purple spikes in a tidy row.
+  model: lavender-row.glb
+  decorative: true
+  scale: 0.511
+  tags:
+  - flower
+  - plant
+tutorial-lotus-pond:
+  label: Lotus Pond
+  description: A lotus resting on round leaves over a still pool.
+  model: lotus-pond.glb
+  decorative: true
+  scale: 1.263
+  tags:
+  - flower
+  - plant
+tutorial-metsa-bookshelf:
+  label: Metsa Bookshelf
+  description: Open white and pine shelves for books and keepsakes.
+  model: metsa-bookshelf.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - storage
+  - shelf
+  - furniture
+tutorial-oksa-vase:
+  label: Oksa Vase
+  description: A tall white vase holding a single birch branch.
+  model: oksa-vase.glb
+  decorative: true
+  scale: 0.6
+  tags:
+  - decoration
+  - plant
+tutorial-poolhouse-lantern-table:
+  label: Lantern Table
+  description: A lantern with a candle that never gutters.
+  model: poolhouse-lantern-table.glb
+  decorative: true
+  scale: 0.4
+  tags:
+  - lighting
+  - lantern
+tutorial-reppu-bench:
+  label: Reppu Bench
+  description: A slatted bench for boots, bags, and indecision.
+  model: reppu-bench.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - seating
+  - bench
+  - storage
+tutorial-river-reeds:
+  label: River Reeds
+  description: Thin green reeds at the water's edge.
+  model: river-reeds.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - grass
+  - plant
+tutorial-rose-bush:
+  label: Rose Bush
+  description: Deep red blooms guarded by thorny stems.
+  model: rose-bush.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - flower
+  - shrub
+  - plant
+tutorial-saari-cabinet:
+  label: Saari Cabinet
+  description: A white two-door cabinet with a warm wood top.
+  model: saari-cabinet.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - storage
+  - cabinet
+  - furniture
+tutorial-sade-desk:
+  label: Sade Desk
+  description: A white desk on angled wooden legs. Assembly is a rumour.
+  model: sade-desk.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - desk
+  - table
+  - furniture
+tutorial-satu-rug:
+  label: Satu Rug
+  description: A flat woven rug in off-white and soft blue stripes.
+  model: satu-rug.glb
+  decorative: true
+  scale: 2.1
+  tags:
+  - rug
+  - decoration
+tutorial-seavilla-dining-table:
+  label: Villa Dining Table
+  description: A long pale table for slow lunches.
+  model: seavilla-dining-table.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - table
+  - furniture
+tutorial-seavilla-woven-hamper:
+  label: Woven Hamper
+  description: A lidded hamper for pool towels.
+  model: seavilla-woven-hamper.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - storage
+  - furniture
+tutorial-silver-birch:
+  label: Silver Birch
+  description: A slender birch in pale peeling bark.
+  model: silver-birch.glb
+  decorative: true
+  scale: 2.757
+  tags:
+  - tree
+  - plant
+tutorial-stepping-stones:
+  label: Stepping Stones
+  description: Flat stones laid into a deliberate garden path.
+  model: stepping-stones.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - rock
+tutorial-taika-table-lamp:
+  label: Taika Table Lamp
+  description: A white dome shade on a wooden base.
+  model: taika-table-lamp.glb
+  decorative: true
+  scale: 0.45
+  tags:
+  - lighting
+  - lamp
+tutorial-toadstool-cluster:
+  label: Toadstool Cluster
+  description: Spotted toadstools sprouting from a mossy stump.
+  model: toadstool-cluster.glb
+  decorative: true
+  scale: 0.453
+  tags:
+  - decoration
+  - plant
+tutorial-tree-stump:
+  label: Tree Stump
+  description: A cut stump showing its rings.
+  model: tree-stump.glb
+  decorative: true
+  scale: 0.763
+  tags:
+  - tree
+  - decoration
+tutorial-tulip-patch:
+  label: Tulip Patch
+  description: Red and yellow tulips pushing up from dark soil.
+  model: tulip-patch.glb
+  decorative: true
+  scale: 0.531
+  tags:
+  - flower
+  - plant
+tutorial-tyyny-cushions:
+  label: Tyyny Cushions
+  description: A tidy stack of striped floor cushions for extra guests.
+  model: tyyny-cushions.glb
+  decorative: true
+  scale: 0.461
+  tags:
+  - seating
+  - decoration

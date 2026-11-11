@@ -38,6 +38,7 @@ const swatchPreview = document.querySelector("#current-swatch");
 const sidePanel = document.querySelector("#side-panel");
 const paletteRoot = document.querySelector("#palette-root");
 const frameRoot = document.querySelector("#frame-root");
+const connection = document.querySelector("#connection");
 
 const layer = document.createElement("canvas");
 layer.width = WIDTH;
@@ -104,7 +105,7 @@ function layoutFrame() {
   const rect = stage.getBoundingClientRect();
   if (!rect.width || !rect.height || !frameContext) return;
   const layout = frameLayout(frame);
-  const padding = 14;
+  const padding = parseFloat(getComputedStyle(stage).paddingLeft) || 0;
   const availableWidth = Math.max(180, rect.width - padding * 2);
   const availableHeight = Math.max(180, rect.height - padding * 2);
   const scale = Math.min(availableWidth / layout.width, availableHeight / layout.height);
@@ -404,6 +405,13 @@ function renderControls() {
   board.setAttribute("aria-readonly", String(locked));
 }
 
+// Purely cosmetic: lets the stylesheet show the loaded paint and tip size on the tools.
+function syncToolStyle() {
+  paintShell.style.setProperty("--paint", color);
+  paintShell.style.setProperty("--tip", String(brushSize));
+  paintShell.style.setProperty("--tip-alpha", String(brushOpacity / 100));
+}
+
 function buildBrushRail() {
   brushRail.replaceChildren();
   for (const brush of BRUSHES) {
@@ -428,6 +436,7 @@ function selectBrush(id) {
   brushOpacity = brush.opacity;
   sizeInput.value = String(brush.size);
   opacityInput.value = String(brush.opacity);
+  syncToolStyle();
   renderControls();
 }
 
@@ -467,6 +476,7 @@ function ensurePanels(options = {}) {
         color = normalizeColor(next, DEFAULT_COLOR);
         swatchPreview.style.background = color;
         erasing = false;
+        syncToolStyle();
         renderControls();
       },
     });
@@ -580,9 +590,11 @@ clearButton.onclick = () => {
 
 sizeInput.oninput = () => {
   brushSize = Number(sizeInput.value);
+  syncToolStyle();
 };
 opacityInput.oninput = () => {
   brushOpacity = Number(opacityInput.value);
+  syncToolStyle();
 };
 paletteToggle.onclick = () => setPanel(paletteRoot.hidden ? "palette" : "");
 frameToggle.onclick = () => setPanel(frameRoot.hidden ? "frame" : "");
@@ -606,6 +618,7 @@ TinyActivity.onBeforeClose?.(async () => {
 });
 
 TinyActivity.subscribe(state => {
+  connection.textContent = "";
   const config = state?.activity?.config || {};
   ensurePanels(config.whiteboard_options || {});
   const nextInstance = String(config.prop_instance_id || "");
@@ -637,6 +650,7 @@ TinyActivity.subscribe(state => {
 buildBrushRail();
 ensurePanels({});
 setPanel("palette");
+syncToolStyle();
 requestPaint();
 layoutFrame();
 renderControls();

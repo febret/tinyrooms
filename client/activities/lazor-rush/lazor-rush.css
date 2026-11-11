@@ -1,30 +1,49 @@
 :root { --rush-bg: #05060e; --rush-panel: #0a0f1e; --rush-green: #39ff14; --rush-cyan: #00e5ff; --rush-magenta: #ff2d95; --rush-yellow: #ffe600; --rush-frame: #1de9b6; --rush-ink: #c9f7e8; }
 html { height: 100%; }
-.rush-body, .rush-stage { height: 100vh; height: 100dvh; overflow: hidden; background: var(--rush-bg); }
+/* 100% (not 100dvh): the cabinet sizes to the activity iframe, see shared.css. */
+.rush-body, .rush-stage { height: 100%; min-height: 0; overflow: hidden; background: var(--rush-bg); }
 .rush-body { color: var(--rush-ink); font-family: "Courier New", ui-monospace, monospace; }
-.rush-stage { position: relative; width: 100%; border: 4px solid var(--rush-frame); box-shadow: inset 0 0 40px #000000cc, 0 0 24px #1de9b680; }
+.rush-stage { position: relative; width: 100%; border: 4px solid var(--rush-frame); box-shadow: inset 0 0 0 2px #05060e, inset 0 0 0 3px #1de9b659; }
 #stage { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; image-rendering: pixelated; }
-.rush-hud { position: absolute; inset: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; padding: 10px 14px; pointer-events: none; z-index: 3; }
-.rush-stat { display: grid; gap: 0; min-width: 62px; }
-.rush-stat .label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #9ffbe0; text-shadow: 0 0 6px #1de9b6cc; }
-.rush-stat strong { font-size: 20px; line-height: 1.1; color: var(--rush-green); text-shadow: 0 0 8px #39ff1499; }
+.rush-hud { position: absolute; inset: 0 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 7px 6px 6px; background: linear-gradient(#05060ecc, #05060e85); border-bottom: 2px solid #1de9b673; box-shadow: 0 2px 0 #05060e; pointer-events: none; z-index: 5; }
+.rush-stat { display: grid; gap: 2px; justify-items: center; min-width: 0; padding: 0 6px; border-left: 2px dotted #1de9b640; }
+.rush-stat:first-child { border-left: 0; }
+.rush-stat .label { font-size: 12px; font-weight: 700; line-height: 1; letter-spacing: 2px; text-transform: uppercase; color: #9ffbe0; text-shadow: 0 0 6px #1de9b6cc; }
+.rush-stat strong { max-width: 100%; overflow: hidden; font-size: 21px; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--rush-green); text-shadow: 0 0 8px #39ff1499; }
 #personal-best { color: var(--rush-cyan); text-shadow: 0 0 8px #00e5ff99; }
 #world-best { color: var(--rush-yellow); text-shadow: 0 0 8px #ffe60099; }
 #energy { color: var(--rush-magenta); text-shadow: 0 0 8px #ff2d9599; }
-.connection { position: absolute; left: 14px; bottom: 10px; margin: 0; z-index: 3; font-size: 11px; letter-spacing: 1px; color: var(--rush-frame); pointer-events: none; }
-.rush-overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: #05060e8c; pointer-events: none; z-index: 4; }
+.connection { position: absolute; left: 12px; right: 12px; bottom: 8px; margin: 0; z-index: 5; font-size: 12px; letter-spacing: 1px; color: var(--rush-frame); pointer-events: none; }
+.rush-overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 58px 16px 16px; background: #05060e99; pointer-events: none; z-index: 4; }
 .rush-overlay[hidden] { display: none; }
-.rush-card { display: grid; gap: 12px; justify-items: center; max-width: 360px; padding: 20px 22px; text-align: center; background: var(--rush-panel); border: 4px solid var(--rush-frame); box-shadow: 0 0 0 4px #05060e, 0 0 28px #1de9b6aa; pointer-events: auto; }
-.rush-title { font-size: 26px; letter-spacing: 4px; text-transform: uppercase; color: var(--rush-yellow); text-shadow: 3px 3px 0 var(--rush-magenta); }
-.rush-message { font-size: 13px; }
-.rush-card button { min-width: 156px; border-radius: 0; border: 3px solid var(--rush-yellow); background: var(--rush-magenta); color: #05060e; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; box-shadow: 0 4px 0 #7a1350, 0 0 18px #ff2d9588; }
+.rush-card { position: relative; display: grid; gap: 12px; justify-items: center; width: min(100%, 380px); padding: 22px 22px 24px; text-align: center; background: linear-gradient(#0d1428, var(--rush-panel)); border: 4px solid var(--rush-frame); box-shadow: 0 0 0 4px #05060e, 6px 6px 0 4px #ff2d9566, 0 0 28px #1de9b688; pointer-events: auto; }
+.rush-card::before, .rush-card::after { content: ""; position: absolute; top: 6px; width: 6px; height: 6px; background: var(--rush-yellow); box-shadow: 0 0 6px #ffe600; }
+.rush-card::before { left: 6px; }
+.rush-card::after { right: 6px; }
+.rush-title { font-size: 28px; font-weight: 700; line-height: 1.15; letter-spacing: 4px; text-transform: uppercase; color: var(--rush-yellow); text-shadow: 3px 3px 0 var(--rush-magenta), -2px -1px 0 #00e5ff80; }
+.rush-message { max-width: 30ch; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.rush-card button { min-width: 180px; min-height: 48px; padding: 8px 20px; border-radius: 0; border: 3px solid var(--rush-yellow); background: var(--rush-magenta); color: #05060e; font-size: 17px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; text-shadow: none; box-shadow: 0 5px 0 #7a1350, 0 0 18px #ff2d9588; transition: transform .08s steps(2), filter .15s; }
 .rush-card button:hover:not(:disabled) { filter: brightness(1.12); }
-.rush-card button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #7a1350; }
-.rush-scanlines { position: absolute; inset: 0; z-index: 5; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0, rgba(0, 0, 0, .22) 1px, rgba(0, 0, 0, 0) 1px, rgba(0, 0, 0, 0) 3px); }
+.rush-card button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 #7a1350, 0 0 18px #ff2d9588; }
+.rush-card button:disabled { background: #6b2a52; border-color: #8f8420; opacity: 1; filter: none; box-shadow: 0 5px 0 #3d0a28; }
+.rush-scanlines { position: absolute; inset: 0; z-index: 6; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, transparent 58%, #00000073 100%), repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0, rgba(0, 0, 0, .22) 1px, rgba(0, 0, 0, 0) 1px, rgba(0, 0, 0, 0) 3px); }
 @media (max-width: 520px) {
-  .rush-stat { min-width: 52px; }
-  .rush-stat strong { font-size: 16px; }
-  .rush-card { max-width: 100%; gap: 8px; padding: 14px; }
-  .rush-title { font-size: 20px; letter-spacing: 3px; }
-  .rush-message { font-size: 12px; }
+  .rush-stage { border-width: 3px; }
+  .rush-hud { padding: 6px 2px 5px; }
+  .rush-stat { padding: 0 2px; }
+  .rush-stat .label { letter-spacing: 1px; }
+  .rush-stat strong { font-size: 18px; }
+  .rush-card { gap: 10px; padding: 18px 14px 20px; }
+  .rush-title { font-size: 24px; letter-spacing: 3px; }
+}
+@media (max-height: 420px) {
+  .rush-stage { border-width: 3px; }
+  .rush-hud { padding: 4px 6px; }
+  .rush-stat { display: flex; align-items: baseline; justify-content: center; gap: 8px; }
+  .rush-stat strong { font-size: 18px; }
+  .rush-overlay { padding: 40px 12px 10px; }
+  .rush-card { gap: 8px; padding: 12px 18px 16px; }
+  .rush-title { font-size: 22px; }
+  .rush-message { max-width: 44ch; font-size: 13px; }
+  .rush-card button { min-height: 44px; }
 }

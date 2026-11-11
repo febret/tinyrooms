@@ -66,6 +66,14 @@ function skillGridMarkup(state, pending) {
   }).join("")}</div>`;
 }
 
+/** Decorative machine-readable strip: the card number is cosmetic, not an identifier. */
+function machineZoneMarkup(user) {
+  const name = String(user.username || "YOU").toUpperCase().replace(/[^A-Z0-9]/g, "<").slice(0, 18);
+  const level = String(Math.max(0, Number(user.level) || 0)).padStart(2, "0");
+  const line = `TR<RESIDENT<<${name}`.padEnd(34, "<") + `LV${level}`;
+  return `<div class="id-machine-zone" aria-hidden="true"><span class="id-barcode"></span><span class="id-mrz">${escapeHtml(line)}</span></div>`;
+}
+
 function selfFaceMarkup(state) {
   const user = state.user || {};
   const counters = user.counters || {};
@@ -90,6 +98,7 @@ function selfFaceMarkup(state) {
            ${decalUrl ? `<img class="id-photo-decals" src="${escapeHtml(decalUrl)}" alt="" aria-hidden="true">` : ""}`
         : '<span class="id-photo-placeholder" aria-hidden="true">✦</span>'}
       <span class="id-photo-caption">ID PHOTO</span>
+      <span class="id-hologram" aria-hidden="true"></span>
     </div>
     <div class="id-fields">
       <p class="id-brand">TINYROOMS • RESIDENT ID</p>
@@ -107,11 +116,12 @@ function selfFaceMarkup(state) {
       </div>
       ${statuses ? `<ul class="id-statuses">${statuses}</ul>` : '<p class="id-note">No active statuses.</p>'}
       <dl class="id-stats">${Object.entries(user.stats || {}).map(([key, value]) => `<div><dt>${escapeHtml(key.replaceAll("_", " "))}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>
-      <p class="id-wallet">BOPS <strong>${escapeHtml(user.bops ?? 0)}</strong></p>
+      <p class="id-wallet"><span class="id-wallet-coin" aria-hidden="true"></span>BOPS <strong>${escapeHtml(user.bops ?? 0)}</strong></p>
       <div class="id-actions">
         <button type="button" class="primary" data-level-up="1" ${canLevel ? "" : "disabled"}>${hasNextLevel ? `Level Up (${escapeHtml(cost)})` : "Maximum Level"}</button>
         <button type="button" data-swap-sticker="1">Swap Sticker…</button>
       </div>
+      ${machineZoneMarkup(user)}
     </div>`;
 }
 
@@ -126,6 +136,7 @@ function skillsFaceMarkup(state) {
       ${skillGridMarkup(state, pending)}
       <dl class="id-stats">${Object.entries(state.user?.stats || {}).map(([key, value]) => `<div><dt>${escapeHtml(key.replaceAll("_", " "))}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>
       <p class="id-note">Each level unlocks another slot. Higher ranks can hold lower-rank skills.</p>
+      ${machineZoneMarkup(state.user || {})}
     </div>`;
 }
 

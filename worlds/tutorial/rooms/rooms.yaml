@@ -254,7 +254,7 @@ foyer:
       - 0
       scale: 1
     living-coffee-table:
-      prop: jarvi-coffee-table
+      prop: tutorial-jarvi-coffee-table
       pos:
       - 44
       - 62
@@ -265,7 +265,7 @@ foyer:
       - 0
       scale: 1
     living-candles:
-      prop: kynttila-candle-holder
+      prop: tutorial-kynttila-candle-holder
       pos:
       - 44
       - 62
@@ -514,7 +514,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-pantry:
-      prop: cottage-pantry-shelf
+      prop: tutorial-cottage-pantry-shelf
       pos:
       - 80
       - 6
@@ -525,7 +525,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-clock:
-      prop: family-wall-clock
+      prop: tutorial-family-wall-clock
       pos:
       - 66
       - 1
@@ -536,7 +536,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-geranium:
-      prop: cottage-geranium-pot
+      prop: tutorial-cottage-geranium-pot
       pos:
       - 46
       - 6
@@ -547,7 +547,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-rug:
-      prop: satu-rug
+      prop: tutorial-satu-rug
       pos:
       - 45
       - 60
@@ -558,7 +558,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-table:
-      prop: seavilla-dining-table
+      prop: tutorial-seavilla-dining-table
       pos:
       - 45
       - 60
@@ -569,7 +569,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-chair-nw:
-      prop: koivu-dining-chair
+      prop: tutorial-koivu-dining-chair
       pos:
       - 38
       - 42
@@ -580,7 +580,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-chair-ne:
-      prop: koivu-dining-chair
+      prop: tutorial-koivu-dining-chair
       pos:
       - 52
       - 42
@@ -591,7 +591,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-chair-w:
-      prop: koivu-dining-chair
+      prop: tutorial-koivu-dining-chair
       pos:
       - 27
       - 60
@@ -602,7 +602,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-chair-e:
-      prop: koivu-dining-chair
+      prop: tutorial-koivu-dining-chair
       pos:
       - 63
       - 60
@@ -613,7 +613,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-table-lamp:
-      prop: family-gingham-lamp
+      prop: tutorial-family-gingham-lamp
       pos:
       - 41
       - 60
@@ -624,7 +624,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-candles:
-      prop: kynttila-candle-holder
+      prop: tutorial-kynttila-candle-holder
       pos:
       - 50
       - 60
@@ -635,7 +635,7 @@ kitchen:
       - 0
       scale: 1
     kitchen-floor-lamp:
-      prop: kielo-floor-lamp
+      prop: tutorial-kielo-floor-lamp
       pos:
       - 90
       - 42
@@ -799,7 +799,7 @@ bathroom:
       - 0
       - 0
     toilet:
-      prop: cottage-toilet
+      prop: tutorial-cottage-toilet
       pos:
       - 62
       - 9
@@ -821,7 +821,7 @@ bathroom:
       - 0
       - 0
     vanity:
-      prop: saari-cabinet
+      prop: tutorial-saari-cabinet
       pos:
       - 80
       - 6
@@ -843,7 +843,7 @@ bathroom:
       - 0
       scale: 1
     mirror:
-      prop: beachhut-round-mirror
+      prop: tutorial-beachhut-round-mirror
       pos:
       - 41
       - 2
@@ -854,7 +854,7 @@ bathroom:
       - 0
       scale: 1
     hamper:
-      prop: seavilla-woven-hamper
+      prop: tutorial-seavilla-woven-hamper
       pos:
       - 6
       - 31
@@ -876,7 +876,7 @@ bathroom:
       - 0
       scale: 1
     towel-basket:
-      prop: kori-basket
+      prop: tutorial-kori-basket
       pos:
       - 24
       - 86
@@ -1111,7 +1111,7 @@ bedroom:
       - 0
       scale: 1
     lamp-e:
-      prop: taika-table-lamp
+      prop: tutorial-taika-table-lamp
       pos:
       - 62
       - 6
@@ -1166,7 +1166,7 @@ bedroom:
       - 0
       scale: 1
     desk:
-      prop: sade-desk
+      prop: tutorial-sade-desk
       pos:
       - 92
       - 79
@@ -1177,7 +1177,7 @@ bedroom:
       - 0
       scale: 1
     desk-chair:
-      prop: koivu-dining-chair
+      prop: tutorial-koivu-dining-chair
       pos:
       - 80
       - 79
@@ -1415,7 +1415,7 @@ utility:
       - 0
       scale: 1
     pantry-shelf:
-      prop: cottage-pantry-shelf
+      prop: tutorial-cottage-pantry-shelf
       pos:
       - 7
       - 76
@@ -1426,7 +1426,7 @@ utility:
       - 0
       scale: 1
     laundry-basket:
-      prop: kori-basket
+      prop: tutorial-kori-basket
       pos:
       - 26
       - 84
@@ -1437,7 +1437,7 @@ utility:
       - 0
       scale: 1
     custom:fb71bccc-bf7f-4b71-90b9-0a022bc8e037:
-      prop: satu-rug
+      prop: tutorial-satu-rug
       pos:
       - 52
       - 64
@@ -1448,7 +1448,7 @@ utility:
       - 0
       scale: 1
     custom:7327cbe2-83fe-4fab-baeb-881f32adb481:
-      prop: tyyny-cushions
+      prop: tutorial-tyyny-cushions
       pos:
       - 60
       - 70
@@ -1470,7 +1470,7 @@ utility:
       - 0
       scale: 1
     lantern:
-      prop: cottage-mason-lantern
+      prop: tutorial-cottage-mason-lantern
       pos:
       - 70
       - 55
@@ -1481,7 +1481,7 @@ utility:
       - 0
       scale: 1
     custom:8f9b90ce-9a8e-4343-b0f0-9fa9235d6b0a:
-      prop: oksa-vase
+      prop: tutorial-oksa-vase
       pos:
       - 75
       - 57
@@ -1492,7 +1492,7 @@ utility:
       - 0
       scale: 1
     floor-lamp:
-      prop: kielo-floor-lamp
+      prop: tutorial-kielo-floor-lamp
       pos:
       - 88
       - 64
@@ -1628,7 +1628,7 @@ basement:
       - 0
       - 0
     kit-chest:
-      prop: harbor-kit-chest
+      prop: tutorial-harbor-kit-chest
       pos:
       - 31
       - 8
@@ -1639,7 +1639,7 @@ basement:
       - 0
       scale: 1
     old-bookshelf:
-      prop: metsa-bookshelf
+      prop: tutorial-metsa-bookshelf
       pos:
       - 72
       - 6
@@ -1650,7 +1650,7 @@ basement:
       - 0
       scale: 1
     custom:e23e50a7-f26b-41b3-a055-013f39d62036:
-      prop: circuit-crash-cart
+      prop: tutorial-circuit-crash-cart
       pos:
       - 92
       - 35
@@ -1694,7 +1694,7 @@ basement:
       - 0
       scale: 1
     hamper:
-      prop: seavilla-woven-hamper
+      prop: tutorial-seavilla-woven-hamper
       pos:
       - 20
       - 84
@@ -1705,7 +1705,7 @@ basement:
       - 0
       scale: 1
     toadstools:
-      prop: toadstool-cluster
+      prop: tutorial-toadstool-cluster
       pos:
       - 10
       - 62
@@ -1795,7 +1795,7 @@ garden:
       - 0
       scale: 1
     birch:
-      prop: silver-birch
+      prop: tutorial-silver-birch
       pos:
       - 10
       - 42
@@ -1806,7 +1806,7 @@ garden:
       - 0
       scale: 1
     pond:
-      prop: lotus-pond
+      prop: tutorial-lotus-pond
       pos:
       - 73
       - 62
@@ -1817,7 +1817,7 @@ garden:
       - 0
       scale: 1
     path-near:
-      prop: stepping-stones
+      prop: tutorial-stepping-stones
       pos:
       - 50
       - 45
@@ -1828,7 +1828,7 @@ garden:
       - 0
       scale: 1
     path-far:
-      prop: stepping-stones
+      prop: tutorial-stepping-stones
       pos:
       - 50
       - 76
@@ -1839,7 +1839,7 @@ garden:
       - 0
       scale: 1
     bench:
-      prop: reppu-bench
+      prop: tutorial-reppu-bench
       pos:
       - 24
       - 64
@@ -1850,7 +1850,7 @@ garden:
       - 0
       scale: 1
     lantern-w:
-      prop: poolhouse-lantern-table
+      prop: tutorial-poolhouse-lantern-table
       pos:
       - 33
       - 25
@@ -1861,7 +1861,7 @@ garden:
       - 0
       scale: 1
     lantern-e:
-      prop: poolhouse-lantern-table
+      prop: tutorial-poolhouse-lantern-table
       pos:
       - 67
       - 25
@@ -1872,7 +1872,7 @@ garden:
       - 0
       scale: 1
     tulips:
-      prop: tulip-patch
+      prop: tutorial-tulip-patch
       pos:
       - 24
       - 9
@@ -1883,7 +1883,7 @@ garden:
       - 0
       scale: 1
     lavender:
-      prop: lavender-row
+      prop: tutorial-lavender-row
       pos:
       - 13
       - 9
@@ -1894,7 +1894,7 @@ garden:
       - 0
       scale: 1
     roses:
-      prop: rose-bush
+      prop: tutorial-rose-bush
       pos:
       - 78
       - 9
@@ -1905,7 +1905,7 @@ garden:
       - 0
       scale: 1
     hydrangea:
-      prop: hydrangea-bush
+      prop: tutorial-hydrangea-bush
       pos:
       - 92
       - 50
@@ -1916,7 +1916,7 @@ garden:
       - 0
       scale: 1
     custom:9ed0bd5f-2876-4e78-b7e4-3e2689d53206:
-      prop: boxwood-ball
+      prop: tutorial-boxwood-ball
       pos:
       - 36
       - 92
@@ -1927,7 +1927,7 @@ garden:
       - 0
       scale: 1
     custom:0dbe6501-5d7f-45d9-a85e-d0d3ed6f2459:
-      prop: boxwood-ball
+      prop: tutorial-boxwood-ball
       pos:
       - 64
       - 92
@@ -1938,7 +1938,7 @@ garden:
       - 0
       scale: 1
     custom:5a9fdbe9-2c06-45c1-a56d-8546f7834aff:
-      prop: fern-clump
+      prop: tutorial-fern-clump
       pos:
       - 8
       - 88
@@ -1949,7 +1949,7 @@ garden:
       - 0
       scale: 1
     custom:1d90a005-47a4-4729-8c13-c2619f26bc30:
-      prop: river-reeds
+      prop: tutorial-river-reeds
       pos:
       - 88
       - 72
@@ -1960,7 +1960,7 @@ garden:
       - 0
       scale: 1
     custom:e3e94ea7-1032-422c-8c1b-61b21e315caa:
-      prop: tree-stump
+      prop: tutorial-tree-stump
       pos:
       - 91
       - 91

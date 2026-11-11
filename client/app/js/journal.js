@@ -32,8 +32,8 @@ function taskMarkup(task, selected) {
   </article>`;
 }
 
-function taskGroup(label, list, emptyText, selectedId) {
-  return `<section class="task-list">
+function taskGroup(label, list, emptyText, selectedId, kind) {
+  return `<section class="task-list task-list-${kind}">
     <h3>${escapeHtml(label)}</h3>
     ${list.length
       ? list.map(task => taskMarkup(task, task.id === selectedId)).join("")
@@ -44,8 +44,8 @@ function taskGroup(label, list, emptyText, selectedId) {
 export function tasksMarkup(state) {
   const tasks = state.user?.tasks || { active: [], completed: [] };
   const selectedId = state.selection.kind === "task" ? state.selection.id : "";
-  return taskGroup("Active", tasks.active, "No active tasks yet. Explore the house to begin.", selectedId)
-    + taskGroup("Completed", tasks.completed, "No completed tasks yet.", selectedId);
+  return taskGroup("Active", tasks.active, "No active tasks yet. Explore the house to begin.", selectedId, "active")
+    + taskGroup("Completed", tasks.completed, "No completed tasks yet.", selectedId, "completed");
 }
 
 function journalMonth(state) {
@@ -67,14 +67,23 @@ export function calendarMarkup(state) {
   const startDay = new Date(year, month, 1).getDay();
   const dayCount = new Date(year, month + 1, 0).getDate();
   const dayCounts = summary.dayCounts || {};
+  const today = new Date();
+  const todayDay = today.getFullYear() === year && today.getMonth() === month ? today.getDate() : 0;
   const cells = [];
   for (let index = 0; index < startDay; index += 1) cells.push('<span class="cal-cell empty" aria-hidden="true"></span>');
   for (let day = 1; day <= dayCount; day += 1) {
     const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     const count = Number(dayCounts[key] || 0);
-    cells.push(`<span class="cal-cell ${count ? "has-memories" : ""}" aria-label="Day ${day}, ${count} memories"><span class="cal-day">${day}</span>${count ? `<span class="cal-count">${count}</span>` : ""}</span>`);
+    const weekday = (startDay + day - 1) % 7;
+    const classes = ["cal-cell", count ? "has-memories" : "", day === todayDay ? "is-today" : "", weekday === 0 || weekday === 6 ? "is-weekend" : ""].filter(Boolean).join(" ");
+    cells.push(`<span class="${classes}" aria-label="Day ${day}${day === todayDay ? ", today" : ""}, ${count} memories"${day === todayDay ? " aria-current=\"date\"" : ""}><span class="cal-day">${day}</span>${count ? `<span class="cal-count">${count}</span>` : ""}</span>`);
   }
-  const summaryText = `${summary.tasksCompleted || 0} tasks completed · ${summary.kudos || 0} Kudos · ${summary.newFriends || 0} new friends this month`;
+  while (cells.length % 7) cells.push('<span class="cal-cell empty" aria-hidden="true"></span>');
+  const stats = [
+    [summary.tasksCompleted || 0, "tasks completed"],
+    [summary.kudos || 0, "Kudos"],
+    [summary.newFriends || 0, "new friends"],
+  ];
   return `
     <div class="journal-calendar">
       <header class="cal-header">
@@ -84,7 +93,8 @@ export function calendarMarkup(state) {
       </header>
       <div class="cal-grid cal-weekdays">${["S", "M", "T", "W", "T", "F", "S"].map(day => `<span>${day}</span>`).join("")}</div>
       <div class="cal-grid cal-days">${cells.join("")}</div>
-      <p class="cal-progress">${escapeHtml(summaryText)}</p>
+      <dl class="cal-stats" aria-label="This month">${stats.map(([value, name]) => `<div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>
+      <p class="cal-stats-note">this month</p>
     </div>
   `;
 }

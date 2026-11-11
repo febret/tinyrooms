@@ -94,7 +94,7 @@ def load_world_cutscene_roots():
 
 
 def load_world_propsets():
-    """Return the core propset roots for world loading."""
+    """Return the bundled core propset roots for world loading."""
 
     return (REPO_ROOT / "data" / "propsets",)
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="full-height">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -32,6 +32,7 @@
         <div class="energy" id="energy" aria-live="polite">
           <svg class="icon" aria-hidden="true"><use href="#icon-bolt"></use></svg>
           <span id="energy-value">— Energy</span>
+          <span class="energy-meter" aria-hidden="true"><span id="energy-fill"></span></span>
         </div>
       </div>
 
@@ -41,7 +42,7 @@
 
       <section class="recipe-detail" id="detail" aria-live="polite">
         <div class="detail-empty">
-          <svg class="icon detail-empty-icon" aria-hidden="true"><use href="#icon-pot"></use></svg>
+          <div class="ghost-bench" aria-hidden="true"><i></i><i></i><i></i><svg class="icon detail-empty-icon"><use href="#icon-pot"></use></svg></div>
           <p>Pick a recipe to see what it needs.</p>
         </div>
       </section>

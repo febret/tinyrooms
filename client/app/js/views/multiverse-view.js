@@ -58,6 +58,79 @@ export function planetAngle(index, count) {
   return -90 + (index * 360) / count;
 }
 
+const MV_TAG_HEIGHT = 50;
+const MV_TAG_EXTRA_WIDTH = 34;
+const MV_MIN_PLANET = 52;
+
+/** Points spaced by equal arc length, so flat ellipses do not bunch worlds up at their ends. */
+function ringPoints(count, radiusX, radiusY, phase) {
+  const samples = 720;
+  const start = (planetAngle(0, count) * Math.PI) / 180;
+  const at = step => {
+    const angle = start + (step / samples) * Math.PI * 2;
+    return { x: Math.cos(angle) * radiusX, y: Math.sin(angle) * radiusY };
+  };
+  const lengths = [0];
+  let previous = at(0);
+  for (let step = 1; step <= samples; step += 1) {
+    const point = at(step);
+    lengths.push(lengths[step - 1] + Math.hypot(point.x - previous.x, point.y - previous.y));
+    previous = point;
+  }
+  const perimeter = lengths[samples];
+  const points = [];
+  let cursor = 0;
+  for (let index = 0; index < count; index += 1) {
+    const target = (((index + phase) / count) % 1) * perimeter;
+    if (target < lengths[cursor]) cursor = 0;
+    while (cursor < samples && lengths[cursor + 1] < target) cursor += 1;
+    points.push(at(cursor));
+  }
+  return points;
+}
+
+function ringOverlaps(points, blockWidth, blockHeight) {
+  for (let a = 0; a < points.length; a += 1) {
+    for (let b = a + 1; b < points.length; b += 1) {
+      if (Math.abs(points[a].x - points[b].x) < blockWidth && Math.abs(points[a].y - points[b].y) < blockHeight) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Fit planets (orb plus name tag) on an ellipse inside the ring box without
+ * overlapping. Shrinks the orbs until they fit; short, wide boxes may shift
+ * the ring by half a step so no two worlds stack above each other.
+ */
+export function multiverseRingLayout(count, width, height) {
+  const total = Math.max(1, Math.floor(Number(count) || 1));
+  const compact = width < 760 || height < 520;
+  const preferred = Math.round((total <= 1 ? 196 : total <= 3 ? 172 : total <= 5 ? 150 : total <= 7 ? 128 : 110) * (compact ? 0.88 : 1.3));
+  let fallback = null;
+  for (let size = preferred; size >= MV_MIN_PLANET; size -= 4) {
+    const blockWidth = size + MV_TAG_EXTRA_WIDTH;
+    const blockHeight = size + MV_TAG_HEIGHT;
+    const maxX = width / 2 - blockWidth / 2;
+    const maxY = height / 2 - blockHeight / 2;
+    if (maxX < 24 || maxY < 24) continue;
+    // Large screens prefer a tidy, tighter ring and only widen it when crowded.
+    const rings = compact ? [[maxX, maxY]] : [[Math.min(maxX, 340), Math.min(maxY, 226)], [maxX, maxY]];
+    for (const [radiusX, radiusY] of rings) {
+      for (const phase of [0, 0.5]) {
+        const points = ringPoints(total, radiusX, radiusY, phase);
+        const layout = { size, radiusX, radiusY, phase, points };
+        if (total === 1 || !ringOverlaps(points, blockWidth, blockHeight)) return layout;
+        fallback = layout;
+      }
+    }
+  }
+  if (fallback) return fallback;
+  const radiusX = Math.max(24, width / 2 - (MV_MIN_PLANET + MV_TAG_EXTRA_WIDTH) / 2);
+  const radiusY = Math.max(24, height / 2 - (MV_MIN_PLANET + MV_TAG_HEIGHT) / 2);
+  return { size: MV_MIN_PLANET, radiusX, radiusY, phase: 0, points: ringPoints(total, radiusX, radiusY, 0) };
+}
+
 export function multiversePlanetMarkup(world, { selected = false, traveling = false, index = 0, count = 1 } = {}) {
   const id = String(world.id || "");
   const label = String(world.label || id || "A world");
@@ -215,29 +288,21 @@ export function createMultiverseView({
     layer.style.setProperty("--mv-placeholder", `url("${withBase("/app/assets/textures/multiverse-world-placeholder.png")}")`);
   }
 
-  function slotGeometry(slot, index, count, rect) {
-    const compact = rect.width < 760 || rect.height < 620;
-    const base = Math.min(rect.width, rect.height);
-    const radiusX = Math.max(132, Math.min(rect.width * (compact ? 0.34 : 0.32), compact ? 200 : 340));
-    const radiusY = Math.max(104, Math.min(rect.height * (compact ? 0.22 : 0.29), compact ? 142 : 226));
-    const angle = (planetAngle(index, count) * Math.PI) / 180;
-    const x = Math.cos(angle) * radiusX;
-    const y = Math.sin(angle) * radiusY * (base < 520 ? 0.92 : 1);
-    slot.style.setProperty("--mv-x", `${Math.round(x)}px`);
-    slot.style.setProperty("--mv-y", `${Math.round(y)}px`);
-    slot.style.setProperty("--mv-sx", `${Math.round(-x)}px`);
-    slot.style.setProperty("--mv-sy", `${Math.round(-y)}px`);
-    const size = Math.round((count <= 1 ? 196 : count <= 3 ? 172 : count <= 5 ? 150 : count <= 7 ? 128 : 110) * 1.3);
-    slot.style.setProperty("--mv-size", `${compact ? Math.round(size * 0.68) : size}px`);
-  }
-
   function layoutPlanets() {
     const ringNode = ring();
     if (!ringNode) return;
-    const rect = layer.getBoundingClientRect();
+    const rect = ringNode.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const slots = [...ringNode.querySelectorAll("[data-multiverse-slot]")];
-    slots.forEach((slot, index) => slotGeometry(slot, index, slots.length || 1, rect));
+    const layout = multiverseRingLayout(slots.length || 1, rect.width, rect.height);
+    slots.forEach((slot, index) => {
+      const { x, y } = layout.points[index];
+      slot.style.setProperty("--mv-x", `${Math.round(x)}px`);
+      slot.style.setProperty("--mv-y", `${Math.round(y)}px`);
+      slot.style.setProperty("--mv-sx", `${Math.round(-x)}px`);
+      slot.style.setProperty("--mv-sy", `${Math.round(-y)}px`);
+      slot.style.setProperty("--mv-size", `${layout.size}px`);
+    });
   }
 
   function refreshImages(scope) {

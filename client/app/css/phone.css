@@ -27,6 +27,7 @@
 
 .phone-typing-close {
   display: none;
+  place-items: center;
   position: absolute;
   top: calc(var(--topbar-height) + 8px);
   right: 8px;
@@ -76,7 +77,8 @@
   font-size: 15px;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 1px 2px #0009, inset 0 1px 0 #fff;
+  text-shadow: 0 1px 0 #ffffffb3;
+  box-shadow: 0 2px 0 #59666b, 0 3px 4px #0009, inset 0 1px 0 #fff;
   cursor: pointer;
 }
 
@@ -95,6 +97,7 @@
 }
 
 .phone-stage {
+  position: relative;
   width: 100%;
   flex: 1 1 auto;
   min-height: 0;
@@ -103,6 +106,19 @@
   justify-content: center;
   perspective: 1300px;
   perspective-origin: 50% 42%;
+}
+
+/* Soft pool of screen light on the table behind the handset. */
+.phone-stage::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(560px, 120%);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, #9fd0c02e, #2b8bb014 55%, transparent);
+  pointer-events: none;
 }
 
 .phone-device {
@@ -159,7 +175,7 @@
   overflow: hidden;
   border-radius: 1px;
   background: var(--lcd-bg);
-  box-shadow: inset 0 0 0 1px #0b1d18, inset 0 0 8px #1a2e1f42;
+  box-shadow: inset 0 0 0 1px #0b1d18, inset 0 0 8px #1a2e1f42, 0 0 22px #dce9c340;
   isolation: isolate;
 }
 
@@ -369,10 +385,19 @@
   letter-spacing: .06em;
 }
 
+.phone-device[data-phone-screen-app="apps"] .phone-softkeys {
+  background: #081a15d9;
+  color: #f3f7dc;
+  text-shadow: none;
+}
+
 .phone-softkeys button {
+  min-width: 0;
   min-height: 10px;
   padding: 0;
   border: 0;
+  border-radius: 0;
+  box-shadow: none;
   background: none;
   color: inherit;
   font: inherit;
@@ -518,6 +543,11 @@
   align-items: center;
   gap: 4px;
   margin: 0 0 2px;
+  padding: 1px 3px;
+  background: var(--lcd-ink);
+  color: var(--lcd-light);
+  font-family: inherit;
+  text-shadow: none;
   font-size: 13.5px;
   letter-spacing: .04em;
   text-transform: uppercase;
@@ -532,7 +562,8 @@
 }
 
 .phone-count {
-  color: var(--lcd-soft);
+  margin-left: auto;
+  color: inherit;
   font-size: 12px;
 }
 
@@ -718,6 +749,18 @@
   box-shadow: inset -1px -1px 0 #879b70;
 }
 
+.phone-view .phone-transport.quiet {
+  background: #eef4d9;
+  color: #071c14;
+}
+
+.phone-view .phone-transport:disabled {
+  background: #c9dbaa;
+  border-color: #5d7a5f;
+  color: #5d7a5f;
+  box-shadow: none;
+}
+
 .phone-transport[aria-pressed="true"] {
   background: #f0c785;
   border-color: #7c4924;
@@ -888,12 +931,14 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 1px 2px #0009, inset 0 1px 0 #fff;
+  text-shadow: 0 1px 0 #ffffffb3;
+  box-shadow: 0 2px 0 #59666b, 0 3px 4px #0009, inset 0 1px 0 #fff;
 }
 
 .phone-key:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: translateY(2px);
   filter: brightness(.92);
+  box-shadow: 0 0 0 #59666b, 0 1px 2px #0009, inset 0 1px 0 #fff;
 }
 
 .phone-key[aria-pressed="true"] {
@@ -913,6 +958,7 @@
   border-color: #5b130c;
   color: #fff;
   text-shadow: 0 1px 1px #0009;
+  box-shadow: 0 2px 0 #5b130c, 0 3px 4px #0009, inset 0 1px 0 #ffffff80;
 }
 
 .phone-key-goto {
@@ -921,13 +967,38 @@
   color: #23411f;
 }
 
+/* Short landscape screens: lay the open handset flat, screen beside keypad. */
 @media (max-height: 620px) and (orientation: landscape) {
   .phone-view {
-    padding-top: 54px;
+    padding: 8px 12px;
   }
 
   .phone-device {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: auto;
     height: min(100%, 430px);
+    aspect-ratio: auto;
+  }
+
+  .phone-lid {
+    flex: 0 0 auto;
+    width: auto;
+    height: 100%;
+    aspect-ratio: 300 / 340;
+  }
+
+  .phone-base {
+    flex: 0 0 auto;
+    width: auto;
+    height: 64.7%;
+    aspect-ratio: 300 / 220;
+  }
+
+  .app-shell.phone-typing .phone-device {
+    height: 100%;
   }
 }
 

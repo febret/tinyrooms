@@ -130,8 +130,13 @@ function renderPacks() {
            <button type="button" class="quiet" data-cancel-pack="1">Cancel</button>
          </span>`
       : `<button type="button" class="primary" data-buy-pack="${escape(pack.id)}"${affordable ? "" : " disabled"}>${affordable ? "Buy" : `Need ${escape(pack.price)} Bops`}</button>`;
-    return `<article class="shop-pack" role="listitem">
-      ${art}
+    return `<article class="shop-pack${confirming ? " is-confirming" : ""}" role="listitem">
+      <span class="shop-pack-shelf">
+        <span class="shop-pack-stand">
+          ${art}
+          <span class="shop-pack-tag" aria-hidden="true"><b>${escape(pack.price)}</b><small>Bops</small></span>
+        </span>
+      </span>
       <span class="shop-pack-copy">
         <strong>${escape(pack.label)}</strong>
         <span class="shop-pack-description">${escape(pack.description || "")}</span>

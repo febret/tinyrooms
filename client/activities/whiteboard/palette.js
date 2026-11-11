@@ -85,18 +85,22 @@ export function createPalette({ root, initialColors = [], onChange }) {
 
   root.innerHTML = `
     <h2>Color</h2>
-    <div class="palette-preview"><span id="palette-chip"></span><code id="palette-hex">#1f2933</code></div>
-    <canvas id="palette-field" width="220" height="150" aria-label="Saturation and brightness field"></canvas>
-    <label class="palette-hue">Hue
-      <input id="palette-hue" type="range" min="0" max="359" value="210" aria-label="Hue">
-    </label>
-    <label class="palette-hex">Hex
-      <input id="palette-text" type="text" value="#1f2933" maxlength="7" spellcheck="false" aria-label="Color hex value">
-    </label>
-    <h3>Palette</h3>
-    <div class="swatch-grid" id="palette-swatches" role="group" aria-label="Color swatches"></div>
-    <h3>Recent</h3>
-    <div class="swatch-grid" id="palette-recent" role="group" aria-label="Recent colors"></div>
+    <div class="palette-mixer">
+      <div class="palette-preview"><span id="palette-chip"></span><code id="palette-hex">#1f2933</code></div>
+      <canvas id="palette-field" width="220" height="150" aria-label="Saturation and brightness field"></canvas>
+      <label class="palette-hue">Hue
+        <input id="palette-hue" type="range" min="0" max="359" value="210" aria-label="Hue">
+      </label>
+      <label class="palette-hex">Hex
+        <input id="palette-text" type="text" value="#1f2933" maxlength="7" spellcheck="false" aria-label="Color hex value">
+      </label>
+    </div>
+    <div class="palette-pans">
+      <h3>Palette</h3>
+      <div class="swatch-grid" id="palette-swatches" role="group" aria-label="Color swatches"></div>
+      <h3>Recent</h3>
+      <div class="swatch-grid" id="palette-recent" role="group" aria-label="Recent colors"></div>
+    </div>
   `;
 
   const field = root.querySelector("#palette-field");
@@ -227,6 +231,8 @@ export function createPalette({ root, initialColors = [], onChange }) {
 
   paintSwatches();
   paintRecent();
+  chip.style.background = state.color;
+  paintField();
 
   return {
     setColor(color) {

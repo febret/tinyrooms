@@ -165,8 +165,8 @@ function renderControls() {
     button.dataset.part = part.id;
     button.setAttribute("aria-pressed", String(design[category.partSlot] === part.id));
     const canvas = document.createElement("canvas");
-    canvas.width = 62;
-    canvas.height = 68;
+    canvas.width = 124;
+    canvas.height = 136;
     button.appendChild(canvas);
     const label = document.createElement("span");
     label.textContent = part.label;

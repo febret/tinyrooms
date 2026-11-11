@@ -1,5 +1,6 @@
 #core-tools #room-picker-toggle { pointer-events: auto; }
-#room-picker-toggle[aria-expanded="true"] { background: linear-gradient(#2f8f57, #176b3a); border-color: #7de07d; }
+#core-tools #room-picker-toggle[aria-expanded="true"] { background: transparent; filter: brightness(1.15) drop-shadow(0 0 7px #ffd98acc) drop-shadow(0 3px 3px #0009); }
+#core-tools #room-picker-toggle[aria-expanded="true"] img { transform: translateY(-2px) scale(1.08); }
 #room-picker-toggle svg { width: 26px; height: 26px; }
 
 .room-picker {
@@ -13,23 +14,27 @@
   max-width: calc(100% - var(--sidebar-width) - 24px);
   max-height: calc(100vh - var(--dock-height) - 76px);
   max-height: min(560px, calc(100dvh - var(--dock-height) - 76px));
-  padding: 10px 12px;
-  border: 1px solid #29505d;
-  border-radius: 14px;
-  background: #05121d;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(#0d2c3b, #06151e);
   color: var(--ink);
-  box-shadow: 0 10px 26px #000c;
+  box-shadow: var(--panel-frame);
+  animation: menu-pop .22s var(--ease-out) both;
+  transform-origin: 0 0;
   pointer-events: auto;
 }
 .room-picker[hidden], .room-picker[inert] { display: none; }
-.room-picker-header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-.room-picker-header h2 { min-width: 0; font-size: 17px; overflow-wrap: anywhere; }
-.room-picker-close { flex: 0 0 auto; padding: 0; font-size: 24px; }
+.room-picker-header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding-bottom: 8px; background: linear-gradient(90deg, #d9ad6280, transparent) 0 100% / 100% 1px no-repeat; }
+.room-picker-header h2 { min-width: 0; font-family: var(--heading-font); font-size: 18px; font-weight: 600; color: var(--brass-hi); letter-spacing: .01em; overflow-wrap: anywhere; }
+.room-picker-close { flex: 0 0 auto; width: 36px; height: 36px; min-width: 36px; min-height: 36px; padding: 0 0 2px; border-radius: 50%; font-size: 22px; line-height: 1; }
 .room-picker-hint { flex: 0 0 auto; margin: 0 0 8px; color: var(--muted); font-size: 13px; line-height: 1.4; }
 .room-picker-track { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 4px; scrollbar-width: thin; scrollbar-color: #29505d transparent; }
 .room-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); align-items: start; gap: 12px 10px; }
 .room-picker-entry { display: grid; justify-items: center; gap: 6px; min-width: 0; }
-.room-picker-prop, .room-picker .game-card { position: relative; width: 100%; min-width: 44px; min-height: 76px; padding: 0; border: 0; border-radius: 10px; background: none; box-shadow: none; }
+.room-picker-prop, .room-picker .game-card { position: relative; width: 100%; min-width: 44px; min-height: 76px; padding: 0; border: 0; border-radius: 12px; background: radial-gradient(ellipse at 50% 88%, #000000a6 0, transparent 46%), radial-gradient(circle at 50% 40%, #1a465c80, transparent 70%); box-shadow: inset 0 0 0 1px #ffffff12; transition: transform .2s var(--ease-spring), background .15s, box-shadow .15s; }
+.room-picker-prop:hover:not(:disabled) { transform: translateY(-3px); box-shadow: inset 0 0 0 1px #d9ad6280; }
+.room-picker-prop:active:not(:disabled) { transform: scale(.95); box-shadow: inset 0 0 0 1px #d9ad6280; }
 .room-picker-prop { aspect-ratio: 1; }
 .room-picker-art { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
 .room-picker-art img { position: relative; width: 100%; height: 100%; object-fit: contain; }
@@ -40,10 +45,10 @@
 .room-picker .game-card > img { position: relative; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .room-picker .card-badge { display: none; }
 .room-picker-has-image > .room-picker-fallback { visibility: hidden; }
-.room-picker-prop[aria-pressed="true"], .room-picker .game-card.selected { background: #8ac4db2e; }
-.room-picker .game-card.selected, .room-picker .game-card:hover:not(:disabled), .room-picker .game-card:active:not(:disabled) { transform: none; box-shadow: none; }
-.room-picker-label { width: 100%; color: var(--ink); font-size: 12px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
-.room-picker-empty { grid-column: 1 / -1; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.room-picker-prop[aria-pressed="true"], .room-picker .game-card.selected { background: radial-gradient(ellipse at 50% 88%, #000000a6 0, transparent 46%), radial-gradient(circle at 50% 40%, #ffd98a4d, transparent 72%); box-shadow: inset 0 0 0 2px var(--brass); }
+.room-picker .game-card.selected, .room-picker .game-card:hover:not(:disabled), .room-picker .game-card:active:not(:disabled) { transform: none; }
+.room-picker-label { width: 100%; color: #d6e6ee; font-size: 12px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+.room-picker-empty { grid-column: 1 / -1; padding: 14px 4px; color: var(--muted); font-family: var(--heading-font); font-size: 14px; font-style: italic; line-height: 1.5; text-align: center; }
 
 @media (max-width: 780px), (orientation: portrait) {
   #core-tools #room-picker-toggle svg { width: 20px; height: 20px; }
