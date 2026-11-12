@@ -709,6 +709,8 @@ async function handleAction(action, { silentSound = false } = {}) {
     }
   } else if (action.type === "inventory-tab") {
     store.dispatch({ type: "inventory-tab", tab: action.tab });
+  } else if (action.type === "journal-sticker") {
+    store.dispatch({ type: "journal-sticker", key: action.key });
   } else if (action.type === "journal-month") {
     store.dispatch({ type: "journal-month", delta: action.delta });
     await refreshJournalMonth();

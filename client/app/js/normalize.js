@@ -478,6 +478,32 @@ export function normalizeJournal(journal) {
   };
 }
 
+export function normalizePeepCollection(collection) {
+  const peeps = Array.isArray(collection?.peeps) ? collection.peeps : [];
+  const reward = collection?.milestone_reward && typeof collection.milestone_reward === "object" ? collection.milestone_reward : {};
+  const milestoneSize = Number(collection?.milestone_size || 10);
+  return {
+    peeps: peeps.map(peep => ({
+      key: String(peep?.key || ""),
+      worldId: String(peep?.world_id || ""),
+      peepId: String(peep?.peep_id || ""),
+      label: String(peep?.label || "A peep"),
+      description: String(peep?.description || ""),
+      imageUrl: peep?.image_url ? withBase(String(peep.image_url)) : "",
+      vibe: Number(peep?.vibe || 0),
+      vibeLabel: String(peep?.vibe_label || ""),
+      traits: peep?.traits && typeof peep.traits === "object" ? { ...peep.traits } : {},
+      firstRoomId: String(peep?.first_room_id || ""),
+      firstMetAt: String(peep?.first_met_at || ""),
+      lastMetAt: String(peep?.last_met_at || ""),
+    })).filter(peep => peep.key),
+    count: Number(collection?.count ?? peeps.length) || 0,
+    milestoneSize,
+    milestoneReward: { bops: Number(reward.bops || 0), kudos: Number(reward.kudos || 0) },
+    nextMilestoneAt: Number(collection?.next_milestone_at || milestoneSize),
+  };
+}
+
 export function normalizeMultiverseWorlds(raw) {
   if (!Array.isArray(raw)) return [];
   const worlds = [];
@@ -573,6 +599,7 @@ export function normalizeUser(user) {
     unlockedProps: Array.isArray(user.unlocked_props) ? user.unlocked_props.map(propId => String(propId)) : [],
     tasks: normalizeTasks(user.tasks),
     journal: normalizeJournal(user.journal),
+    peepCollection: normalizePeepCollection(user.peep_collection),
     titles: normalizeTitles(user.titles),
     worldId: String(user.world_id || ""),
     worldCssUrl: assetOrEmpty(user.world_css_url),

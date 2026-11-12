@@ -316,6 +316,19 @@ headers. Users star tracks into their shared profile
 the chiptune.app top chart with tracks starred by other Tinyrooms users.
 Autoplay requires one user gesture.
 
+Shared peeps ([peep_collection.py](../server/services/peep_collection.py)) form the
+journal's **Stickers** tab. The first `.look`, `.talk`, or `.act` targeting a
+non-player peep writes an `encountered_peeps` row in the shared profile database
+(key `<world>:<peep>`), snapshotting label, description, traits, and a copy of
+the picture under the custom stickers `peeps/` folder (served at
+`/assets/peep-stickers/<sha256>.<ext>`). Later encounters refresh only the vibe
+and last-met time. Every 10 collected peeps grants 100 Bops + 1 Kudos once,
+idempotent through `reward_ledger` keys `peep-collection:milestone:<n>`. Mod
+peeps (such as TinyTown `ttnpc:` roommates) count the same as authored peeps.
+`PeepCollectionService.companion_profile()` returns a collected peep for reuse in
+side activities outside its home world. The account payload carries
+`peep_collection`; a new encounter returns a refreshed `user` payload and toasts.
+
 Phone text messages ([phone_messages.py](../server/services/phone_messages.py))
 live in the shared profile database as one row per phone copy, keyed by
 `player:<account>`, `npc:<world>:<npc>`, or `system:<source>` thread. The

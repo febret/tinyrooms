@@ -160,8 +160,8 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await openCore(page, "journal");
   const journal = page.getByRole("dialog", { name: "Journal", exact: true });
   await expect(journal).toBeVisible();
-  await expect(journal.locator("[data-journal-tab]")).toHaveCount(2);
-  for (const tab of ["Tasks", "Memories"]) {
+  await expect(journal.locator("[data-journal-tab]")).toHaveCount(3);
+  for (const tab of ["Tasks", "Memories", "Stickers"]) {
     const button = journal.locator(`[data-journal-tab="${tab}"]`);
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");

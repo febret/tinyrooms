@@ -153,6 +153,16 @@ def register_static_routes(app: FastAPI) -> None:
                 return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Sticker asset not found.")
 
+    @app.get("/assets/peep-stickers/{filename}")
+    async def peep_sticker_asset(filename: str, request: Request) -> Response:
+        runtime = get_runtime(request)
+        if not re.fullmatch(r"[0-9a-f]{64}\.(png|jpg|jpeg|gif|webp|svg)", filename or ""):
+            raise HTTPException(status_code=404, detail="Peep sticker not found.")
+        candidate = _safe_path(runtime.peep_collection.images_root, filename)
+        if candidate.is_file():
+            return FileResponse(candidate, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+        raise HTTPException(status_code=404, detail="Peep sticker not found.")
+
     @app.get("/assets/whiteboards/{filename}")
     async def whiteboard_asset(filename: str, request: Request) -> Response:
         runtime = get_runtime(request)

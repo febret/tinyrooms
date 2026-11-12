@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 import json
 import logging
@@ -34,6 +36,52 @@ from server.mission_control.registry import (
     InstanceRecord,
     InstanceRegistry,
 )
+
+
+
+SPAWN_LOG_NAME = "spawn.log"
+SPAWN_LOG_MAX_BYTES = 1024 * 1024
+NEWLINE = "\n"
+
+
+def spawn_log_path(spawn_config: dict[str, object] | None) -> Path | None:
+    """Return the persistent spawn.log path beside an instance's worldstate."""
+
+    worldstate = (spawn_config or {}).get("worldstate_path")
+    if not worldstate:
+        return None
+    return Path(str(worldstate)).parent / SPAWN_LOG_NAME
+
+
+def _open_spawn_log(path: Path | None, pid: object):
+    """Open spawn.log for appending, rotating it once past the size cap."""
+
+    if path is None:
+        return None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.is_file() and path.stat().st_size > SPAWN_LOG_MAX_BYTES:
+            os.replace(path, path.with_name(SPAWN_LOG_NAME + ".1"))
+        handle = open(path, "a", encoding="utf-8", errors="replace")  # noqa: SIM115 - closed by the pump thread
+        stamp = datetime.now(tz=UTC).isoformat()
+        handle.write(f"===== {stamp} spawn pid={pid} =====" + NEWLINE)
+        handle.flush()
+        return handle
+    except OSError:
+        return None
+
+
+def read_spawn_log_tail(spawn_config: dict[str, object] | None, limit: int = 200) -> list[str]:
+    """Return the last *limit* lines of an instance's spawn.log, if any."""
+
+    path = spawn_log_path(spawn_config)
+    if path is None or limit <= 0:
+        return []
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            return [line.rstrip(NEWLINE) for line in deque(handle, maxlen=limit)]
+    except OSError:
+        return []
 
 
 LOGGER = logging.getLogger("tinyrooms.mc")
@@ -727,16 +775,34 @@ class Supervisor:
         return env
 
     def _capture_output(self, record: InstanceRecord, process: subprocess.Popen) -> None:
+        log_file = _open_spawn_log(spawn_log_path(record.spawn_config), getattr(process, "pid", None))
         stream = getattr(process, "stdout", None)
         if stream is None:
+            if log_file is not None:
+                log_file.close()
             return
 
         def _pump() -> None:
+            sink = log_file
             try:
                 for line in stream:
+                    if isinstance(line, bytes):
+                        line = line.decode("utf-8", errors="replace")
                     self._registry.append_log(record.instance_id, line)
+                    if sink is not None:
+                        try:
+                            sink.write(line if line.endswith(NEWLINE) else line + NEWLINE)
+                            sink.flush()
+                        except (OSError, ValueError):
+                            sink = None
             except (OSError, ValueError):
                 return
+            finally:
+                if log_file is not None:
+                    try:
+                        log_file.close()
+                    except OSError:
+                        pass
 
         threading.Thread(target=_pump, name=f"mc-log-{record.instance_id}", daemon=True).start()
 

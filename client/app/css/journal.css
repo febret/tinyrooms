@@ -131,3 +131,20 @@
   .cal-header button.quiet { min-height: 30px; min-width: 30px; font-size: 18px; }
   .cal-days .cal-cell { aspect-ratio: auto; min-height: 30px; }
 }
+.peep-sticker-progress { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 10px; margin-bottom: 12px; font-size: 12px; }
+.peep-sticker-progress .peep-sticker-next { grid-column: 1 / -1; opacity: .75; }
+.peep-sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+.peep-sticker { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border: 1px dashed var(--journal-edge); border-radius: 10px; background: rgba(255, 255, 255, .45); color: inherit; font: inherit; cursor: pointer; transform: rotate(-1deg); }
+.peep-sticker:nth-child(even) { transform: rotate(1.2deg); }
+.peep-sticker.selected { border-style: solid; border-color: var(--journal-accent); box-shadow: 0 0 0 2px var(--journal-accent); }
+.peep-sticker-picture { width: 64px; height: 64px; object-fit: contain; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.peep-sticker-picture.large { width: 140px; height: 140px; }
+.peep-sticker-placeholder { display: grid; place-items: center; font-size: 24px; }
+.peep-sticker-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
+.peep-sticker-detail { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.peep-sticker-detail h3 { margin: 0; }
+.peep-sticker-description { margin: 0; font-style: italic; }
+.peep-sticker-facts { display: grid; gap: 4px; width: 100%; margin: 0; text-align: left; font-size: 12px; }
+.peep-sticker-facts div { display: grid; grid-template-columns: 80px 1fr; gap: 6px; }
+.peep-sticker-facts dt { font-weight: 700; color: var(--journal-accent); }
+.peep-sticker-facts dd { margin: 0; }

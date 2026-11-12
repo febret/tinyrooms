@@ -33,6 +33,7 @@ from server.mission_control.registry import (
     STATUS_STOPPED,
     STATUS_UNREACHABLE,
 )
+from server.mission_control.supervisor import read_spawn_log_tail
 from server.security import RateLimitError, require_matching_csrf, validate_origin
 from server.version import BUILD_VERSION
 
@@ -857,7 +858,12 @@ async def server_logs(request: Request, instance_id: str, limit: int = 200) -> d
     if record is None:
         raise HTTPException(status_code=404, detail="Instance not found.")
     if record.source == SPAWNED:
-        return {"ok": True, "source": "process", "lines": runtime.registry.logs(instance_id, limit)}
+        lines = runtime.registry.logs(instance_id, limit)
+        if not lines:
+            lines = read_spawn_log_tail(record.spawn_config, limit)
+            if lines:
+                return {"ok": True, "source": "file", "lines": lines}
+        return {"ok": True, "source": "process", "lines": lines}
     try:
         payload = await _world_call(runtime, record.endpoint, "GET", f"/api/mc/logs?limit={limit}")
         return {"ok": True, "source": "poll", "lines": payload.get("lines", [])}

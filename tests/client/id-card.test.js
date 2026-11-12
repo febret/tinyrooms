@@ -64,9 +64,9 @@ test("id-flip toggles between the identity and skills sides", () => {
   assert.equal(store.getState().ui.idCardSide, "self");
 });
 
-test("journal keeps two tabs and puts close next to them", () => {
+test("journal keeps its three tabs and puts close next to them", () => {
   const markup = journalView(baseState());
-  assert.equal((markup.match(/data-journal-tab/g) || []).length, 2);
+  assert.equal((markup.match(/data-journal-tab/g) || []).length, 3);
   assert.ok(!markup.includes('data-journal-tab="Self"'));
   assert.ok(!markup.includes('data-journal-tab="Skills"'));
   assert.ok(markup.includes("journal-tabs-row"));

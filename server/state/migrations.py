@@ -9,6 +9,12 @@ import sqlite3
 import threading
 
 
+from server.state.encountered_peeps_schema import (
+    ENCOUNTERED_PEEPS_COLUMNS,
+    ENCOUNTERED_PEEPS_FRESH_SQL,
+    ENCOUNTERED_PEEPS_INDEXES,
+    ENCOUNTERED_PEEPS_MIGRATION,
+)
 from server.state.phone_messages_schema import (
     PHONE_MESSAGES_COLUMNS,
     PHONE_MESSAGES_FRESH_SQL,
@@ -17,7 +23,7 @@ from server.state.phone_messages_schema import (
 )
 
 
-PROFILE_SCHEMA_VERSION = 15
+PROFILE_SCHEMA_VERSION = 16
 WORLD_SCHEMA_VERSION = 20
 
 
@@ -286,6 +292,11 @@ _PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
     "PRAGMA user_version = 14;",
     "PRAGMA user_version = 15;",
 )
+# Encountered peeps (the journal sticker collection) follow the player across worlds.
+_PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
+    "PRAGMA user_version = 15;",
+    ENCOUNTERED_PEEPS_FRESH_SQL + "\nPRAGMA user_version = 16;",
+)
 
 _WORLD_SCHEMA_SQL = """
 BEGIN;
@@ -418,6 +429,7 @@ _PROFILE_TABLES = frozenset(
         "vibes",
         "dynamic_card_defs",
         "phone_messages",
+        "encountered_peeps",
     }
 )
 
@@ -688,6 +700,7 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 15;
     COMMIT;
     """,
+    16: ENCOUNTERED_PEEPS_MIGRATION,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {
@@ -1173,9 +1186,11 @@ def ensure_profile_database(path: Path) -> None:
             "vibes": _VIBES_COLUMNS,
             "dynamic_card_defs": _DYNAMIC_CARD_COLUMNS,
             "phone_messages": PHONE_MESSAGES_COLUMNS,
+            "encountered_peeps": ENCOUNTERED_PEEPS_COLUMNS,
         },
         extra_indexes=(
             *PHONE_MESSAGES_INDEXES,
+            *ENCOUNTERED_PEEPS_INDEXES,
             "CREATE INDEX IF NOT EXISTS idx_dynamic_card_defs_base ON dynamic_card_defs(base_card_id)",
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id)",

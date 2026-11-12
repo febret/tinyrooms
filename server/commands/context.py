@@ -69,4 +69,5 @@ def build_command_context(
         cross_world=runtime.cross_world,
         reload_world=runtime.reload_world,
         card_drops=runtime.card_drops,
+        peep_collection=runtime.peep_collection,
     )

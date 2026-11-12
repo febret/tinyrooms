@@ -83,6 +83,26 @@ def _entity_outcome(message: str, entity: dict[str, object]) -> CommandOutcome:
     return CommandOutcome(message=message, payload={"entity": entity})
 
 
+def _record_peep_encounter(
+    context: CommandContext,
+    outcome: CommandOutcome,
+    peep_id: str,
+    room_id: str,
+    payload: dict[str, object] | None = None,
+) -> None:
+    """Add a met NPC to the player's sticker collection and surface any reward."""
+
+    service = context.peep_collection
+    if service is None or not peep_id:
+        return
+    result = service.record_encounter(context.account.id, peep_id, room_id=room_id, payload=payload)
+    if not result.new:
+        return
+    outcome.private_events.extend(result.events)
+    account = context.profiles.get_account_by_id(context.account.id) or context.account
+    outcome.payload = {**(outcome.payload or {}), "user": context.serialize_user(account)}
+
+
 async def _resolve_peep_ref(context: CommandContext, token: str) -> PeepRef:
     room_id = require_room_id(context)
     parsed = parse_target(token) if token.startswith("@") else None
@@ -186,10 +206,12 @@ async def look_command(context: CommandContext, command: ParsedCommand) -> Comma
                 if target.kind == "username" and str(occupant["username"]).casefold() == target.value.casefold():
                     return _entity_outcome("Peep details loaded.", occupant)
             for peep in context.rooms.room_peeps(room_id):
-                if target.kind == "peep" and peep["id"] == target.value:
-                    return _entity_outcome("Peep details loaded.", peep)
-                if target.kind == "username" and str(peep["label"]).casefold() == target.value.casefold():
-                    return _entity_outcome("Peep details loaded.", peep)
+                if (target.kind == "peep" and peep["id"] == target.value) or (
+                    target.kind == "username" and str(peep["label"]).casefold() == target.value.casefold()
+                ):
+                    outcome = _entity_outcome("Peep details loaded.", peep)
+                    _record_peep_encounter(context, outcome, str(peep["id"]), room_id, peep)
+                    return outcome
             raise CommandError("That peep is not in this room.")
     if target_token in room.exits:
         return _entity_outcome("Exit details loaded.", _describe_exit(room.exits[target_token]))
@@ -276,6 +298,7 @@ async def talk_command(context: CommandContext, command: ParsedCommand) -> Comma
         payload={"dialog": context.dialogs.serialize(context.dialogs.view(context.account.id))},
     )
     merge_behavior_result(context, outcome, behavior)
+    _record_peep_encounter(context, outcome, ref.peep_id, room_id)
     return outcome
 
 async def act_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
@@ -298,6 +321,8 @@ async def act_command(context: CommandContext, command: ParsedCommand) -> Comman
     )
     outcome = CommandOutcome()
     merge_behavior_result(context, outcome, behavior)
+    if isinstance(target, PeepRef) and target.kind == "npc" and target.peep_id:
+        _record_peep_encounter(context, outcome, target.peep_id, room_id)
     if not outcome.message:
         outcome.message = f"You {action}."
     return outcome

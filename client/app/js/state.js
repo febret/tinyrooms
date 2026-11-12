@@ -973,6 +973,7 @@ function reduce(state, action) {
   if (action.type === "toggle-peeps") return { ...state, ui: { ...state.ui, peepsVisible: !state.ui.peepsVisible } };
   if (action.type === "close-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: false } };
   if (action.type === "journal-tab") return { ...state, selection: { kind: "core", id: "journal" }, views: { ...state.views, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "", roomPickerOpen: false } };
+  if (action.type === "journal-sticker") return { ...state, ui: { ...state.ui, journalStickerKey: String(action.key || "") } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
   if (action.type === "toggle-sell-mode") return { ...state, ui: { ...state.ui, sellMode: !state.ui.sellMode } };
   if (action.type === "toggle-titles") return { ...state, ui: { ...state.ui, titlesOpen: !state.ui.titlesOpen } };

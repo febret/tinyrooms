@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import json
 from pathlib import Path
 import subprocess
 import sys
 import threading
+import time
 import unittest
 from unittest import mock
 
@@ -18,9 +20,11 @@ from server.mission_control.registry import (
     InstanceRegistry,
 )
 from server.mission_control.supervisor import (
+    SPAWN_LOG_MAX_BYTES,
     RestoredChildProcess,
     Supervisor,
     _proc_identity_matches,
+    read_spawn_log_tail,
 )
 from tests.common import REPO_ROOT
 from tests.mc_helpers import McHttpTestCase, mc_env
@@ -297,3 +301,78 @@ class FleetPidGuardTests(McHttpTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SpawnLogTests(unittest.TestCase):
+    setUp = SupervisorPidTests.setUp
+    make_supervisor = SupervisorPidTests.make_supervisor
+    spawn_config = SupervisorPidTests.spawn_config
+
+    def _capture(self, supervisor: Supervisor, record: object, lines: list[str]) -> None:
+        process = _FakeProcess(pid=5151)
+        process.stdout = io.StringIO("".join(lines))
+        supervisor._capture_output(record, process)  # type: ignore[arg-type]
+
+    def _wait_for(self, path: Path, needle: str) -> str:
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if path.is_file():
+                text = path.read_text(encoding="utf-8")
+                if needle in text:
+                    return text
+            time.sleep(0.01)
+        self.fail(f"{needle!r} never appeared in {path}")
+
+    def test_child_output_is_persisted_beside_worldstate(self) -> None:
+        supervisor = self.make_supervisor(spawn=lambda *args, **kwargs: _FakeProcess())
+        record = self.registry.register_spawned(
+            name="pidtest",
+            endpoint="https://127.0.0.1:5099",
+            instance_dir=str(self.root / "instance"),
+            process_handle=None,
+            base_path="/pidtest",
+            spawn_config=self.spawn_config(),
+        )
+        log_path = self.root / "spawn.log"
+        self._capture(supervisor, record, ["first\n", "ContentError: boom\n"])
+        text = self._wait_for(log_path, "ContentError: boom")
+        self._capture(supervisor, record, ["second run\n"])
+        text = self._wait_for(log_path, "second run")
+        self.assertEqual(text.count(" spawn pid=5151 ====="), 2)
+        self.assertIn("first\n", text)
+        self.assertEqual(read_spawn_log_tail(record.spawn_config, 1), ["second run"])
+
+    def test_oversized_spawn_log_rotates_once(self) -> None:
+        supervisor = self.make_supervisor(spawn=lambda *args, **kwargs: _FakeProcess())
+        record = self.registry.register_spawned(
+            name="pidtest",
+            endpoint="https://127.0.0.1:5099",
+            instance_dir=str(self.root / "instance"),
+            process_handle=None,
+            base_path="/pidtest",
+            spawn_config=self.spawn_config(),
+        )
+        log_path = self.root / "spawn.log"
+        log_path.write_text("x" * (SPAWN_LOG_MAX_BYTES + 1), encoding="utf-8")
+        self._capture(supervisor, record, ["fresh\n"])
+        text = self._wait_for(log_path, "fresh")
+        self.assertNotIn("xxx", text)
+        self.assertEqual((self.root / "spawn.log.1").stat().st_size, SPAWN_LOG_MAX_BYTES + 1)
+
+    def test_unwritable_spawn_log_does_not_break_capture(self) -> None:
+        supervisor = self.make_supervisor(spawn=lambda *args, **kwargs: _FakeProcess())
+        blocker = self.root / "blocked"
+        blocker.write_text("file, not a directory", encoding="utf-8")
+        record = self.registry.register_spawned(
+            name="pidtest",
+            endpoint="https://127.0.0.1:5099",
+            instance_dir=str(self.root / "instance"),
+            process_handle=None,
+            base_path="/pidtest",
+            spawn_config=self.spawn_config(worldstate_path=str(blocker / "worldstate.sqlite3")),
+        )
+        self._capture(supervisor, record, ["still captured\n"])
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not self.registry.logs(record.instance_id):
+            time.sleep(0.01)
+        self.assertEqual(self.registry.logs(record.instance_id), ["still captured"])

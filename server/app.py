@@ -103,6 +103,7 @@ from server.services.inventory import InventoryService
 from server.services.lighting import LightingService
 from server.services.memories import MemoryService
 from server.services.ownership import OwnershipService
+from server.services.peep_collection import PeepCollectionService
 from server.services.phone_messages import PhoneMessageService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
@@ -206,6 +207,7 @@ class RuntimeState:
     friends: FriendsService
     guest_invites: GuestInviteService
     phone_messages: PhoneMessageService
+    peep_collection: PeepCollectionService
     chiptune_stars: ChiptuneStarService
     shop: ShopService
     prop_shop: PropShopService
@@ -592,6 +594,14 @@ def _build_runtime(
     )
     friends = FriendsService(hub, profiles, is_online=connections.is_online, vibes=vibes)
     phone_messages = PhoneMessageService(hub, profiles)
+    peep_collection = PeepCollectionService(
+        hub=hub,
+        profiles=profiles,
+        progression=progression,
+        world=world,
+        stickers_root=config.custom_stickers_path,
+        vibes=vibes,
+    )
     chiptune_stars = ChiptuneStarService(profiles)
     cross_world = CrossWorldService(
         config=config,
@@ -719,6 +729,7 @@ def _build_runtime(
         friends=friends,
         guest_invites=guest_invites,
         phone_messages=phone_messages,
+        peep_collection=peep_collection,
         chiptune_stars=chiptune_stars,
         shop=shop,
         prop_shop=prop_shop,

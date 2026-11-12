@@ -71,6 +71,8 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "packs": [preview.as_dict() for preview in runtime.shop.packs()],
         # Persisted user-profile preference for displaying the action log.
         "show_activity_log": user_profile.show_activity_log,
+        # Five pages of profile-backed chat macros, including player blanks.
+        "macros": list(user_profile.macros),
         # Permanent cross-world travel unlocked by using the Multiverse Map.
         "multiverse_access": user_profile.multiverse_access,
         # This payload's loaded world; remembered_room is nullable saved navigation
@@ -92,6 +94,8 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "activity": runtime.activities.serialize(activity),
         "tasks": runtime.tasks.view_payload(account.id),
         "journal": runtime.memories.journal_payload(account.id),
+        # Cross-world sticker collection of non-player peeps this player has met.
+        "peep_collection": runtime.peep_collection.collection_payload(account.id),
         "powers": sorted(runtime.powers.effective(account)),
         "titles": titles,
     }

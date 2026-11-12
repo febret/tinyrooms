@@ -177,6 +177,9 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-journal-month]").forEach(button => {
     button.onclick = () => onAction({ type: "journal-month", delta: Number(button.dataset.journalMonth) });
   });
+  root.querySelectorAll("[data-peep-sticker]").forEach(button => {
+    button.onclick = () => onAction({ type: "journal-sticker", key: button.dataset.peepSticker });
+  });
   root.querySelectorAll("[data-task-id]").forEach(button => {
     button.onclick = () => onSelect({ kind: "task", id: button.dataset.taskId });
   });
@@ -494,7 +497,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
     const animateToolbar = root === coreRoot && toolbarReady;
     const previousToolbar = animateToolbar ? captureToolbarButtons(root) : null;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "idFlip", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "compactMode", "titlesToggle", "titleSlot", "titleCrewInput", "titleCrewSave", "phoneMessageInput"]
+    const identity = active && ["skillSlot", "journalTab", "peepSticker", "inventoryTab", "idFlip", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "compactMode", "titlesToggle", "titleSlot", "titleCrewInput", "titleCrewSave", "phoneMessageInput"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const friendAction = active?.dataset.friendAction;

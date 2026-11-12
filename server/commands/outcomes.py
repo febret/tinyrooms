@@ -44,6 +44,7 @@ from server.state.world_state import WorldStateRepository
 if TYPE_CHECKING:
     from server.services.cross_world import CrossWorldService
     from server.services.dynamic_cards import DynamicCardDrops
+    from server.services.peep_collection import PeepCollectionService
 
 
 class CommandError(ValueError):
@@ -117,6 +118,7 @@ class CommandContext:
     cross_world: CrossWorldService
     reload_world: Callable[[], Awaitable[None]] | None = None
     card_drops: DynamicCardDrops | None = None
+    peep_collection: PeepCollectionService | None = None
 
 
 def apply_behavior_inventory(
