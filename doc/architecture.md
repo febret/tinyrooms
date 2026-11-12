@@ -270,8 +270,10 @@ shortcuts, but it must not infer action authority from presentation.
   initialization/seeding. TinyTown houses, gallery rooms, and classrooms receive
   free grid positions when their world uses a room grid.
 - **Vibes:** [vibes.py](../server/services/vibes.py) owns directed -100..100
-  scores between peeps. Player-sourced rows live in the profile DB and
-  NPC-sourced rows in the world DB. Occupied rooms apply the minute-based
+  scores between peeps. Every pair involving a player is global: it lives in
+  the profile DB with `world_id = ''`, NPC endpoints as `<world>:<peep>` ids,
+  so it is readable from any world. NPC-to-NPC rows stay world-scoped in the
+  world DB. Callers use local ids; the service maps them to global ids. Occupied rooms apply the minute-based
   stinky/charisma rules through `RoomTicker` hooks; classroom lesson and
   cafeteria rules live in the classrooms mod.
 - **Restart:** room cards, inventory, and remembered room persist; chat does not.
@@ -319,10 +321,17 @@ Autoplay requires one user gesture.
 Shared peeps ([peep_collection.py](../server/services/peep_collection.py)) form the
 journal's **Stickers** tab. The first `.look`, `.talk`, or `.act` targeting a
 non-player peep writes an `encountered_peeps` row in the shared profile database
-(key `<world>:<peep>`), snapshotting label, description, traits, and a copy of
-the picture under the custom stickers `peeps/` folder (served at
-`/assets/peep-stickers/<sha256>.<ext>`). Later encounters refresh only the vibe
-and last-met time. Every 10 collected peeps grants 100 Bops + 1 Kudos once,
+(key `<world>:<peep>`), snapshotting label, description, tags, traits, and a copy
+of the picture under the custom stickers `peeps/` folder (served at
+`/assets/peep-stickers/<sha256>.<ext>`). Later encounters refresh tags, label,
+description, and last-met time without events or rewards. Vibes are not stored
+in the row: both directions (`vibe` peep→player, `vibe_toward` player→peep) are
+read live from global vibes keyed by the same `<world>:<peep>` id.
+
+World peeps in `peeps/peeps.yaml` accept optional `tags: [...]`: free-form
+strings normalized to lowercase, stripped, non-empty, and deduped (like prop
+tags). `key:value` tags such as `trait:bookworm` are the convention for attaching
+properties. Tags ride on NPC payloads and sticker entries. Every 10 collected peeps grants 100 Bops + 1 Kudos once,
 idempotent through `reward_ledger` keys `peep-collection:milestone:<n>`. Mod
 peeps (such as TinyTown `ttnpc:` roommates) count the same as authored peeps.
 `PeepCollectionService.companion_profile()` returns a collected peep for reuse in

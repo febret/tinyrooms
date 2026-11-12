@@ -52,14 +52,29 @@ class VibesManager:
         self._registry = registry
         self._audit = audit
 
-    def _source_is_account(self, source_peep_id: str) -> bool:
-        """Return whether a source id belongs to a player account."""
+    def _is_account(self, peep_id: str) -> bool:
+        """Return whether a peep id belongs to a player account."""
 
         with self._hub.locked() as connection:
             row = connection.execute(
-                "SELECT id FROM accounts WHERE id = ?", (source_peep_id,)
+                "SELECT id FROM accounts WHERE id = ?", (peep_id,)
             ).fetchone()
         return row is not None
+
+    def _validate_scope(self, store: str, world: str, source: str, target: str) -> None:
+        """Player pairs are global profile rows; NPC pairs are world-scoped world rows."""
+
+        involves_player = self._is_account(source) or self._is_account(target)
+        if store == PROFILE_STORE:
+            if world:
+                raise ValueError("Profile-store vibes are global; world_id must be empty.")
+            if not involves_player:
+                raise ValueError("Profile-store vibes must involve a player account.")
+        else:
+            if not world:
+                raise ValueError("World-store vibes require a world_id.")
+            if involves_player:
+                raise ValueError("Vibes involving a player belong in the shared profile store.")
 
     def stores(self) -> list[dict[str, object]]:
         """Return every editable vibe store: profile plus spawned world DBs."""
@@ -166,6 +181,7 @@ class VibesManager:
             "store": store,
             "store_label": store_label,
             "world_id": str(row["world_id"]),
+            "world_label": str(row["world_id"]) or "(global)",
             "source_peep_id": str(row["source_peep_id"]),
             "target_peep_id": str(row["target_peep_id"]),
             "value": int(row["value"]),
@@ -186,8 +202,8 @@ class VibesManager:
         world = str(world_id or "").strip()
         source = str(source_peep_id or "").strip()
         target = str(target_peep_id or "").strip()
-        if not world or not source or not target:
-            raise ValueError("world_id, source_peep_id, and target_peep_id are required.")
+        if not source or not target:
+            raise ValueError("source_peep_id and target_peep_id are required.")
         if source == target:
             raise ValueError("A vibe cannot target its own source.")
         try:
@@ -197,11 +213,7 @@ class VibesManager:
         if not -100 <= amount <= 100:
             raise ValueError("'value' must be between -100 and 100.")
         timestamp = utc_now().isoformat()
-        if store == PROFILE_STORE:
-            if not self._source_is_account(source):
-                raise ValueError("Profile-store vibes must come from a player account.")
-        elif self._source_is_account(source):
-            raise ValueError("Account vibes belong in the shared profile store.")
+        self._validate_scope(store, world, source, target)
         statement = """
             INSERT INTO vibes (world_id, source_peep_id, target_peep_id, value, updated_at)
             VALUES (?, ?, ?, ?, ?)
@@ -228,7 +240,7 @@ class VibesManager:
         self._audit.record(
             actor,
             "vibes.edit",
-            target=f"{world}/{source}->{target}",
+            target=f"{world or '(global)'}/{source}->{target}",
             result="ok",
             detail={"store": store, "world_id": world, "value": amount},
         )
@@ -248,13 +260,9 @@ class VibesManager:
         world = str(world_id or "").strip()
         source = str(source_peep_id or "").strip()
         target = str(target_peep_id or "").strip()
-        if not world or not source or not target:
-            raise ValueError("world_id, source_peep_id, and target_peep_id are required.")
-        if store == PROFILE_STORE:
-            if not self._source_is_account(source):
-                raise ValueError("Profile-store vibes must come from a player account.")
-        elif self._source_is_account(source):
-            raise ValueError("Account vibes belong in the shared profile store.")
+        if not source or not target:
+            raise ValueError("source_peep_id and target_peep_id are required.")
+        self._validate_scope(store, world, source, target)
         statement = "DELETE FROM vibes WHERE world_id = ? AND source_peep_id = ? AND target_peep_id = ?"
         params = (world, source, target)
         try:
@@ -279,7 +287,7 @@ class VibesManager:
         self._audit.record(
             actor,
             "vibes.delete",
-            target=f"{world}/{source}->{target}",
+            target=f"{world or '(global)'}/{source}->{target}",
             result="ok",
             detail={"store": store, "world_id": world},
         )

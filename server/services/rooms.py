@@ -667,6 +667,7 @@ class RoomService:
             "room_id": resolved_room_id,
             "image_url": f"/assets/world/{self._world.id}/peeps/{peep.image_name}",
             "quick_actions": quick_actions,
+            "tags": list(peep.tags),
             **sprite_payload,
             **({"vibes": vibes} if vibes else {}),
         }

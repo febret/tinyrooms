@@ -62,3 +62,7 @@ export function publishDraft(draft, confirm = false) {
 export function resetRoom(roomId) {
   return request("POST", "/api/world-editor/reset-room", { room_id: roomId });
 }
+
+export function resetAllRooms() {
+  return request("POST", "/api/world-editor/reset-rooms", {});
+}

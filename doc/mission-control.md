@@ -297,7 +297,8 @@ success/failure; use it to refresh live clients after edits.
 
 [Vibes management](../server/mission_control/vibes.py) lists every row of the
 `vibes` table across the shared profile database and each spawned instance's
-worldstate database (player rows live in the profile DB; NPC rows in world DBs),
+worldstate database (global player-pair rows with an empty `world_id` live in the profile DB;
+NPC-to-NPC rows in world DBs),
 with account display names resolved where a peep id is an account. Operators can
 search, set any `-100..100` score (upserting new pairs), and delete rows; all
 changes are audited. External instances' world DBs are not reachable from MC and

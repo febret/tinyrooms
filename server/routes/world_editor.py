@@ -248,6 +248,34 @@ async def reset_live_room(request: Request, payload: ResetRoomPayload) -> JSONRe
     return JSONResponse(content={"ok": True, "revision": reset.revision})
 
 
+@router.post("/api/world-editor/reset-rooms")
+async def reset_live_rooms(request: Request) -> JSONResponse:
+    """Reset every authored room to its YAML definition and refresh clients."""
+
+    runtime = get_runtime(request)
+    account = require_editor_access(runtime, request, feature="world-editor")
+    session = require_session(runtime, request)
+    enforce_authenticated_post(runtime, request, session)
+    async with runtime.mutation_lock:
+        resets = await run_in_threadpool(
+            runtime.layout.reset_all,
+            account,
+            authorized_override=True,
+        )
+        for reset in resets:
+            runtime.dispensers.clear_room(reset.prop_instance_ids)
+            await broadcast_room_event(runtime, room_id=reset.room_id, event=reset.event())
+    return JSONResponse(
+        content={
+            "ok": True,
+            "rooms": [
+                {"room_id": reset.room_id, "revision": reset.revision}
+                for reset in resets
+            ],
+        }
+    )
+
+
 @router.post("/api/world-editor/publish")
 async def publish_draft(request: Request, payload: PublishPayload) -> JSONResponse:
     """Validate, confirm, publish, and reconcile the running world."""

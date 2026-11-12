@@ -25,9 +25,13 @@ profile and world changes in one application transaction.
 Both databases also carry a same-shaped `vibes` table
 (`world_id, source_peep_id, target_peep_id, value, updated_at`). Rows are
 directed relationship scores clamped to -100..100; 0 is a retained neutral
-score. Rows whose source is a player account live in the profile DB, while rows
-whose source is an NPC live in the world DB. `world_id` keeps NPC targets and
-player pairs scoped when one profile DB serves multiple worlds.
+score. Any pair with a player endpoint is global: it lives in the profile DB
+with `world_id = ''`, player endpoints as account ids and NPC endpoints as
+`<world_id>:<peep_id>` (NPC ids are only unique within a world). NPC-to-NPC
+pairs live in the world DB scoped by `world_id`. Profile migration 17 rewrote
+older world-scoped profile rows; `VibesService` startup idempotently moves any
+world-DB rows with a player endpoint into global profile rows (latest
+`updated_at` wins on conflicts).
 [VibesService](../server/services/vibes.py) owns the periodic stinky/charisma
 rules, pair views, and descriptors; [VibesRepository](../server/state/vibes.py)
 owns the SQL.

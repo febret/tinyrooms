@@ -14,7 +14,7 @@ from server.security import utc_now
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
 from server.state.npc_peep_states import NpcPeepStateRepository
-from server.state.vibes import VibesRepository
+from server.state.vibes import GLOBAL_WORLD_ID, VibesRepository
 
 if TYPE_CHECKING:
     from server.services.dynamic_cards import DynamicCardDrops
@@ -66,6 +66,7 @@ class VibesService:
         self._card_drops = card_drops
         self._options = options
         self._repo = VibesRepository(hub)
+        self._repo.globalize_world_rows()
         self._last_room_update: dict[str, datetime] = {}
 
     @property
@@ -77,26 +78,65 @@ class VibesService:
     def _is_world_peep(self, peep_id: str) -> bool:
         return peep_id in self._world.peeps
 
+    def global_id(self, peep_id: str) -> str:
+        """Return the cross-world id: ``"<world>:<peep>"`` for current-world peeps."""
+
+        if self._is_world_peep(peep_id):
+            return f"{self.world_id}:{peep_id}"
+        return peep_id
+
+    def _local_id(self, global_id: str) -> str:
+        prefix = f"{self.world_id}:"
+        if global_id.startswith(prefix) and self._is_world_peep(global_id[len(prefix):]):
+            return global_id[len(prefix):]
+        return global_id
+
+    def _scope(self, source_peep_id: str, target_peep_id: str) -> str:
+        if self._is_world_peep(source_peep_id) and self._is_world_peep(target_peep_id):
+            return self.world_id
+        return GLOBAL_WORLD_ID
+
+    def _storage_key(self, source_peep_id: str, target_peep_id: str) -> tuple[str, str, str]:
+        scope = self._scope(source_peep_id, target_peep_id)
+        if scope:
+            return scope, source_peep_id, target_peep_id
+        return scope, self.global_id(source_peep_id), self.global_id(target_peep_id)
+
     def get(self, source_peep_id: str, target_peep_id: str) -> int:
         """Return a directed score, defaulting to zero."""
 
         if not source_peep_id or not target_peep_id or source_peep_id == target_peep_id:
             return 0
-        return self._repo.get(
-            self.world_id,
-            source_peep_id,
-            target_peep_id,
-            world_source=self._is_world_peep(source_peep_id),
-        )
+        return self._repo.get(*self._storage_key(source_peep_id, target_peep_id))
+
+    def get_global(self, source_id: str, target_id: str) -> int:
+        """Return a global-row score for already-global ids, defaulting to zero."""
+
+        if not source_id or not target_id or source_id == target_id:
+            return 0
+        return self._repo.get(GLOBAL_WORLD_ID, source_id, target_id)
 
     def outgoing(self, source_peep_id: str) -> dict[str, int]:
-        """Return every target score for one source peep."""
+        """Return every target score for one source peep, keyed by local ids."""
 
-        return self._repo.outgoing(
-            self.world_id,
-            source_peep_id,
-            world_source=self._is_world_peep(source_peep_id),
-        )
+        result: dict[str, int] = {}
+        if self._is_world_peep(source_peep_id):
+            result.update(self._repo.outgoing(self.world_id, source_peep_id))
+        for target, value in self._repo.outgoing(
+            GLOBAL_WORLD_ID, self.global_id(source_peep_id)
+        ).items():
+            result[self._local_id(target)] = value
+        return result
+
+    def _incoming(self, target_peep_id: str) -> dict[str, int]:
+        result: dict[str, int] = {}
+        if self._is_world_peep(target_peep_id):
+            result.update(self._repo.incoming(self.world_id, target_peep_id))
+        for source, value in self._repo.incoming(
+            GLOBAL_WORLD_ID, self.global_id(target_peep_id)
+        ).items():
+            result[self._local_id(source)] = value
+        return result
 
     def pairs_for(self, viewer_id: str, target_ids: Iterable[str]) -> dict[str, dict[str, object]]:
         """Return both directions of the viewer's score for each target."""
@@ -105,13 +145,12 @@ class VibesService:
         if not targets:
             return {}
         toward = self.outgoing(viewer_id)
-        from_world = self._repo.incoming(self.world_id, viewer_id, world_source=True)
-        from_profile = self._repo.incoming(self.world_id, viewer_id, world_source=False)
+        incoming = self._incoming(viewer_id)
         result: dict[str, dict[str, object]] = {}
         for target in targets:
-            outgoing_value = int(toward.get(target, 0))
-            incoming_value = int(from_world.get(target, from_profile.get(target, 0)))
-            result[target] = self.pair_payload(outgoing_value, incoming_value)
+            result[target] = self.pair_payload(
+                int(toward.get(target, 0)), int(incoming.get(target, 0))
+            )
         return result
 
     @staticmethod
@@ -162,11 +201,29 @@ class VibesService:
     ) -> dict[tuple[str, str], int]:
         """Apply grouped deltas inside a caller-owned transaction."""
 
-        entries = [
-            (source, target, int(delta), self._is_world_peep(source))
-            for source, target, delta in deltas
-        ]
-        return self._repo.adjust_many_in_transaction(connection, self.world_id, entries)
+        local_keys: dict[tuple[str, str, str], tuple[str, str]] = {}
+        entries: list[tuple[str, str, str, int]] = []
+        for source, target, delta in deltas:
+            if not source or not target or source == target:
+                continue
+            key = self._storage_key(source, target)
+            local_keys[key] = (source, target)
+            entries.append((*key, int(delta)))
+        updated = self._repo.adjust_many_in_transaction(connection, entries)
+        return {local_keys[key]: value for key, value in updated.items()}
+
+    def adjust_global_many_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        deltas: Iterable[tuple[str, str, int]],
+    ) -> dict[tuple[str, str], int]:
+        """Apply deltas to global rows using already-global ids."""
+
+        updated = self._repo.adjust_many_in_transaction(
+            connection,
+            ((GLOBAL_WORLD_ID, source, target, int(delta)) for source, target, delta in deltas),
+        )
+        return {(source, target): value for (_, source, target), value in updated.items()}
 
     def update_room(
         self,

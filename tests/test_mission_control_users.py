@@ -153,9 +153,9 @@ class VibesEndpointTests(McHttpTestCase):
             headers=self.csrf_headers(),
             json={
                 "store": "profile",
-                "world_id": "tutorial",
+                "world_id": "",
                 "source_peep_id": account.id,
-                "target_peep_id": "barkeep",
+                "target_peep_id": "tutorial:barkeep",
                 "value": 25,
             },
         )
@@ -166,15 +166,30 @@ class VibesEndpointTests(McHttpTestCase):
         row = listed["rows"][0]
         self.assertEqual(row["value"], 25)
         self.assertEqual(row["source_label"], "vibeplayer")
+        self.assertEqual(row["world_id"], "")
+        self.assertEqual(row["world_label"], "(global)")
 
-        updated = self.client.patch(
+        scoped = self.client.patch(
             "/api/mission-control/vibes",
             headers=self.csrf_headers(),
             json={
                 "store": "profile",
                 "world_id": "tutorial",
                 "source_peep_id": account.id,
-                "target_peep_id": "barkeep",
+                "target_peep_id": "tutorial:barkeep",
+                "value": 5,
+            },
+        )
+        self.assertEqual(scoped.status_code, 400)
+
+        updated = self.client.patch(
+            "/api/mission-control/vibes",
+            headers=self.csrf_headers(),
+            json={
+                "store": "profile",
+                "world_id": "",
+                "source_peep_id": account.id,
+                "target_peep_id": "tutorial:barkeep",
                 "value": -50,
             },
         )
@@ -186,9 +201,9 @@ class VibesEndpointTests(McHttpTestCase):
             headers=self.csrf_headers(),
             params={
                 "store": "profile",
-                "world_id": "tutorial",
+                "world_id": "",
                 "source_peep_id": account.id,
-                "target_peep_id": "barkeep",
+                "target_peep_id": "tutorial:barkeep",
             },
         )
         self.assertEqual(deleted.status_code, 200, deleted.text)
@@ -198,9 +213,9 @@ class VibesEndpointTests(McHttpTestCase):
             headers=self.csrf_headers(),
             params={
                 "store": "profile",
-                "world_id": "tutorial",
+                "world_id": "",
                 "source_peep_id": account.id,
-                "target_peep_id": "barkeep",
+                "target_peep_id": "tutorial:barkeep",
             },
         )
         self.assertEqual(missing.status_code, 400)

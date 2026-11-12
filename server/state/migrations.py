@@ -14,6 +14,7 @@ from server.state.encountered_peeps_schema import (
     ENCOUNTERED_PEEPS_FRESH_SQL,
     ENCOUNTERED_PEEPS_INDEXES,
     ENCOUNTERED_PEEPS_MIGRATION,
+    ENCOUNTERED_PEEPS_REBUILD_MIGRATION,
 )
 from server.state.phone_messages_schema import (
     PHONE_MESSAGES_COLUMNS,
@@ -23,7 +24,7 @@ from server.state.phone_messages_schema import (
 )
 
 
-PROFILE_SCHEMA_VERSION = 16
+PROFILE_SCHEMA_VERSION = 18
 WORLD_SCHEMA_VERSION = 20
 
 
@@ -296,6 +297,17 @@ _PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
 _PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
     "PRAGMA user_version = 15;",
     ENCOUNTERED_PEEPS_FRESH_SQL + "\nPRAGMA user_version = 16;",
+)
+# Vibes involving a player are global (world_id = '') with "<world>:<peep>" NPC ids.
+_PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
+    "PRAGMA user_version = 16;",
+    "PRAGMA user_version = 17;",
+)
+# v18 only repairs encountered_peeps rows written by early v16 builds; fresh
+# databases already create the current shape.
+_PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
+    "PRAGMA user_version = 17;",
+    "PRAGMA user_version = 18;",
 )
 
 _WORLD_SCHEMA_SQL = """
@@ -701,6 +713,25 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     COMMIT;
     """,
     16: ENCOUNTERED_PEEPS_MIGRATION,
+    17: """
+    BEGIN;
+    INSERT INTO vibes (world_id, source_peep_id, target_peep_id, value, updated_at)
+        SELECT '',
+            CASE WHEN source_peep_id IN (SELECT id FROM accounts)
+                THEN source_peep_id ELSE world_id || ':' || source_peep_id END,
+            CASE WHEN target_peep_id IN (SELECT id FROM accounts)
+                THEN target_peep_id ELSE world_id || ':' || target_peep_id END,
+            value, updated_at
+        FROM vibes WHERE world_id <> '' ORDER BY updated_at
+    ON CONFLICT(world_id, source_peep_id, target_peep_id) DO UPDATE SET
+        value = excluded.value,
+        updated_at = excluded.updated_at
+        WHERE excluded.updated_at >= vibes.updated_at;
+    DELETE FROM vibes WHERE world_id <> '';
+    PRAGMA user_version = 17;
+    COMMIT;
+    """,
+    18: ENCOUNTERED_PEEPS_REBUILD_MIGRATION,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {

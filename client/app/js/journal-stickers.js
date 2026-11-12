@@ -12,6 +12,24 @@ function stickerPicture(peep, extraClass = "") {
     : `<span class="peep-sticker-picture peep-sticker-placeholder ${extraClass}" aria-hidden="true">✦</span>`;
 }
 
+function vibeText(label, value) {
+  return label ? `${label} (${value})` : String(value);
+}
+
+export function stickerTagsMarkup(tags) {
+  if (!Array.isArray(tags) || !tags.length) return "";
+  const chips = tags.map(tag => {
+    const index = tag.indexOf(":");
+    if (index > 0 && index < tag.length - 1) {
+      const key = tag.slice(0, index);
+      const value = tag.slice(index + 1);
+      return `<li class="peep-sticker-tag" title="${escapeHtml(tag)}"><span class="peep-sticker-tag-key">${escapeHtml(key)}:</span> ${escapeHtml(value)}</li>`;
+    }
+    return `<li class="peep-sticker-tag">${escapeHtml(tag)}</li>`;
+  }).join("");
+  return `<ul class="peep-sticker-tags" aria-label="Tags">${chips}</ul>`;
+}
+
 export function selectedSticker(state) {
   const collection = state.user?.peepCollection;
   const peeps = collection?.peeps || [];
@@ -51,7 +69,8 @@ export function stickerDetailMarkup(state) {
   const facts = [
     ["World", traits.world_label || peep.worldId],
     ["First met", [traits.room_label, metDateLabel(peep.firstMetAt)].filter(Boolean).join(" · ")],
-    ["Vibe", peep.vibeLabel ? `${peep.vibeLabel} (${peep.vibe})` : String(peep.vibe)],
+    ["They feel", vibeText(peep.vibeLabel, peep.vibe || 0)],
+    ["You feel", vibeText(peep.vibeTowardLabel, peep.vibeToward || 0)],
     ["Activity", traits.activity || ""],
     ["Actions", Array.isArray(traits.actions) ? traits.actions.join(", ") : ""],
   ].filter(([, value]) => value);
@@ -59,6 +78,7 @@ export function stickerDetailMarkup(state) {
     ${stickerPicture(peep, "large")}
     <h3>${escapeHtml(peep.label)}</h3>
     ${peep.description ? `<p class="peep-sticker-description">${escapeHtml(peep.description)}</p>` : ""}
+    ${stickerTagsMarkup(peep.tags)}
     <dl class="peep-sticker-facts">${facts.map(([name, value]) => `<div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>
   </article>`;
 }

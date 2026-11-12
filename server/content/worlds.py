@@ -204,6 +204,25 @@ class PeepDefinition:
     actions: tuple[QuickAction, ...]
     dialog: DialogDefinition | None
     activity: str | None
+    # Free-form lowercase tags; ``key:value`` tags (e.g. ``trait:bookworm``) attach properties.
+    tags: tuple[str, ...] = ()
+
+
+def load_peep_tags(raw_tags: object, peep_id: str) -> tuple[str, ...]:
+    """Normalize authored peep tags: lowercase, stripped, non-empty, deduped."""
+
+    if raw_tags is None:
+        return ()
+    if not isinstance(raw_tags, list):
+        raise ContentError(f"Peep '{peep_id}' tags must be a list.")
+    tags: list[str] = []
+    for raw_tag in raw_tags:
+        tag = str(raw_tag).strip().lower()
+        if not tag:
+            raise ContentError(f"Peep '{peep_id}' has an empty tag.")
+        if tag not in tags:
+            tags.append(tag)
+    return tuple(tags)
 
 
 @dataclass(frozen=True, slots=True)
@@ -977,6 +996,7 @@ def load_world_definition(
             actions=_load_actions(raw_peep.get("actions")),
             dialog=_load_dialog(raw_peep.get("dialog"), peep_id, card_ids, known_sounds=known_sounds),
             activity=str(raw_peep["activity"]).strip() if raw_peep.get("activity") else None,
+            tags=load_peep_tags(raw_peep.get("tags"), peep_id),
         )
 
     world_activities = load_activity_definitions(

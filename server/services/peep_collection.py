@@ -2,14 +2,14 @@
 
 Encounters live in the shared profile database so the collection follows the
 player into every world. Each row snapshots the peep's label, description, and
-picture so other activities (for example mod companions) can reuse the peep
+picture (and refreshes its tags) so other activities (for example mod companions) can reuse the peep
 even when its home world is not loaded. Every ``MILESTONE_SIZE`` new peeps pays
 a milestone reward exactly once through the reward ledger.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import hashlib
 import json
 import logging
@@ -57,11 +57,13 @@ class SharedPeep:
     label: str
     description: str
     image_name: str
-    vibe: int
+    tags: tuple[str, ...]
     traits: dict[str, object]
     first_room_id: str
     first_met_at: str
     last_met_at: str
+    vibe: int = 0
+    vibe_toward: int = 0
 
     @property
     def image_url(self) -> str:
@@ -81,6 +83,9 @@ class SharedPeep:
             "image_url": self.image_url,
             "vibe": self.vibe,
             "vibe_label": describe_vibe(self.vibe),
+            "vibe_toward": self.vibe_toward,
+            "vibe_toward_label": describe_vibe(self.vibe_toward),
+            "tags": list(self.tags),
             "traits": dict(self.traits),
             "first_room_id": self.first_room_id,
             "first_met_at": self.first_met_at,
@@ -103,6 +108,10 @@ def _row_to_peep(row: sqlite3.Row) -> SharedPeep:
         traits = json.loads(row["traits_json"] or "{}")
     except json.JSONDecodeError:
         traits = {}
+    try:
+        tags = json.loads(row["tags_json"] or "[]")
+    except json.JSONDecodeError:
+        tags = []
     return SharedPeep(
         peep_key=row["peep_key"],
         world_id=row["world_id"],
@@ -110,7 +119,7 @@ def _row_to_peep(row: sqlite3.Row) -> SharedPeep:
         label=row["label"],
         description=row["description"],
         image_name=row["image_name"],
-        vibe=int(row["vibe"]),
+        tags=tuple(str(tag) for tag in tags) if isinstance(tags, list) else (),
         traits=traits if isinstance(traits, dict) else {},
         first_room_id=row["first_room_id"],
         first_met_at=row["first_met_at"],
@@ -164,15 +173,19 @@ class PeepCollectionService:
     ) -> EncounterResult:
         """Record that *account_id* met world peep *peep_id*.
 
-        Repeat encounters only refresh the vibe snapshot and last-met time. A
-        new encounter may cross one or more milestones; each pays once.
+        Repeat encounters refresh tags, label, description, and last-met time
+        without events or rewards. A new encounter may cross one or more
+        milestones; each pays once.
         """
 
         definition = self._world.peeps.get(peep_id)
         if definition is None or not account_id:
             return EncounterResult()
         key = peep_key(self._world.id, peep_id)
-        vibe = self._current_vibe(peep_id, account_id)
+        serialized = payload or {}
+        label = str(serialized.get("label") or definition.label)
+        description = str(serialized.get("description") or definition.description or "")
+        tags_json = json.dumps(list(definition.tags))
         now = utc_now().isoformat()
         with self._hub.transaction() as connection:
             existing = connection.execute(
@@ -181,19 +194,21 @@ class PeepCollectionService:
             ).fetchone()
             if existing is not None:
                 connection.execute(
-                    "UPDATE encountered_peeps SET vibe = ?, last_met_at = ? WHERE account_id = ? AND peep_key = ?",
-                    (vibe, now, account_id, key),
+                    "UPDATE encountered_peeps SET label = ?, description = ?, tags_json = ?, last_met_at = ?"
+                    " WHERE account_id = ? AND peep_key = ?",
+                    (label, description, tags_json, now, account_id, key),
                 )
-                return EncounterResult(new=False, peep=_row_to_peep(existing))
-            serialized = payload or {}
-            label = str(serialized.get("label") or definition.label)
-            description = str(serialized.get("description") or definition.description or "")
+                row = connection.execute(
+                    "SELECT * FROM encountered_peeps WHERE account_id = ? AND peep_key = ?",
+                    (account_id, key),
+                ).fetchone()
+                return EncounterResult(new=False, peep=self._with_vibes(account_id, _row_to_peep(row)))
             image_name = self._copy_image(definition)
             traits = self._traits(definition, room_id, serialized)
             connection.execute(
                 "INSERT INTO encountered_peeps (account_id, peep_key, world_id, peep_id, label, description,"
-                " image_name, vibe, traits_json, counts_toward_rewards, first_room_id, first_met_at, last_met_at)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)",
+                " image_name, tags_json, traits_json, first_room_id, first_met_at, last_met_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     account_id,
                     key,
@@ -202,7 +217,7 @@ class PeepCollectionService:
                     label,
                     description,
                     image_name,
-                    vibe,
+                    tags_json,
                     json.dumps(traits),
                     room_id,
                     now,
@@ -214,7 +229,7 @@ class PeepCollectionService:
                 "SELECT * FROM encountered_peeps WHERE account_id = ? AND peep_key = ?",
                 (account_id, key),
             ).fetchone()
-        peep = _row_to_peep(row)
+        peep = self._with_vibes(account_id, _row_to_peep(row))
         result = EncounterResult(new=True, peep=peep, milestones=milestones)
         result.events.append(
             {"type": "toast", "tone": "success", "text": f"New sticker: you met {peep.label}!"}
@@ -240,7 +255,7 @@ class PeepCollectionService:
                 "SELECT * FROM encountered_peeps WHERE account_id = ? ORDER BY first_met_at, peep_key",
                 (account_id,),
             ).fetchall()
-        return [_row_to_peep(row) for row in rows]
+        return [self._with_vibes(account_id, _row_to_peep(row)) for row in rows]
 
     def companion_profile(self, account_id: str, key: str) -> SharedPeep | None:
         """Return one collected peep for reuse in side activities, or None if unmet."""
@@ -250,7 +265,7 @@ class PeepCollectionService:
                 "SELECT * FROM encountered_peeps WHERE account_id = ? AND peep_key = ?",
                 (account_id, key),
             ).fetchone()
-        return _row_to_peep(row) if row is not None else None
+        return self._with_vibes(account_id, _row_to_peep(row)) if row is not None else None
 
     def collection_payload(self, account_id: str) -> dict[str, object]:
         """Serialize the sticker collection and milestone progress."""
@@ -266,7 +281,7 @@ class PeepCollectionService:
 
     def _pay_milestones(self, connection: sqlite3.Connection, account_id: str) -> list[int]:
         row = connection.execute(
-            "SELECT COUNT(*) AS total FROM encountered_peeps WHERE account_id = ? AND counts_toward_rewards = 1",
+            "SELECT COUNT(*) AS total FROM encountered_peeps WHERE account_id = ?",
             (account_id,),
         ).fetchone()
         reached = int(row["total"]) // MILESTONE_SIZE
@@ -283,14 +298,21 @@ class PeepCollectionService:
                 paid.append(milestone)
         return paid
 
-    def _current_vibe(self, peep_id: str, account_id: str) -> int:
-        getter = getattr(self._vibes, "get", None)
+    def _with_vibes(self, account_id: str, peep: SharedPeep) -> SharedPeep:
+        return replace(
+            peep,
+            vibe=self._global_vibe(peep.peep_key, account_id),
+            vibe_toward=self._global_vibe(account_id, peep.peep_key),
+        )
+
+    def _global_vibe(self, source_id: str, target_id: str) -> int:
+        getter = getattr(self._vibes, "get_global", None)
         if not callable(getter):
             return 0
         try:
-            return int(getter(peep_id, account_id))
+            return int(getter(source_id, target_id))
         except Exception:  # noqa: BLE001 - a missing vibe never blocks collection
-            LOGGER.warning("peep_collection.vibe_failed peep_id=%s", peep_id)
+            LOGGER.warning("peep_collection.vibe_failed source=%s target=%s", source_id, target_id)
             return 0
 
     def _traits(

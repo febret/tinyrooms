@@ -11,9 +11,8 @@ ENCOUNTERED_PEEPS_COLUMNS = (
     "label",
     "description",
     "image_name",
-    "vibe",
+    "tags_json",
     "traits_json",
-    "counts_toward_rewards",
     "first_room_id",
     "first_met_at",
     "last_met_at",
@@ -28,14 +27,13 @@ CREATE TABLE IF NOT EXISTS encountered_peeps (
     peep_id TEXT NOT NULL,
     -- Label, description, and picture are snapshotted at first encounter so the
     -- sticker survives world edits. image_name lives under custom stickers/peeps.
+    -- Vibes are not stored here; they are read live from the global vibes table.
     label TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     image_name TEXT NOT NULL DEFAULT '',
-    -- Latest observed peep-to-player vibe, refreshed on each encounter.
-    vibe INTEGER NOT NULL DEFAULT 0,
+    -- Peep tags (e.g. trait:<id>), refreshed on every encounter.
+    tags_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(tags_json)),
     traits_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(traits_json)),
-    -- Mod-generated peeps are collected but do not advance reward milestones.
-    counts_toward_rewards INTEGER NOT NULL DEFAULT 1 CHECK (counts_toward_rewards IN (0, 1)),
     first_room_id TEXT NOT NULL DEFAULT '',
     first_met_at TEXT NOT NULL,
     last_met_at TEXT NOT NULL,
@@ -53,4 +51,25 @@ ENCOUNTERED_PEEPS_INDEXES = (
 
 ENCOUNTERED_PEEPS_MIGRATION = (
     "BEGIN;\n" + _TABLE_SQL + "PRAGMA user_version = 16;\nCOMMIT;\n"
+)
+
+# Early v16 builds created encountered_peeps with vibe/counts_toward_rewards and
+# no tags_json. Rebuild unconditionally from the columns both shapes share; tags
+# start empty and refresh on the next encounter.
+_SHARED_COLUMNS = (
+    "account_id, peep_key, world_id, peep_id, label, description, image_name,"
+    " traits_json, first_room_id, first_met_at, last_met_at"
+)
+
+ENCOUNTERED_PEEPS_REBUILD_MIGRATION = (
+    "BEGIN;\n"
+    "ALTER TABLE encountered_peeps RENAME TO encountered_peeps_legacy;\n"
+    "DROP INDEX IF EXISTS idx_encountered_peeps_owner;\n"
+    + _TABLE_SQL
+    + f"INSERT INTO encountered_peeps ({_SHARED_COLUMNS})\n"
+    f"    SELECT {_SHARED_COLUMNS} FROM encountered_peeps_legacy\n"
+    "    WHERE account_id IN (SELECT id FROM accounts);\n"
+    "DROP TABLE encountered_peeps_legacy;\n"
+    "PRAGMA user_version = 18;\n"
+    "COMMIT;\n"
 )

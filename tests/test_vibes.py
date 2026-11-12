@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
+from pathlib import Path
+from types import SimpleNamespace
 import unittest
 
 from server.behaviors.context import BehaviorContext
@@ -14,6 +16,7 @@ from server.services.friends import FriendsService
 from server.services.stats import StatsService
 from server.services.vibes import VibesService, describe_vibe
 from server.state.npc_peep_states import NpcPeepStateRepository
+from server.state.migrations import PROFILE_SCHEMA_VERSION, ensure_profile_database
 from server.state.vibes import VIBE_MAX, VIBE_MIN
 from tests.common import REPO_ROOT, WORLD_ID, RuntimeTestCase, ServiceTestCase, load_test_world
 
@@ -34,24 +37,101 @@ class VibesServiceTests(ServiceTestCase):
             peep_states=self.peep_states,
         )
 
-    def test_tables_store_player_and_world_sources_separately(self) -> None:
+    def _rows(self, table: str) -> list[tuple[str, str, str, int]]:
+        with self.hub.locked() as connection:
+            rows = connection.execute(
+                f"SELECT world_id, source_peep_id, target_peep_id, value FROM {table} "
+                "ORDER BY world_id, source_peep_id, target_peep_id"
+            ).fetchall()
+        return [tuple(row) for row in rows]
+
+    def test_player_pairs_are_global_and_npc_pairs_stay_in_world(self) -> None:
         account = self.create_account("vibe-source")
+        other = self.create_account("vibe-other")
+        self.world.peeps.setdefault("ghost", self.world.peeps["caretaker"])
+        self.addCleanup(self.world.peeps.pop, "ghost", None)
         self.vibes.adjust(account.id, "caretaker", 7)
         self.vibes.adjust("caretaker", account.id, -3)
+        self.vibes.adjust(account.id, other.id, 5)
+        self.vibes.adjust("caretaker", "ghost", 9)
 
         self.assertEqual(self.vibes.get(account.id, "caretaker"), 7)
         self.assertEqual(self.vibes.get("caretaker", account.id), -3)
-        with self.hub.locked() as connection:
-            player_row = connection.execute(
-                "SELECT value FROM main.vibes WHERE source_peep_id = ? AND target_peep_id = ?",
-                (account.id, "caretaker"),
-            ).fetchone()
-            world_row = connection.execute(
-                "SELECT value FROM world.vibes WHERE source_peep_id = ? AND target_peep_id = ?",
-                ("caretaker", account.id),
-            ).fetchone()
-        self.assertEqual(int(player_row["value"]), 7)
-        self.assertEqual(int(world_row["value"]), -3)
+        self.assertEqual(self.vibes.get(account.id, other.id), 5)
+        self.assertEqual(self.vibes.get("caretaker", "ghost"), 9)
+        self.assertEqual(
+            sorted(self._rows("main.vibes")),
+            sorted([
+                ("", account.id, other.id, 5),
+                ("", account.id, "tutorial:caretaker", 7),
+                ("", "tutorial:caretaker", account.id, -3),
+            ]),
+        )
+        self.assertEqual(self._rows("world.vibes"), [("tutorial", "caretaker", "ghost", 9)])
+
+    def test_global_id_and_local_mapping(self) -> None:
+        account = self.create_account("vibe-map")
+        self.assertEqual(self.vibes.global_id("caretaker"), "tutorial:caretaker")
+        self.assertEqual(self.vibes.global_id(account.id), account.id)
+        self.vibes.adjust(account.id, "caretaker", 4)
+        with self.hub.transaction() as connection:
+            result = self.vibes.adjust_global_many_in_transaction(
+                connection,
+                [(account.id, "tinytown:ttnpc:abc", 6), ("tinytown:ttnpc:abc", account.id, 150)],
+            )
+        self.assertEqual(
+            result,
+            {(account.id, "tinytown:ttnpc:abc"): 6, ("tinytown:ttnpc:abc", account.id): 100},
+        )
+        self.assertEqual(
+            self.vibes.outgoing(account.id), {"caretaker": 4, "tinytown:ttnpc:abc": 6}
+        )
+        self.assertEqual(self.vibes.outgoing("caretaker"), {})
+        self.assertEqual(self.vibes.get_global(account.id, "tutorial:caretaker"), 4)
+        self.assertEqual(self.vibes.get_global("tinytown:ttnpc:abc", account.id), 100)
+        self.assertEqual(self.vibes.get_global(account.id, "tinytown:nobody"), 0)
+        self.assertEqual(self.vibes.get_global("", account.id), 0)
+        self.assertEqual(self.vibes.get_global(account.id, account.id), 0)
+        pairs = self.vibes.pairs_for(account.id, ["caretaker", "tinytown:ttnpc:abc"])
+        self.assertEqual(pairs["caretaker"]["toward"]["value"], 4)
+        self.assertEqual(pairs["tinytown:ttnpc:abc"]["from"]["value"], 100)
+        self.assertEqual(
+            self.vibes.adjust_many([(account.id, "caretaker", 1), ("caretaker", account.id, 2)]),
+            {(account.id, "caretaker"): 5, ("caretaker", account.id): 2},
+        )
+
+    def test_cross_world_visibility(self) -> None:
+        account = self.create_account("vibe-cross")
+        other_world = SimpleNamespace(id="tinytown", peeps={"ttnpc:abc": object()})
+        town = VibesService(hub=self.hub, world=other_world, stats=self.stats)
+        town.adjust("ttnpc:abc", account.id, 11)
+        self.assertEqual(self.vibes.get_global("tinytown:ttnpc:abc", account.id), 11)
+        self.assertEqual(self.vibes.outgoing(account.id), {})
+        self.vibes.adjust(account.id, "caretaker", 3)
+        self.assertEqual(town.get_global(account.id, "tutorial:caretaker"), 3)
+        self.assertEqual(town.outgoing(account.id), {"tutorial:caretaker": 3})
+        self.assertEqual(
+            town.pairs_for(account.id, ["ttnpc:abc"])["ttnpc:abc"]["from"]["value"], 11
+        )
+
+    def test_world_player_rows_move_to_profile_at_startup(self) -> None:
+        account = self.create_account("vibe-move")
+        with self.hub.transaction() as connection:
+            connection.execute(
+                "INSERT INTO world.vibes VALUES ('tutorial', 'caretaker', ?, -8, '2026-02-01T00:00:00+00:00')",
+                (account.id,),
+            )
+            connection.execute(
+                "INSERT INTO world.vibes VALUES ('tutorial', 'caretaker', 'ghost', 3, '2026-02-01T00:00:00+00:00')"
+            )
+            connection.execute(
+                "INSERT INTO main.vibes VALUES ('', 'tutorial:caretaker', ?, 50, '2026-01-01T00:00:00+00:00')",
+                (account.id,),
+            )
+        VibesService(hub=self.hub, world=self.world, stats=self.stats)
+        VibesService(hub=self.hub, world=self.world, stats=self.stats)
+        self.assertEqual(self._rows("world.vibes"), [("tutorial", "caretaker", "ghost", 3)])
+        self.assertEqual(self._rows("main.vibes"), [("", "tutorial:caretaker", account.id, -8)])
 
     def test_scores_clamp_and_zero_rows_are_kept(self) -> None:
         account = self.create_account("vibe-clamp")
@@ -61,7 +141,7 @@ class VibesServiceTests(ServiceTestCase):
         with self.hub.locked() as connection:
             row = connection.execute(
                 "SELECT value FROM main.vibes WHERE source_peep_id = ? AND target_peep_id = ?",
-                (account.id, "caretaker"),
+                (account.id, "tutorial:caretaker"),
             ).fetchone()
         self.assertIsNotNone(row)
         self.assertEqual(int(row["value"]), 0)

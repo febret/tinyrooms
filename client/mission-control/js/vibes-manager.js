@@ -80,7 +80,7 @@ export function createVibesManager(container, ctx) {
     });
     return el("tr", {}, [
       el("td", { text: row.store_label }),
-      el("td", { text: row.world_id }),
+      el("td", { text: row.world_label || row.world_id || "(global)" }),
       peerCell(row.source_label, row.source_peep_id),
       peerCell(row.target_label, row.target_peep_id),
       el("td", {}, valueInput),

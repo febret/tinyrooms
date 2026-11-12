@@ -13,6 +13,7 @@ from server.commands.core import dispatch_command
 from server.commands.parser import parse_command
 from server.connections import SyntheticConnection
 from server.content.worlds import PeepDefinition
+from server.profiles import ProfileRepository
 from server.serialization import serialize_account
 from server.services.peep_collection import (
     MILESTONE_BOPS,
@@ -23,7 +24,7 @@ from server.services.peep_collection import (
 from server.services.progression import ProgressionService
 from server.services.stats import StatsService
 from server.state.encountered_peeps_schema import ENCOUNTERED_PEEPS_COLUMNS
-from server.state.migrations import PROFILE_SCHEMA_VERSION, ensure_profile_database
+from server.state.migrations import PROFILE_SCHEMA_VERSION, DatabaseHub, ensure_profile_database
 
 from tests.common import WORLD_ID, IntegrationTestCase, ServiceTestCase
 
@@ -32,11 +33,11 @@ class FakeVibes:
     def __init__(self) -> None:
         self.values: dict[tuple[str, str], int] = {}
 
-    def get(self, source: str, target: str) -> int:
+    def get_global(self, source: str, target: str) -> int:
         return self.values.get((source, target), 0)
 
 
-def _world(world_id: str, image_path: Path, count: int) -> SimpleNamespace:
+def _world(world_id: str, image_path: Path, count: int, tags: tuple[str, ...] = ()) -> SimpleNamespace:
     peeps = {
         f"peep{index}": PeepDefinition(
             id=f"peep{index}",
@@ -49,6 +50,7 @@ def _world(world_id: str, image_path: Path, count: int) -> SimpleNamespace:
             actions=(),
             dialog=None,
             activity=None,
+            tags=tags,
         )
         for index in range(count)
     }
@@ -72,12 +74,12 @@ class PeepCollectionTests(ServiceTestCase):
         self.vibes = FakeVibes()
         self.account = self.create_account("collector")
 
-    def service(self, world_id: str = WORLD_ID, count: int = 25) -> PeepCollectionService:
+    def service(self, world_id: str = WORLD_ID, count: int = 25, tags: tuple[str, ...] = ()) -> PeepCollectionService:
         return PeepCollectionService(
             hub=self.hub,
             profiles=self.profiles,
             progression=self.progression,
-            world=_world(world_id, self.image, count),
+            world=_world(world_id, self.image, count, tags),
             stickers_root=self.stickers_root,
             vibes=self.vibes,
         )
@@ -95,14 +97,13 @@ class PeepCollectionTests(ServiceTestCase):
         self.assertTrue(peep.image_url.startswith("/assets/peep-stickers/"))
         self.assertTrue(any("Peep 0" in str(event.get("text")) for event in result.events))
 
-    def test_repeat_encounter_is_not_new_and_refreshes_vibe(self) -> None:
+    def test_repeat_encounter_is_not_new(self) -> None:
         service = self.service()
         service.record_encounter(self.account.id, "peep0", room_id="hub")
-        self.vibes.values[("peep0", self.account.id)] = 42
         again = service.record_encounter(self.account.id, "peep0", room_id="hub")
         self.assertFalse(again.new)
         self.assertEqual(again.events, [])
-        self.assertEqual(service.companion_profile(self.account.id, peep_key(WORLD_ID, "peep0")).vibe, 42)
+        self.assertEqual(again.milestones, [])
         self.assertEqual(service.collection_payload(self.account.id)["count"], 1)
 
     def test_unknown_peep_is_ignored(self) -> None:

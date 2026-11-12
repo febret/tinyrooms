@@ -148,3 +148,6 @@
 .peep-sticker-facts div { display: grid; grid-template-columns: 80px 1fr; gap: 6px; }
 .peep-sticker-facts dt { font-weight: 700; color: var(--journal-accent); }
 .peep-sticker-facts dd { margin: 0; }
+.peep-sticker-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.peep-sticker-tag { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--journal-accent) 15%, transparent); font-size: 11px; }
+.peep-sticker-tag-key { font-weight: 700; color: var(--journal-accent); }

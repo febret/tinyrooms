@@ -115,7 +115,7 @@ class EditVibePayload(BaseModel):
     """Upsert payload for one directed vibe score."""
 
     store: str
-    world_id: str
+    world_id: str = ""
     source_peep_id: str
     target_peep_id: str
     value: int
@@ -1187,9 +1187,9 @@ async def edit_vibe(request: Request, payload: EditVibePayload) -> dict[str, obj
 async def delete_vibe(
     request: Request,
     store: str,
-    world_id: str,
     source_peep_id: str,
     target_peep_id: str,
+    world_id: str = "",
 ) -> dict[str, object]:
     """Delete one directed vibe score."""
 

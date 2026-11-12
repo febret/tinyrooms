@@ -388,6 +388,12 @@ def _check_peeps(issues: list[DraftIssue], peeps: Any, room_ids: frozenset[str])
             _issue(issues, f"{base}.room", "Peep room is required.")
         elif room_ids and room not in room_ids:
             _issue(issues, f"{base}.room", f"Unknown room '{room}'.")
+        tags = peep.get("tags")
+        if tags is not None:
+            if not isinstance(tags, list):
+                _issue(issues, f"{base}.tags", "Peep tags must be a list.")
+            elif any(not str(tag).strip() for tag in tags):
+                _issue(issues, f"{base}.tags", "Peep tags must be non-empty.")
         dialog = peep.get("dialog")
         if dialog is not None:
             _check_dialog(issues, dialog, f"{base}.dialog")

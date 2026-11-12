@@ -569,6 +569,23 @@ class RoomLayoutService:
             prop_instance_ids=tuple(room.props.keys()),
         )
 
+    def reset_all(
+        self,
+        account: AccountRecord,
+        *,
+        authorized_override: bool = False,
+    ) -> tuple[RoomReset, ...]:
+        """Restore every authored, non-template room to its definition."""
+
+        resets: list[RoomReset] = []
+        for room_id, room in self._world.rooms.items():
+            if room.template:
+                continue
+            resets.append(
+                self.reset(account, room_id, authorized_override=authorized_override)
+            )
+        return tuple(resets)
+
     def _read(self, connection, room_id: str) -> tuple[dict[str, object], int]:
         return self._world_state.read_room_environment_in_transaction(connection, room_id)
 

@@ -3,6 +3,7 @@ import {
   loadDraft,
   loadSession,
   publishDraft,
+  resetAllRooms,
   resetRoom,
   saveDraft,
   validateDraft,
@@ -185,6 +186,21 @@ async function runResetRoom() {
   }
 }
 
+async function runResetAllRooms() {
+  const confirmed = window.confirm(
+    "Reset all rooms to their published YAML definitions? This clears live cards, containers, prop layouts, and environment changes in every room.",
+  );
+  if (!confirmed) return;
+  store.status("Resetting all rooms…");
+  try {
+    const body = await resetAllRooms();
+    const count = body.rooms?.length || 0;
+    store.status(`Reset ${count} room${count === 1 ? "" : "s"} to their definitions.`);
+  } catch (error) {
+    store.status("", error.message);
+  }
+}
+
 const editorDock = createEditorDock({
   root: elements.editorDock,
   authoring: true,
@@ -321,6 +337,7 @@ function renderToolbar(state) {
       <button type="button" class="quiet" data-action="redo"${state.redo.length ? "" : " disabled"}>Redo</button>
       <button type="button" class="quiet" data-action="preview">${previewing ? "Stop preview" : "Preview"}</button>
       <button type="button" class="quiet" data-action="validate">Validate</button>
+      <button type="button" class="negative" data-action="reset-rooms">Reset all rooms</button>
       <button type="button" class="primary" data-action="save">Save Draft</button>
       <button type="button" class="cancel" data-action="discard">Discard</button>
       <button type="button" class="positive" data-action="publish"${roomId ? "" : " disabled"}>Publish</button>
@@ -799,6 +816,7 @@ async function handleAction(action) {
     return render();
   }
   if (action === "validate") return runValidate();
+  if (action === "reset-rooms") return runResetAllRooms();
   if (action === "save") return runSave();
   if (action === "discard") return runDiscard();
   if (action === "publish") return runPublish();
