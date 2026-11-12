@@ -24,6 +24,7 @@ import {
   COMMANDS,
   buildEmoteCommand,
   buildFriendCommand,
+  buildMacroCommand,
   buildPhoneMessagesCommand,
   buildQuantityCommand,
   buildSkillCommand,
@@ -54,6 +55,8 @@ import { actionLogMarkup, actionsBarMarkup, syncPhoneFriendSelection as syncPhon
 import { mergeStack as mergeStackAction, openPack as openPackAction, openStickerSwap as openStickerSwapAction, showPackReveal as showPackRevealView } from "./ui-inventory.js";
 import { createTargetingController } from "./targeting.js";
 import { createMultiverseView } from "./views/multiverse-view.js";
+import { macroMenuMarkup } from "./views/macro-menu.js";
+import { MACRO_MAX_LENGTH } from "./macros.js";
 import { sellInventoryCard } from "./sell.js";
 import { createVoiceChat } from "./voice.js";
 
@@ -71,6 +74,7 @@ const chatInput = $("#chat-input");
 const emoteToggle = $("#emote-toggle");
 const emoteToggleIcon = $("#emote-toggle-icon");
 const emoteMenu = $("#emote-menu");
+const macroMenu = $("#macro-menu");
 const settings = $("#settings");
 const pushToTalk = $("#push-to-talk");
 const talkRingProgress = $("#push-to-talk .talk-ring-progress");
@@ -105,6 +109,8 @@ let leavingPage = false;
 store.dispatch({ type: "fullscreen-state", active: isFullscreen() });
 
 const phoneKeyboardQuery = window.matchMedia("(any-pointer: coarse), (max-width: 780px), (max-height: 550px), (orientation: portrait)");
+const macroPointerQuery = window.matchMedia("(pointer: coarse)");
+let macroKeyboardMode = false;
 let pendingAppHeightFrame = 0;
 
 function syncAppHeight() {
@@ -537,6 +543,30 @@ function renderLook(state) {
   });
 }
 
+function renderMacros(state) {
+  const open = Boolean(state.ui.macroMenuOpen && state.room && state.user);
+  const markup = state.user ? macroMenuMarkup(state) : "";
+  updateMarkup(macroMenu, markup);
+  if (macroMenu.classList.contains("open") !== open) macroMenu.classList.toggle("open", open);
+  if (macroMenu.inert === open) macroMenu.inert = !open;
+  macroMenu.setAttribute("aria-hidden", String(!open));
+}
+
+async function sendChatText(text) {
+  const command = chatToCommand(text);
+  if (!command) return;
+  chatHistory.record(text);
+  try {
+    const result = await sendCommand(command);
+    if (!result) return;
+    playTone("tap");
+    if (chatInput.value === text) {
+      chatInput.value = "";
+      chatAutocomplete.close();
+    }
+  } catch (error) { showError(error); }
+}
+
 async function handleAction(action, { silentSound = false } = {}) {
   if (!action) return;
   const customSound = action.sound;
@@ -631,8 +661,6 @@ async function handleAction(action, { silentSound = false } = {}) {
     await applyEditorAction(action);
   } else if (action.type === "open-prop-editor") {
     if (action.propId) window.open(withBase(`/prop-editor/?prop=${encodeURIComponent(action.propId)}`), "_blank", "noopener");
-  } else if (action.type === "open-cutscene-catalog") {
-    window.open(withBase("/cutscene-catalog/"), "_blank", "noopener");
   } else if (action.type === "inspect-card") {
     store.dispatch({ type: "inspect-card", stackId: action.stackId });
   } else if (action.type === "start-targeting") {
@@ -1311,6 +1339,7 @@ async function render(state) {
   syncPhoneFriendSelection(state);
   if (roomChanged) playRoomSound(state);
   syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
+  renderMacros(state);
   syncPeepsChrome(state, root);
   roomPicker.sync(state);
   containerPanel.sync(state);
@@ -1366,21 +1395,75 @@ pushToTalk.onclick = () => { voice.toggleTalk(); };
 emoteToggle.onclick = () => { store.dispatch({ type: "toggle-emote-menu" }); };
 $("#chat-form").onsubmit = async event => {
   event.preventDefault();
-  const text = chatInput.value;
-  const command = chatToCommand(text);
-  if (!command) return;
-  chatHistory.record(text);
-  try {
-    const result = await sendCommand(command);
-    if (result) {
-      playTone("tap");
-      if (chatInput.value === text) {
-        chatInput.value = "";
-        chatAutocomplete.close();
-      }
-    }
-  } catch (error) { showError(error); }
+  await sendChatText(chatInput.value);
 };
+
+function saveMacro(index, text) {
+  const current = store.getState().user?.macros || [];
+  const previous = [...current];
+  const next = [...previous];
+  next[index] = String(text || "").slice(0, MACRO_MAX_LENGTH);
+  store.dispatch({ type: "macros", macros: next });
+  sendCommand(buildMacroCommand(index, text)).catch(error => {
+    store.dispatch({ type: "macros", macros: previous });
+    showError(error);
+  });
+}
+
+function sendMacro(index) {
+  const text = store.getState().user?.macros?.[index] || "";
+  if (!text) return;
+  store.dispatch({ type: "close-macro-menu" });
+  macroKeyboardMode = false;
+  void sendChatText(text);
+}
+
+macroMenu.addEventListener("click", event => {
+  const page = event.target.closest?.("[data-macro-page]");
+  if (page) {
+    store.dispatch({ type: "macro-page", page: Number(page.dataset.macroPage) });
+    return;
+  }
+  if (event.target.closest?.("[data-macro-edit]")) {
+    store.dispatch({ type: "toggle-macro-edit" });
+    return;
+  }
+  if (event.target.closest?.("[data-macro-keyboard]")) {
+    macroKeyboardMode = true;
+    store.dispatch({ type: "close-macro-menu" });
+    chatInput.focus();
+    return;
+  }
+  const entry = event.target.closest?.("[data-macro-send]");
+  if (entry) sendMacro(Number(entry.dataset.macroSend));
+});
+macroMenu.addEventListener("change", event => {
+  const input = event.target.closest?.("input[data-macro-index]");
+  if (input) saveMacro(Number(input.dataset.macroIndex), input.value);
+});
+macroMenu.addEventListener("keydown", event => {
+  if (event.key === "Enter" && event.target.matches?.("input[data-macro-index]")) {
+    event.preventDefault();
+    event.target.blur();
+  }
+});
+chatInput.addEventListener("input", () => {
+  if (!chatInput.value.endsWith("...")) return;
+  chatInput.value = chatInput.value.slice(0, -3);
+  chatAutocomplete.close();
+  store.dispatch({ type: "open-macro-menu" });
+});
+chatInput.addEventListener("pointerdown", event => {
+  if (!macroPointerQuery.matches || macroKeyboardMode) return;
+  event.preventDefault();
+  store.dispatch({ type: "open-macro-menu" });
+});
+chatInput.addEventListener("blur", () => { macroKeyboardMode = false; });
+chatInput.addEventListener("focus", () => {
+  if (!macroPointerQuery.matches || macroKeyboardMode) return;
+  if (!store.getState().ui.macroMenuOpen) store.dispatch({ type: "open-macro-menu" });
+  chatInput.blur();
+});
 
 document.addEventListener("pointerdown", event => {
   if (settings.open && !settings.contains(event.target)) settings.open = false;
@@ -1391,6 +1474,13 @@ document.addEventListener("pointerdown", event => {
     && !emoteToggle.contains(event.target)
   ) {
     store.dispatch({ type: "close-emote-menu" });
+  }
+  if (
+    state.ui.macroMenuOpen
+    && !macroMenu.contains(event.target)
+    && !chatInput.contains(event.target)
+  ) {
+    store.dispatch({ type: "close-macro-menu" });
   }
   if (state.views.main === "phone" && !dialogs.active && !event.target?.closest?.(".phone-device, .phone-typing-close")) {
     void handleAction({ type: "close-view" });
@@ -1420,6 +1510,12 @@ document.addEventListener("keydown", event => {
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (roomPicker.handleEscape(event)) return;
   if (containerPanel.handleEscape(event)) return;
+  if (state.ui.macroMenuOpen) {
+    event.preventDefault();
+    store.dispatch({ type: "close-macro-menu" });
+    macroKeyboardMode = false;
+    return;
+  }
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }
   if (state.ui.emoteMenuOpen) {
     event.preventDefault();

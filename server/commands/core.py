@@ -17,6 +17,7 @@ from server.commands.parser import ParsedCommand, parse_target
 from server.commands.registry import CommandRegistry
 from server.commands.travel import departure_outcome, navigation_outcome
 from server.content.worlds import ExitDefinition, PropDefinition, PropInstanceDefinition
+from server.macros import MACRO_COUNT
 
 
 def _parse_quantity(args: tuple[str, ...], index: int = 1) -> int:
@@ -477,8 +478,26 @@ async def settings_command(
     context: CommandContext,
     command: ParsedCommand,
 ) -> CommandOutcome:
-    if len(command.args) != 2 or command.args[0].lower() != "action-log":
-        raise CommandError("Use '.settings action-log on' or '.settings action-log off'.")
+    key = command.args[0].lower() if command.args else ""
+    if key == "macro":
+        if len(command.args) < 2:
+            raise CommandError("Use '.settings macro <slot> [text]'.")
+        try:
+            index = int(command.args[1])
+        except ValueError as exc:
+            raise CommandError("Macro slot must be an integer.") from exc
+        if not 0 <= index < MACRO_COUNT:
+            raise CommandError(f"Macro slot must be between 0 and {MACRO_COUNT - 1}.")
+        text = " ".join(command.args[2:])
+        user_profile = context.profiles.set_macro(context.account.id, index, text)
+        return CommandOutcome(
+            message="Macro saved.",
+            payload={"macros": list(user_profile.macros)},
+            toast=False,
+            log=False,
+        )
+    if len(command.args) != 2 or key != "action-log":
+        raise CommandError("Use '.settings action-log on|off' or '.settings macro <slot> [text]'.")
     value = command.args[1].lower()
     if value not in {"on", "off"}:
         raise CommandError("Action Log setting must be 'on' or 'off'.")
@@ -925,7 +944,7 @@ def build_registry() -> CommandRegistry:
         "settings",
         "Change a persisted client setting.",
         settings_command,
-        usage=".settings action-log <on|off>",
+        usage=".settings action-log <on|off> | .settings macro <slot> [text]",
         toast=False,
         log=False,
     )

@@ -10,6 +10,7 @@ import sqlite3
 import uuid
 
 from server.instance_policy import AccountLimitError, InstancePolicyStore
+from server.macros import DEFAULT_MACROS, MACRO_COUNT, normalize_macro_text, normalize_macros
 from server.security import (
     IssuedSession,
     create_session,
@@ -51,7 +52,7 @@ def _default_profile() -> dict[str, object]:
         "show_activity_log": False,
         # Permanent cross-world travel unlocked by using the Multiverse Map.
         "multiverse_access": False,
-        "ui_settings": {},
+        "ui_settings": {"macros": list(DEFAULT_MACROS)},
         "unlocked_props": [],
         # Recipe ids learned from cardset recipe books.
         "known_recipes": [],
@@ -107,6 +108,8 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["multiverse_access"] = False
     if not isinstance(merged.get("ui_settings"), dict):
         merged["ui_settings"] = {}
+    ui_settings = merged["ui_settings"]
+    ui_settings["macros"] = normalize_macros(ui_settings.get("macros"))
     if not isinstance(merged.get("unlocked_props"), list):
         merged["unlocked_props"] = []
     else:
@@ -260,6 +263,14 @@ class UserProfileRecord:
         """Return whether the Multiverse Map has permanently unlocked cross-world travel."""
 
         return bool(self.profile.get("multiverse_access", False))
+
+    @property
+    def macros(self) -> tuple[str, ...]:
+        """Return the player's five pages of chat macros in display order."""
+
+        settings = self.profile.get("ui_settings")
+        raw = settings.get("macros") if isinstance(settings, dict) else None
+        return tuple(normalize_macros(raw))
 
     @property
     def pinned_peeps(self) -> tuple[str, ...]:
@@ -1577,6 +1588,31 @@ class ProfileRepository:
                 profile["show_activity_log"] = bool(visible)
 
             return self._update_profile_json(connection, account_id, _set_visible)
+
+    def set_macro(
+        self,
+        account_id: str,
+        index: int,
+        text: str,
+    ) -> UserProfileRecord:
+        """Persist one chat macro slot and return the updated user profile."""
+
+        if not 0 <= index < MACRO_COUNT:
+            raise ValueError(f"Macro slot must be between 0 and {MACRO_COUNT - 1}.")
+        value = normalize_macro_text(text)
+
+        with self._hub.transaction() as connection:
+
+            def _set_macro(profile: dict[str, object]) -> None:
+                settings = profile.get("ui_settings")
+                if not isinstance(settings, dict):
+                    settings = {}
+                macros = normalize_macros(settings.get("macros"))
+                macros[index] = value
+                settings["macros"] = macros
+                profile["ui_settings"] = settings
+
+            return self._update_profile_json(connection, account_id, _set_macro)
 
     def has_multiverse_access(self, account_id: str) -> bool:
         """Return whether the account has permanent Multiverse Map travel unlocked."""

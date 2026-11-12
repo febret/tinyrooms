@@ -53,16 +53,10 @@ function keyringButtonMarkup() {
   return `<button type="button" id="keyring-toggle" class="icon-button toolbar-edit" data-open-keyring="1" aria-label="Open the Keyring" title="Open the Keyring">${uiIconMarkup("keyring")}</button>`;
 }
 
-function editButtonMarkup(room, isAdmin, selectedProp, canReviewCutscenes) {
+function editButtonMarkup(isAdmin, selectedProp) {
   return [
-    room?.canEditRoom
-      ? `<button type="button" class="icon-button toolbar-edit" data-edit-room="1" aria-label="Edit Room" title="Edit Room">${uiIconMarkup("edit")}</button>`
-      : "",
     isAdmin && selectedProp?.propId
       ? `<button type="button" class="icon-button toolbar-edit" data-edit-prop="${escapeHtml(selectedProp.propId)}" aria-label="Edit Prop" title="Edit Prop">${uiIconMarkup("edit")}</button>`
-      : "",
-    canReviewCutscenes
-      ? `<button type="button" class="icon-button toolbar-edit" data-open-cutscene-catalog="1" aria-label="Open Cutscene Catalog" title="Open Cutscene Catalog">${uiIconMarkup("clapper")}</button>`
       : "",
   ].join("");
 }
@@ -91,14 +85,8 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-open-keyring]").forEach(button => {
     button.onclick = () => onAction({ command: ".tinytown keyring" });
   });
-  root.querySelectorAll("[data-edit-room]").forEach(button => {
-    button.onclick = () => onAction({ type: "open-view", view: "edit-room" });
-  });
   root.querySelectorAll("[data-edit-prop]").forEach(button => {
     button.onclick = () => onAction({ type: "open-prop-editor", propId: button.dataset.editProp });
-  });
-  root.querySelectorAll("[data-open-cutscene-catalog]").forEach(button => {
-    button.onclick = () => onAction({ type: "open-cutscene-catalog" });
   });
   root.querySelectorAll("[data-close-view]").forEach(button => {
     button.onclick = () => onAction({ type: "close-view" });
@@ -542,15 +530,13 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
         .filter(id => id !== "emotes");
       const selectedProp = state.selection.kind === "prop" ? findSelectedEntity(state) : null;
       const isAdmin = (state.user?.powers || []).includes("admin");
-      const canReviewCutscenes = (state.user?.powers || []).some(power => power === "admin" || power === "game-master");
       const showMultiverse = isAdmin || Boolean(state.user?.multiverseAccess);
       const showTinymag = state.user?.worldId === "tinytown";
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
-      const roomPicker = `<button type="button" id="room-picker-toggle" class="icon-button" aria-label="Look around" title="Look around" aria-haspopup="dialog" aria-controls="room-picker" aria-expanded="${Boolean(state.ui.roomPickerOpen)}">${uiIconMarkup("room-picker")}</button>`;
       update(coreRoot, coreOrder.map(id => coreMarkup(
         coreCards[id],
         state.views.main === id || (state.selection.kind === "core" && state.selection.id === id),
-      ) + (id === "inventory" ? `${roomPicker}${bopsButtonMarkup(state.user?.bops)}${showMultiverse ? multiverseButtonMarkup() : ""}` : "")).join(""      ) + (showTinymag ? `${tinymagButtonMarkup()}${keyringButtonMarkup()}` : "") + editButtonMarkup(state.room, isAdmin, selectedProp, canReviewCutscenes));
+      ) + (id === "inventory" ? `${bopsButtonMarkup(state.user?.bops)}${showMultiverse ? multiverseButtonMarkup() : ""}` : "")).join(""      ) + (showTinymag ? `${tinymagButtonMarkup()}${keyringButtonMarkup()}` : "") + editButtonMarkup(isAdmin, selectedProp));
       const handChanged = update(handRoot, equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards" style="--equipped-count:${equipped.length}">
         ${equipped.map(stack => handIconMarkup(stack.definition, stack)).join("")}
       </div>` : "");

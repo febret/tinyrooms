@@ -1,6 +1,7 @@
 /** Room, card, actor, and game-state normalization helpers. */
 
 import { withBase } from "./base-path.js";
+import { normalizeMacros } from "./macros.js";
 import { normalizeRoomTransition } from "./board/board-transitions.js";
 
 export function clone(value) {
@@ -562,6 +563,7 @@ export function normalizeUser(user) {
       .map(definition => definition.id),
     activity: normalizeActivity(user.activity),
     showActivityLog: Boolean(user.show_activity_log),
+    macros: normalizeMacros(user.macros),
     multiverseAccess: Boolean(user.multiverse_access),
     level: Number(user.level || 0),
     levelLabel: String(user.level_label || ""),

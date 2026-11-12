@@ -90,6 +90,11 @@ export function buildEmoteCommand(stackId) {
   return `.emote @card:${stackId}`;
 }
 
+/** Persist one profile-backed macro slot. Empty text clears the slot. */
+export function buildMacroCommand(index, text) {
+  return `.settings macro ${Math.max(0, Math.trunc(Number(index) || 0))} ${quote(text)}`;
+}
+
 export function buildEquipCommand(stackId) {
   return `.equip @card:${stackId}`;
 }

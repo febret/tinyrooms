@@ -10,6 +10,7 @@ import os
 import signal
 import socket
 import threading
+import traceback
 from types import FrameType
 
 from cryptography import x509
@@ -18,7 +19,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 import uvicorn
 
-from server.app import create_app
+from server.app import create_app, create_runtime
 from server.config import ConfigError, load_config, selects_mission_control
 from server.mission_control.app import create_mc_app
 from server.mission_control.config import load_mc_config
@@ -156,7 +157,26 @@ def parse_args() -> argparse.Namespace:
         "--options",
         help="Path to a gameplay options.json file; also available as TRSERVER_OPTIONS_PATH.",
     )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Build the world runtime (config, content, mods) and exit; also TRSERVER_CHECK=1.",
+    )
     return parser.parse_args()
+
+
+def check_world_startup(env: dict[str, str]) -> int:
+    """Build the world runtime like startup does, without serving or contacting MC."""
+
+    try:
+        config = load_config(env=env)
+        runtime = create_runtime(config)
+        runtime.hub.close()
+    except Exception:  # noqa: BLE001 - report any startup failure
+        traceback.print_exc()
+        return 1
+    print("Startup check passed.")
+    return 0
 
 
 def main() -> int:
@@ -165,6 +185,18 @@ def main() -> int:
     args = parse_args()
     env_values = dict(os.environ)
     mission_control = is_mission_control(env_values)
+    if args.check or env_values.get("TRSERVER_CHECK", "").strip() == "1":
+        if mission_control:
+            raise SystemExit("--check applies to world servers, not mission control.")
+        if args.host:
+            env_values["TRSERVER_HOST"] = args.host
+        if args.port:
+            env_values["TRSERVER_PORT"] = str(args.port)
+        if args.legacy_features:
+            env_values["TRSERVER_LEGACY_FEATURES"] = args.legacy_features
+        if args.options:
+            env_values["TRSERVER_OPTIONS_PATH"] = args.options
+        return check_world_startup(env_values)
     if mission_control and args.options:
         raise SystemExit("--options applies to world servers, not mission control.")
     try:

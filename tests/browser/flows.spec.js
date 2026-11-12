@@ -88,7 +88,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await page.locator("#settings summary").click();
   const pickerToggle = page.locator("#room-picker-toggle");
   const picker = page.locator("#room-picker");
-  await expect(page.locator('#core-tools [data-core-id="inventory"] ~ #room-picker-toggle')).toBeVisible();
+  await expect(page.locator('#chat-form #emote-toggle + #room-picker-toggle')).toBeVisible();
   await pickerToggle.click();
   await expect(picker).toBeVisible();
   await expect(pickerToggle).toHaveAttribute("aria-expanded", "true");
@@ -157,6 +157,18 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await expect(page.locator("#emote-menu .emote-column")).toHaveCount(3);
   await page.keyboard.press("Escape");
   await expect(page.locator("#emote-menu")).not.toHaveClass(/open/);
+  await page.locator("#chat-input").fill("...");
+  await expect(page.locator("#macro-menu")).toHaveClass(/open/);
+  await expect(page.locator("#macro-menu .macro-tab")).toHaveCount(5);
+  await expect(page.locator("#macro-menu .macro-entry")).toHaveCount(6);
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#macro-menu")).not.toHaveClass(/open/);
+  await page.locator("#chat-input").fill("...");
+  await page.locator("#macro-menu [data-macro-send]").first().click();
+  await expect(page.locator("#macro-menu")).not.toHaveClass(/open/);
+  const macroBubble = page.locator("#bubble-layer .bubble-text").last();
+  await expect(macroBubble).toContainText("Yes");
+  await macroBubble.click();
   await openCore(page, "journal");
   const journal = page.getByRole("dialog", { name: "Journal", exact: true });
   await expect(journal).toBeVisible();
@@ -185,6 +197,39 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await idCard.locator('[data-id-flip="1"]').click();
   await expect(idCard.locator('[data-id-flip="1"]')).toContainText("ID");
   await expect(page.locator(".interaction-dock")).toBeHidden();
+});
+
+test("portrait chat bar and buttons fit without horizontal scrolling", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime);
+  for (const [width, height] of [[390, 844], [320, 568], [280, 653]]) {
+    await page.setViewportSize({ width, height });
+    await expect(page.locator("#chat-form")).toBeVisible();
+    const fit = await page.evaluate(() => {
+      const bar = document.querySelector(".chat-bar");
+      const dock = document.querySelector(".interaction-dock");
+      const input = document.querySelector("#chat-input");
+      const buttonRects = [...bar.querySelectorAll(":scope > .icon-button")]
+        .filter(button => getComputedStyle(button).display !== "none")
+        .map(button => button.getBoundingClientRect());
+      const barRect = bar.getBoundingClientRect();
+      return {
+        docOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        bodyOverflow: document.body.scrollWidth - document.body.clientWidth,
+        barOverflow: bar.scrollWidth - bar.clientWidth,
+        dockOverflow: dock.scrollWidth - dock.clientWidth,
+        inputWidth: input.getBoundingClientRect().width,
+        buttonsInside: buttonRects.every(rect => rect.left >= barRect.left - 0.5 && rect.right <= barRect.right + 0.5),
+        buttonCount: buttonRects.length,
+      };
+    });
+    expect(fit.docOverflow, `document overflow at ${width}x${height}`).toBeLessThanOrEqual(0);
+    expect(fit.bodyOverflow, `body overflow at ${width}x${height}`).toBeLessThanOrEqual(0);
+    expect(fit.barOverflow, `chat bar overflow at ${width}x${height}`).toBeLessThanOrEqual(0);
+    expect(fit.dockOverflow, `dock overflow at ${width}x${height}`).toBeLessThanOrEqual(0);
+    expect(fit.inputWidth, `chat input width at ${width}x${height}`).toBeGreaterThan(80);
+    expect(fit.buttonsInside, `chat buttons stay inside the bar at ${width}x${height}`).toBe(true);
+    expect(fit.buttonCount, `visible chat buttons at ${width}x${height}`).toBe(3);
+  }
 });
 
 test("phone opens apps, friends, messages, and the personal chiptune player", async ({ page, runtime }) => {

@@ -14,9 +14,7 @@ export function toolbarButtonKey(element, index = -1) {
   if (dataset.coreId) return `core:${dataset.coreId}`;
   if (element?.id) return `id:${element.id}`;
   if (dataset.editProp) return `edit-prop:${dataset.editProp}`;
-  if (dataset.editRoom !== undefined) return "edit-room";
   if (dataset.openMultiverse !== undefined) return "multiverse";
-  if (dataset.openCutsceneCatalog !== undefined) return "cutscene-catalog";
   const classes = String(element?.className || "").split(/\s+/).filter(Boolean).sort().join(" ");
   return `button:${classes}:${index >= 0 ? index : ""}`;
 }

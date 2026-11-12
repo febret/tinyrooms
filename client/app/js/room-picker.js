@@ -70,7 +70,7 @@ export function roomPickerMarkup(state) {
 export function createRoomPicker({ root, store, onSelect, onSkillPick, thumbnails }) {
   const document = root.ownerDocument;
   let markup = "";
-  const trigger = () => document.querySelector("#core-tools #room-picker-toggle");
+  const trigger = () => document.querySelector("#chat-form #room-picker-toggle");
   const isOpen = () => Boolean(store.getState().room && store.getState().ui.roomPickerOpen);
   const skillSlot = () => store.getState().views?.skillPickerSlot ?? null;
   const itemButtons = () => [...root.querySelectorAll("[data-room-picker-prop], [data-stack-id]")];
@@ -174,7 +174,7 @@ export function createRoomPicker({ root, store, onSelect, onSkillPick, thumbnail
   });
 
   document.addEventListener("click", event => {
-    const toggle = event.target.closest?.("#core-tools #room-picker-toggle");
+    const toggle = event.target.closest?.("#chat-form #room-picker-toggle");
     if (!toggle || toggle.disabled) return;
     store.dispatch({ type: "toggle-room-picker" });
     if (isOpen()) queueMicrotask(() => {
