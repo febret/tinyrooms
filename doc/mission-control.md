@@ -50,7 +50,7 @@ processes; external lifecycle actions use cooperative world endpoints.
   use MC's shared profile DB; spawned destinations with a different users path
   are rejected.
   External instances require operator verification of that shared-DB setup.
-- Resolve reads `user_profiles.profile_json.last_instance_id` **exactly** and
+- Resolve reads `user_profiles.last_instance_id` **exactly** and
   validates it before any alternative. When that instance is no longer
   registered, resolve automatically switches the player to the operator
   default (when set and healthy), rebinding `last_instance_id`/`last_world_id`
@@ -284,7 +284,7 @@ result reports deleted/failed ids and freed bytes; deletions are audited.
 related profile/session/inventory/reward/task/memory/audit rows, and edits
 supported account fields, profile flags, and powers through repository methods.
 The editor includes a Multiverse travel checkbox that sets or clears the shared
-`multiverse_access` profile flag. Kudos and Bops have
+`multiverse_access` profile flag, which is enabled by default. Kudos and Bops have
 quick `-10/-1/+1/+10` controls on top of the exact-value edit form; the
 Inventory card edits existing stack quantities, deletes stacks, and grants new
 stacks (global or world-scoped). Edits are validated and

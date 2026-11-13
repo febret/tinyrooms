@@ -319,7 +319,7 @@ the chiptune.app top chart with tracks starred by other Tinyrooms users.
 Autoplay requires one user gesture.
 
 Shared peeps ([peep_collection.py](../server/services/peep_collection.py)) form the
-journal's **Stickers** tab. The first `.look`, `.talk`, or `.act` targeting a
+journal's **Peeps** tab. The first `.look`, `.talk`, or `.act` targeting a
 non-player peep writes an `encountered_peeps` row in the shared profile database
 (key `<world>:<peep>`), snapshotting label, description, tags, traits, and a copy
 of the picture under the custom stickers `peeps/` folder (served at

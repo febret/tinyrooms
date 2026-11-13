@@ -157,10 +157,11 @@ class VibesServiceTests(ServiceTestCase):
         stinky = self.create_account("vibe-stinky")
         charming = self.create_account("vibe-charming")
         with self.hub.transaction() as connection:
-            self.profiles.write_counters(
+            self.profiles.write_vitals(
                 connection,
                 stinky.id,
-                {"health": 50, "cleanliness": 0},
+                50,
+                0,
             )
         self.stats.apply_source(
             charming.id,

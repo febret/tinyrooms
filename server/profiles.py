@@ -23,16 +23,6 @@ from server.state.migrations import DatabaseHub
 
 
 STARTING_GLOBAL_CARDS = ("smile", "sigh", "growl", "goof")
-STARTING_WORLD_COUNTERS = {
-    "health": 50,
-    "max_health": 50,
-    "cleanliness": 100,
-    "max_cleanliness": 100,
-    "constitution": 1,
-    "dexterity": 1,
-    "charisma": 1,
-    "fanciness": 1,
-}
 
 SESSION_TOUCH_INTERVAL_SECONDS = 60.0
 
@@ -50,14 +40,12 @@ def _default_profile() -> dict[str, object]:
         "starred_tracks": [],
         "statuses": [],
         "show_activity_log": False,
-        # Permanent cross-world travel unlocked by using the Multiverse Map.
-        "multiverse_access": False,
+        # Cross-world travel is enabled by default; Mission Control can revoke it.
+        "multiverse_access": True,
         "ui_settings": {"macros": list(DEFAULT_MACROS)},
         "unlocked_props": [],
         # Recipe ids learned from cardset recipe books.
         "known_recipes": [],
-        # "<world_id>:<cutscene_id>" keys already seen; gates first-view memories.
-        "seen_cutscenes": [],
         # Persistent cosmetic decals rendered over the peep sticker.
         "decals": [],
         # Lifetime activity counters backing title unlocks.
@@ -72,8 +60,7 @@ def _default_profile() -> dict[str, object]:
 def _normalize_profile(raw: object) -> dict[str, object]:
     """Merge defaults and repair known shapes while retaining extension keys.
 
-    Skills are ordered slot entries (inventory stack IDs or empty slots);
-    last_instance_id is an optional stable resume destination, not a world ID.
+    Skills are ordered slot entries (inventory stack IDs or empty slots).
     """
     defaults = _default_profile()
     if not isinstance(raw, dict):
@@ -105,7 +92,7 @@ def _normalize_profile(raw: object) -> dict[str, object]:
     if not isinstance(merged.get("show_activity_log"), bool):
         merged["show_activity_log"] = False
     if not isinstance(merged.get("multiverse_access"), bool):
-        merged["multiverse_access"] = False
+        merged["multiverse_access"] = True
     if not isinstance(merged.get("ui_settings"), dict):
         merged["ui_settings"] = {}
     ui_settings = merged["ui_settings"]
@@ -118,10 +105,6 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["known_recipes"] = []
     else:
         merged["known_recipes"] = [str(recipe_id) for recipe_id in merged["known_recipes"] if str(recipe_id)]
-    if not isinstance(merged.get("seen_cutscenes"), list):
-        merged["seen_cutscenes"] = []
-    else:
-        merged["seen_cutscenes"] = [str(key) for key in merged["seen_cutscenes"] if str(key)]
     for counter_key in ("cooked_count", "taught_count"):
         try:
             merged[counter_key] = max(0, int(merged.get(counter_key, 0) or 0))
@@ -230,24 +213,12 @@ class UserProfileRecord:
     account_id: str
     last_world_id: str
     remembered_room: str | None
-    native_cards: dict[str, object]
-    counters: dict[str, object]
+    last_instance_id: str | None
+    health: float
+    cleanliness: float
     buffs: dict[str, object]
-    tasks: dict[str, object]
-    memories: dict[str, object]
-    ownership: dict[str, object]
     profile: dict[str, object]
     last_visit_at: str
-
-    @property
-    def last_instance_id(self) -> str | None:
-        value = self.profile.get("last_instance_id")
-        return value if isinstance(value, str) and value else None
-
-    @property
-    def owned_rooms(self) -> tuple[str, ...]:
-        raw = self.ownership.get("rooms")
-        return tuple(str(room_id) for room_id in raw) if isinstance(raw, list) else ()
 
     @property
     def friends(self) -> tuple[str, ...]:
@@ -260,9 +231,9 @@ class UserProfileRecord:
 
     @property
     def multiverse_access(self) -> bool:
-        """Return whether the Multiverse Map has permanently unlocked cross-world travel."""
+        """Return whether cross-world travel is enabled for this profile."""
 
-        return bool(self.profile.get("multiverse_access", False))
+        return bool(self.profile.get("multiverse_access", True))
 
     @property
     def macros(self) -> tuple[str, ...]:
@@ -390,12 +361,10 @@ class ProfileRepository:
             account_id=row["account_id"],
             last_world_id=row["last_world_id"],
             remembered_room=row["remembered_room"],
-            native_cards=json.loads(row["native_cards_json"]),
-            counters=json.loads(row["counters_json"]),
+            last_instance_id=row["last_instance_id"],
+            health=float(row["health"]),
+            cleanliness=float(row["cleanliness"]),
             buffs=json.loads(row["buffs_json"]),
-            tasks=json.loads(row["tasks_json"]),
-            memories=json.loads(row["memories_json"]),
-            ownership=json.loads(row["ownership_json"]),
             profile=_normalize_profile(json.loads(row["profile_json"])),
             last_visit_at=row["last_visit_at"],
         )
@@ -542,7 +511,8 @@ class ProfileRepository:
         entry_room: str,
         *,
         starting_energy: int | None = None,
-        starting_counters: dict[str, object] | None = None,
+        starting_health: float | None = None,
+        starting_cleanliness: float | None = None,
         is_guest: bool = False,
         guest_fingerprint: str | None = None,
         sticker: str | None = None,
@@ -555,10 +525,8 @@ class ProfileRepository:
         account_id = str(uuid.uuid4())
         password_digest = hash_password(password)
         energy = 80 if starting_energy is None else max(0, int(starting_energy))
-        counters = {
-            **STARTING_WORLD_COUNTERS,
-            **(starting_counters or {}),
-        }
+        health = 50.0 if starting_health is None else max(0.0, float(starting_health))
+        cleanliness = 100.0 if starting_cleanliness is None else max(0.0, float(starting_cleanliness))
         with self._hub.transaction() as connection:
             max_guests = 0
             if self._policy_store is not None:
@@ -611,16 +579,16 @@ class ProfileRepository:
             connection.execute(
                 """
                 INSERT INTO user_profiles (
-                    account_id, last_world_id, remembered_room, native_cards_json,
-                    counters_json, buffs_json, tasks_json, memories_json,
-                    ownership_json, profile_json, last_visit_at
-                ) VALUES (?, ?, ?, '{}', ?, '{}', '{}', '{}', '{}', ?, ?)
+                    account_id, last_world_id, remembered_room, last_instance_id,
+                    health, cleanliness, buffs_json, profile_json, last_visit_at
+                ) VALUES (?, ?, ?, NULL, ?, ?, '{}', ?, ?)
                 """,
                 (
                     account_id,
                     world_id,
                     entry_room,
-                    json.dumps(counters),
+                    health,
+                    cleanliness,
                     json.dumps(_default_profile()),
                     now,
                 ),
@@ -1175,9 +1143,15 @@ class ProfileRepository:
         return None if row is None else self._user_profile_from_row(row)
 
     def remember_instance(self, account_id: str, instance_id: str) -> None:
-        """Persist the stable instance without changing the remembered room."""
+        """Persist the stable destination instance without changing the remembered room."""
 
-        self.update_profile(account_id, lambda profile: profile.update(last_instance_id=instance_id))
+        with self._hub.transaction() as connection:
+            cursor = connection.execute(
+                "UPDATE user_profiles SET last_instance_id = ? WHERE account_id = ?",
+                (instance_id, account_id),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("Unknown account.")
 
     def count_accounts(self) -> int:
         """Return the number of game accounts in the shared profile database."""
@@ -1205,10 +1179,7 @@ class ProfileRepository:
 
         with self._hub.locked() as connection:
             row = connection.execute(
-                """
-                SELECT COUNT(*) FROM user_profiles
-                WHERE json_extract(profile_json, '$.last_instance_id') = ?
-                """,
+                "SELECT COUNT(*) FROM user_profiles WHERE last_instance_id = ?",
                 (instance_id,),
             ).fetchone()
         return int(row[0]) if row is not None else 0
@@ -1217,21 +1188,15 @@ class ProfileRepository:
         """Move matching-world saved destinations from one instance to another."""
 
         with self._hub.transaction() as connection:
-            rows = connection.execute(
+            cursor = connection.execute(
                 """
-                SELECT account_id FROM user_profiles
-                WHERE last_world_id = ?
-                  AND json_extract(profile_json, '$.last_instance_id') = ?
+                UPDATE user_profiles
+                SET last_instance_id = ?
+                WHERE last_world_id = ? AND last_instance_id = ?
                 """,
-                (world_id, old_instance_id),
-            ).fetchall()
-            for row in rows:
-                self._update_profile_json(
-                    connection,
-                    str(row["account_id"]),
-                    lambda profile: profile.update(last_instance_id=new_instance_id),
-                )
-        return len(rows)
+                (new_instance_id, world_id, old_instance_id),
+            )
+        return int(cursor.rowcount)
 
     def record_world_arrival(
         self,
@@ -1320,16 +1285,14 @@ class ProfileRepository:
                 connection.execute(
                     """
                     INSERT INTO user_profiles (
-                        account_id, last_world_id, remembered_room, native_cards_json,
-                        counters_json, buffs_json, tasks_json, memories_json,
-                        ownership_json, profile_json, last_visit_at
-                    ) VALUES (?, ?, ?, '{}', ?, '{}', '{}', '{}', '{}', ?, ?)
+                        account_id, last_world_id, remembered_room, last_instance_id,
+                        health, cleanliness, buffs_json, profile_json, last_visit_at
+                    ) VALUES (?, ?, ?, NULL, 50, 100, '{}', ?, ?)
                     """,
                     (
                         account_id,
                         world_id,
                         entry_room,
-                        json.dumps(STARTING_WORLD_COUNTERS),
                         json.dumps(_default_profile()),
                         now,
                     ),
@@ -1425,17 +1388,18 @@ class ProfileRepository:
             last_daily_claim=account.last_daily_claim if last_daily_claim is None else last_daily_claim,
         )
 
-    def write_counters(
+    def write_vitals(
         self,
         connection: sqlite3.Connection,
         account_id: str,
-        counters: dict[str, object],
+        health: float,
+        cleanliness: float,
     ) -> None:
-        """Persist the user's base counters in the single account-wide profile."""
+        """Persist the account-wide health and cleanliness counters."""
 
         connection.execute(
-            "UPDATE user_profiles SET counters_json = ? WHERE account_id = ?",
-            (json.dumps(counters), account_id),
+            "UPDATE user_profiles SET health = ?, cleanliness = ? WHERE account_id = ?",
+            (max(0.0, float(health)), max(0.0, float(cleanliness)), account_id),
         )
 
     def _read_buffs_json(self, connection: sqlite3.Connection, account_id: str) -> dict[str, object]:
@@ -1487,19 +1451,6 @@ class ProfileRepository:
         connection.execute(
             "UPDATE user_profiles SET buffs_json = ? WHERE account_id = ?",
             (json.dumps(data), account_id),
-        )
-
-    def write_ownership(
-        self,
-        connection: sqlite3.Connection,
-        account_id: str,
-        ownership: dict[str, object],
-    ) -> None:
-        """Persist the profile ownership mirror; world room state authorizes edits."""
-
-        connection.execute(
-            "UPDATE user_profiles SET ownership_json = ? WHERE account_id = ?",
-            (json.dumps(ownership), account_id),
         )
 
     def update_profile(
@@ -1615,10 +1566,10 @@ class ProfileRepository:
             return self._update_profile_json(connection, account_id, _set_macro)
 
     def has_multiverse_access(self, account_id: str) -> bool:
-        """Return whether the account has permanent Multiverse Map travel unlocked."""
+        """Return whether cross-world travel is enabled for the account."""
 
         profile = self.get_user_profile(account_id)
-        return bool(profile is not None and profile.multiverse_access)
+        return profile is None or bool(profile.multiverse_access)
 
     def set_multiverse_access(
         self,

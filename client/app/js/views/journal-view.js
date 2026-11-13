@@ -3,11 +3,11 @@ import { stickerCollectionMarkup, stickerDetailMarkup } from "../journal-sticker
 import { escapeHtml } from "../presentation.js";
 import { journalSpreadMarkup, modalShell } from "./view-helpers.js";
 
-export const JOURNAL_TABS = ["Tasks", "Memories", "Stickers"];
+export const JOURNAL_TABS = ["Tasks", "Memories", "Peeps"];
 
 function rightPage(state, tab) {
   if (tab === "Memories") return memoriesMarkup(state);
-  if (tab === "Stickers") return stickerCollectionMarkup(state);
+  if (tab === "Peeps") return stickerCollectionMarkup(state);
   return tasksMarkup(state);
 }
 
@@ -16,7 +16,7 @@ export function journalView(state) {
   const tabs = `<div class="journal-tabs-row"><div class="journal-tabs" role="group" aria-label="Journal sections">
     ${JOURNAL_TABS.map(label => `<button type="button" class="${tab === label ? "selected" : ""}" data-journal-tab="${label}" aria-pressed="${tab === label}">${escapeHtml(label)}</button>`).join("")}
   </div><button type="button" class="quiet journal-close" data-close-view="1">Close</button></div>`;
-  const stickers = tab === "Stickers";
+  const stickers = tab === "Peeps";
   const pages = {
     leftLabel: stickers ? "Sticker" : "Calendar",
     rightLabel: stickers ? "Sticker Collection" : tab,

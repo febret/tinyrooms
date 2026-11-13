@@ -174,8 +174,7 @@ class UserManager:
             except (TypeError, ValueError):
                 parsed_profile = {}
             if isinstance(parsed_profile, dict):
-                profile_view["last_instance_id"] = parsed_profile.get("last_instance_id")
-                profile_view["multiverse_access"] = bool(parsed_profile.get("multiverse_access", False))
+                profile_view["multiverse_access"] = bool(parsed_profile.get("multiverse_access", True))
         return {
             "account": account,
             "profile": profile_view,

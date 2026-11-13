@@ -196,12 +196,12 @@ class CrossWorldService:
         )
 
     def check_multiverse_access(self, account: AccountRecord) -> None:
-        """Require permanent Multiverse Map access, or the admin power, for cross-world travel."""
+        """Require enabled cross-world travel, or the admin power, for transfers."""
 
         if self._powers.has_power(account.id, "admin"):
             return
         if not self._profiles.has_multiverse_access(account.id):
-            raise CommandError("Use the Multiverse Map to unlock cross-world travel.")
+            raise CommandError("Cross-world travel is disabled for this account.")
 
     def _check_exit(self, account: AccountRecord, exit_definition: ExitDefinition) -> None:
         if exit_definition.target_world_id is None:
@@ -233,7 +233,7 @@ class CrossWorldService:
         world_id: str,
         room_id: str | None = None,
     ) -> TravelPlan:
-        """Resolve a cross-world destination, requiring permanent access or admin power."""
+        """Resolve a cross-world destination, requiring enabled travel or admin power."""
 
         self.check_multiverse_access(account)
         destination = await self.resolve_destination(world_id)

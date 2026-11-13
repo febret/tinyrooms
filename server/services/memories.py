@@ -186,52 +186,6 @@ class MemoryService:
             row = connection.execute("SELECT * FROM memories WHERE memory_id = ?", (memory_id,)).fetchone()
         return self._view_for(row)
 
-    def record_cutscene_first_view(
-        self,
-        account_id: str,
-        cutscene_id: str,
-        title: str,
-        seen_key: str,
-    ) -> bool:
-        """Record a cutscene view and, only the first time, write a journal memory.
-
-        Returns True when the memory was created. The profile metadata and the
-        memory are committed in one transaction so a retry cannot duplicate it.
-        """
-
-        def _write(connection: sqlite3.Connection) -> bool:
-            first = False
-
-            def _mark_seen(profile: dict[str, object]) -> None:
-                nonlocal first
-                seen = profile.get("seen_cutscenes")
-                if not isinstance(seen, list):
-                    seen = []
-                    profile["seen_cutscenes"] = seen
-                if seen_key in seen:
-                    return
-                seen.append(seen_key)
-                first = True
-
-            self._profiles.update_profile_in_transaction(connection, account_id, _mark_seen)
-            if first:
-                self.create_game_in_transaction(
-                    connection,
-                    account_id,
-                    f"I watched {str(title).strip()}.",
-                    ("cutscene", f"cutscene:{cutscene_id}"),
-                )
-            return first
-
-        # Behavior launches already run inside a dispatcher transaction; reusing
-        # that connection avoids an illegal nested BEGIN. The lock is reentrant,
-        # so this is safe from within the dispatcher's own transaction.
-        with self._hub.locked() as connection:
-            if connection.in_transaction:
-                return _write(connection)
-        with self._hub.transaction() as connection:
-            return _write(connection)
-
     def _require_owned_manual(self, connection: sqlite3.Connection, account_id: str, memory_id: str) -> sqlite3.Row:
         row = connection.execute(
             "SELECT * FROM memories WHERE memory_id = ? AND account_id = ?",

@@ -78,7 +78,7 @@ export function createUserManager(container, ctx) {
         el("span", { class: "muted", text: "Multiverse travel" }),
         el("label", { class: "row" }, [
           el("input", { type: "checkbox", name: "multiverse_access", checked: Boolean(detail.profile?.multiverse_access) }),
-          el("span", { text: "Unlock cross-world travel" }),
+          el("span", { text: "Allow cross-world travel" }),
         ]),
       ]),
       el("div", { class: "stack" }, [

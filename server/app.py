@@ -516,7 +516,6 @@ def _build_runtime(
     cutscenes = CutsceneService(
         config, world=lambda: world, profiles=profiles, cards=cards,
         valid_stickers=frozenset(accounts.list_stickers()),
-        memories=memories,
     )
     stats = StatsService(hub, profiles, catalog, content, world.id, options=options)
     inventory = InventoryService(hub, profiles, stats, catalog, content.levels, world.id)
@@ -622,6 +621,7 @@ def _build_runtime(
         command_verbs=frozenset(f".{spec.name}" for spec in registry.list()),
         environment=environment,
         layout=layout,
+        ownership=ownership,
         room_effects=room_effects,
         prop_states=prop_states,
         peep_states=peep_states,

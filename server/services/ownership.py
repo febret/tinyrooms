@@ -71,37 +71,18 @@ class OwnershipService:
             raise ValueError("That room does not exist.")
         if self._profiles.get_account_by_id(account_id) is None:
             raise ValueError("That account does not exist.")
-        previous = self.owner_of(room_id)
         self._write_owner(connection, room_id, account_id)
-        self._set_mirror(connection, account_id, room_id, owned=True)
-        if previous is not None and previous != account_id:
-            self._set_mirror(connection, previous, room_id, owned=False)
 
     def revoke(self, room_id: str) -> None:
         """Clear ownership for a room."""
 
-        previous = self.owner_of(room_id)
         with self._hub.transaction() as connection:
             self._write_owner(connection, room_id, None)
-            if previous is not None:
-                self._set_mirror(connection, previous, room_id, owned=False)
 
     def modify(self, room_id: str, account_id: str) -> None:
         """Replace the owner of a room."""
 
         self.grant(room_id, account_id)
-
-    def _set_mirror(self, connection, account_id: str, room_id: str, *, owned: bool) -> None:
-        profile = self._profiles.get_user_profile(account_id)
-        ownership = dict(profile.ownership) if profile is not None else {}
-        raw = ownership.get("rooms")
-        rooms = [str(entry) for entry in raw] if isinstance(raw, list) else []
-        if owned and room_id not in rooms:
-            rooms.append(room_id)
-        elif not owned:
-            rooms = [entry for entry in rooms if entry != room_id]
-        ownership["rooms"] = rooms
-        self._profiles.write_ownership(connection, account_id, ownership)
 
     def can_edit(self, account: AccountRecord, room_id: str) -> bool:
         """Return whether an account may edit a room's decorative layout.

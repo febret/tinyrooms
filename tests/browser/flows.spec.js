@@ -43,7 +43,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   test.slow();
   await createReadyAccount(page, runtime);
   await expect(page.locator("#core-tools [data-core-id]")).toHaveCount(3);
-  await expect(page.locator("#multiverse-toggle")).toHaveCount(0);
+  await expect(page.locator("#multiverse-toggle")).toBeVisible();
   await expect(page.locator("#card-hand [data-core-id], #card-hand [data-core-expand]")).toHaveCount(0);
   for (const id of ["inventory", "journal", "phone"]) {
     await expect(page.locator(`#core-tools [data-core-id="${id}"]`)).toBeVisible();
@@ -173,7 +173,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   const journal = page.getByRole("dialog", { name: "Journal", exact: true });
   await expect(journal).toBeVisible();
   await expect(journal.locator("[data-journal-tab]")).toHaveCount(3);
-  for (const tab of ["Tasks", "Memories", "Stickers"]) {
+  for (const tab of ["Tasks", "Memories", "Peeps"]) {
     const button = journal.locator(`[data-journal-tab="${tab}"]`);
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");

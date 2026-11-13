@@ -1102,13 +1102,12 @@ around a vortex, using each world's large image for its planet, along with its
 name, description, population, and the stickers of the viewer's friends who are
 online there. World authors may set an optional `image` in `world.yaml`;
 otherwise a generated placeholder planet is shown.
-Opening the Multiverse and travelling requires permanent Multiverse Map access,
-unless the user has the admin power. Using the normal Multiverse Map card sets
-the shared `multiverse_access` profile flag; while it is enabled, a vortex
-button beside Inventory opens the core Multiverse view. Revoking the flag in Mission Control
-hides the button. The tutorial awards the card once when a bagged poop is thrown
-into the garden trashcan. An authored cross-world exit may specify a destination
-room; otherwise the Multiverse leads to the destination world's entry room. If
+Opening the Multiverse and travelling is enabled by default. The shared
+`multiverse_access` profile flag controls it; while enabled, a vortex button
+beside Inventory opens the core Multiverse view. Revoking the flag in Mission
+Control hides the button and blocks travel, while the admin power always allows
+it. An authored cross-world exit may specify a destination room; otherwise the
+Multiverse leads to the destination world's entry room. If
 the destination is unavailable or entry is denied, the user remains in the source
 room with no Energy charge or loadout changes. Native cards are removed from the
 loadout only after a successful transfer. Successful cross-world travel has the
@@ -1116,9 +1115,9 @@ same default cost of 1 Energy as an in-world room change. Authored exits may
 override that cost; Energy-consuming exits remain unavailable while Tired.
 
 A player can go directly to any online player's current position. Same-world
-visits use the target's live room presence. Cross-world visits require permanent
-Multiverse Map access unless the user has the admin power, and use the same
-destination resolution as a cross-world exit. Peep visits in another world
+visits use the target's live room presence. Cross-world visits follow the same
+access rules as the Multiverse view and use the same destination resolution as a
+cross-world exit. Peep visits in another world
 travel to that world's entry room; peep positions are not shared across
 processes. The keypad Go to button uses the highlighted player in the Friends
 app or the player or peep in an open Messages thread.

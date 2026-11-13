@@ -164,7 +164,6 @@ export function makeUserPayload() {
     initial_sticker: "s1.png",
     initial_sticker_complete: true,
     remembered_room: "hub",
-    owned_rooms: [],
     inventory: [],
     skills: [],
     memories: [],

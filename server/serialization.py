@@ -37,8 +37,6 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         # Persistent onboarding gate: world entry requires first sticker confirmation.
         "initial_sticker_complete": account.initial_sticker_complete,
         "is_guest": account.is_guest,
-        # Ownership comes from the account-wide user profile, not room presence.
-        "owned_rooms": list(user_profile.owned_rooms),
         "unlocked_props": sorted(runtime.prop_shop.unlocked(account.id)),
         "level": account.level,
         "level_label": level_definition.label,
@@ -73,7 +71,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "show_activity_log": user_profile.show_activity_log,
         # Five pages of profile-backed chat macros, including player blanks.
         "macros": list(user_profile.macros),
-        # Permanent cross-world travel unlocked by using the Multiverse Map.
+        # Cross-world travel flag; enabled by default, revocable in Mission Control.
         "multiverse_access": user_profile.multiverse_access,
         # This payload's loaded world; remembered_room is nullable saved navigation
         # context from the profile, not proof of a live connection in that room.

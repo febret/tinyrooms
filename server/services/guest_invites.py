@@ -255,12 +255,6 @@ class GuestInviteService:
 
     def _create_guest(self, fingerprint: str, room_id: str) -> AccountRecord:
         constants = self._config.gameplay_options.constants
-        starting_counters = {
-            "health": constants.base_max_health,
-            "max_health": constants.base_max_health,
-            "cleanliness": constants.base_max_cleanliness,
-            "max_cleanliness": constants.base_max_cleanliness,
-        }
         stickers = self._accounts.list_stickers()
         last_error: Exception | None = None
         for _ in range(8):
@@ -272,7 +266,8 @@ class GuestInviteService:
                     self._world.id,
                     room_id,
                     starting_energy=constants.max_energy_per_level[0],
-                    starting_counters=starting_counters,
+                    starting_health=constants.base_max_health,
+                    starting_cleanliness=constants.base_max_cleanliness,
                     is_guest=True,
                     guest_fingerprint=fingerprint,
                     sticker=secrets.choice(stickers),

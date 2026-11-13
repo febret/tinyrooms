@@ -568,8 +568,8 @@ feature/power-gated, and room-restricted scenes — with params, cue text,
 derived placeholder tokens, and per-room gate status, plus card, current-room
 prop, room-user, world-peep, and sticker choices. Previews are local-only:
 `/api/cutscene-catalog/preview` builds a private `cutscene.play` payload for a
-chosen room and param overrides without broadcasting, charging Energy, or
-writing first-view journal memories.
+chosen room and param overrides without broadcasting or charging Energy.
+Cutscene launches do not write journal memories.
 
 ## 6. Authoring references
 

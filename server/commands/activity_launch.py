@@ -75,7 +75,7 @@ def start_activity(
     if definition.required_flag and not context.powers.has_power(context.account.id, "admin"):
         if definition.required_flag == "multiverse_access":
             if not context.profiles.has_multiverse_access(context.account.id):
-                raise CommandError("Use the Multiverse Map to unlock the Multiverse.")
+                raise CommandError("Cross-world travel is disabled for this account.")
         else:
             raise CommandError(f"{definition.title} is not available.")
     if definition.required_skill and not context.powers.has_power(context.account.id, "admin"):

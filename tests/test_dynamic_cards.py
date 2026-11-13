@@ -205,7 +205,7 @@ class StatusDropViaVibesTests(ServiceTestCase):
     def _make_stinky(self, username: str):
         account = self.create_account(username)
         with self.hub.transaction() as connection:
-            self.profiles.write_counters(connection, account.id, {"health": 50, "cleanliness": 0})
+            self.profiles.write_vitals(connection, account.id, 50, 0)
         return account
 
     def test_solo_stinky_peep_drops_personalized_card(self) -> None:
@@ -398,7 +398,7 @@ class AdminStinkyDropTests(ServiceTestCase):
     def _make_stinky(self, username):
         account = self.create_account(username)
         with self.hub.transaction() as connection:
-            self.profiles.write_counters(connection, account.id, {"health": 50, "cleanliness": 0})
+            self.profiles.write_vitals(connection, account.id, 50, 0)
         return account
 
     def test_force_drop_mints_for_stinky_occupant(self) -> None:

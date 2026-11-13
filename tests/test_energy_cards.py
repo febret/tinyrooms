@@ -21,8 +21,8 @@ class EnergyCardOverflowTests(ServiceTestCase):
     def _set_state(self, energy: float, health: float):
         account = self.set_energy(self.reload_account(self.account), energy)
         with self.hub.transaction() as connection:
-            self.profiles.write_counters(
-                connection, account.id, {"health": health, "cleanliness": 100}
+            self.profiles.write_vitals(
+                connection, account.id, health, 100
             )
         return self.reload_account(account)
 

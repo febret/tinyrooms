@@ -24,6 +24,25 @@ ENTRY_ROOM = "hub"
 TEST_ORIGIN = "https://testserver:5000"
 TEST_PASSWORD = "password123!"
 
+# Pre-v19 user_profiles shape. Migration tests rebuild this table to simulate a
+# database created before the vitals/destination promotion.
+LEGACY_USER_PROFILES_SQL = """
+CREATE TABLE user_profiles (
+    account_id TEXT PRIMARY KEY,
+    last_world_id TEXT NOT NULL,
+    remembered_room TEXT,
+    native_cards_json TEXT NOT NULL CHECK (json_valid(native_cards_json)),
+    counters_json TEXT NOT NULL CHECK (json_valid(counters_json)),
+    buffs_json TEXT NOT NULL CHECK (json_valid(buffs_json)),
+    tasks_json TEXT NOT NULL CHECK (json_valid(tasks_json)),
+    memories_json TEXT NOT NULL CHECK (json_valid(memories_json)),
+    ownership_json TEXT NOT NULL CHECK (json_valid(ownership_json)),
+    profile_json TEXT NOT NULL CHECK (json_valid(profile_json)),
+    last_visit_at TEXT NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+"""
+
 
 def auth_headers(csrf_token: str) -> dict[str, str]:
     """Build authenticated request headers."""

@@ -536,8 +536,8 @@ async def resolve(request: Request) -> Response:
     profile = runtime.profiles.get_user_profile(session.account_id)
     if profile is None:
         raise HTTPException(409, "Your player profile is missing. Ask an operator for help.")
-    instance_id = profile.profile.get("last_instance_id")
-    if instance_id is not None and (not isinstance(instance_id, str) or not instance_id.strip()):
+    instance_id = profile.last_instance_id
+    if instance_id is not None and not instance_id.strip():
         raise HTTPException(409, "Your saved instance identity is invalid. Ask an operator for help.")
     if not instance_id:
         matches = [record for record in runtime.registry.list() if record.world_id == profile.last_world_id]

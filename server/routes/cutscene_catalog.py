@@ -346,6 +346,5 @@ async def cutscene_catalog_preview(request: Request) -> dict[str, object]:
         origin="catalog",
         params=overrides,
         occupants=occupants,
-        record_view=False,
     )
     return {"ok": True, "event": launch.event}

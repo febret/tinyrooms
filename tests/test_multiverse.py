@@ -140,12 +140,11 @@ class MultiverseCommandIntegrationTests(IntegrationTestCase):
         self.addCleanup(lambda: asyncio.run(client.aclose()))
         return client
 
-    def test_play_list_and_travel_commands(self) -> None:
+    def test_play_list_and_travel_commands_are_enabled_by_default(self) -> None:
         credentials = self.create_ready_account("multiverse-explorer")
         account_id = self.account_id(credentials)
-        stack_id = self.grant_card(account_id, "multiverse-map")
         runtime = self.runtime()
-        self.assertFalse(runtime.profiles.has_multiverse_access(account_id))
+        self.assertTrue(runtime.profiles.has_multiverse_access(account_id))
         runtime.config = replace(runtime.config, mc_endpoint="mc.example:8001", mc_token=MC_TOKEN)
         runtime.cross_world._config = runtime.config  # noqa: SLF001
         runtime.cross_world._client = self._client_for()  # noqa: SLF001
@@ -155,16 +154,6 @@ class MultiverseCommandIntegrationTests(IntegrationTestCase):
             headers=websocket_headers(credentials["session_token"], credentials["csrf_token"]),
         ) as socket:
             socket.receive_json()
-            used = self.command(socket, "multiverse-unlock", f".use @card:{stack_id}")
-            self.assertTrue(used["ok"], used)
-            self.assertTrue(runtime.profiles.has_multiverse_access(account_id))
-            owned = [
-                stack
-                for stack in runtime.profiles.list_inventory(account_id, runtime.world.id)
-                if stack.card_def_id == "multiverse-map"
-            ]
-            self.assertEqual([stack.quantity for stack in owned], [1])
-
             listing = self.command(socket, "multiverse-list", ".multiverse_worlds")
             self.assertTrue(listing["ok"], listing)
             worlds = listing["payload"]["worlds"]
@@ -177,10 +166,11 @@ class MultiverseCommandIntegrationTests(IntegrationTestCase):
             self.assertEqual(travel["payload"]["travel"]["url"], "https://testserver:5101")
             self.assertEqual(travel["payload"]["travel"]["room_id"], "hall")
 
-    def test_multiverse_commands_require_access_without_the_flag(self) -> None:
+    def test_multiverse_commands_require_access_when_disabled(self) -> None:
         credentials = self.create_ready_account("multiverse-locked")
         runtime = self.runtime()
         account_id = self.account_id(credentials)
+        runtime.profiles.set_multiverse_access(account_id, False)
         self.assertFalse(runtime.profiles.has_multiverse_access(account_id))
 
         with self.client.websocket_connect(
@@ -190,7 +180,7 @@ class MultiverseCommandIntegrationTests(IntegrationTestCase):
             socket.receive_json()
             listing = self.command(socket, "multiverse-denied", ".multiverse_worlds")
             self.assertFalse(listing["ok"], listing)
-            self.assertIn("unlock cross-world travel", listing["message"])
+            self.assertIn("disabled for this account", listing["message"])
 
 
 class FleetWorldsTests(McHttpTestCase):

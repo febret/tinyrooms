@@ -24,7 +24,7 @@ from server.state.phone_messages_schema import (
 )
 
 
-PROFILE_SCHEMA_VERSION = 18
+PROFILE_SCHEMA_VERSION = 20
 WORLD_SCHEMA_VERSION = 20
 
 
@@ -124,30 +124,27 @@ CREATE TABLE IF NOT EXISTS profile_card_stacks (
 CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id);
 CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope);
 CREATE TABLE IF NOT EXISTS user_profiles (
-    -- One unified row per account: gameplay blobs are not partitioned by world.
+    -- One row per account: navigation, live vitals, buffs, and settings.
     account_id TEXT PRIMARY KEY,
     -- Resume/navigation context; world changes reset the remembered room to entry.
     last_world_id TEXT NOT NULL,
     remembered_room TEXT,
-    -- Reserved compatibility object, initialized to {}; not live inventory storage.
-    native_cards_json TEXT NOT NULL CHECK (json_valid(native_cards_json)),
-    -- Base stat object seeded from STARTING_WORLD_COUNTERS, shared across worlds.
-    counters_json TEXT NOT NULL CHECK (json_valid(counters_json)),
+    -- Stable destination instance recorded by mission-control entry, distinct from world ID.
+    last_instance_id TEXT,
+    -- Live shared counters, clamped by StatsService; not partitioned by world.
+    health REAL NOT NULL DEFAULT 50 CHECK (health >= 0),
+    cleanliness REAL NOT NULL DEFAULT 100 CHECK (cleanliness >= 0),
     -- Object with instances:[BuffInstance payloads] and sources:{name:[modifiers]}.
     -- Initially {}; source contributions and timed instances are preserved separately.
     buffs_json TEXT NOT NULL CHECK (json_valid(buffs_json)),
-    -- Reserved {} compatibility blobs; active tasks/journal use task_progress/memories.
-    tasks_json TEXT NOT NULL CHECK (json_valid(tasks_json)),
-    memories_json TEXT NOT NULL CHECK (json_valid(memories_json)),
-    -- {rooms:[room_id,...]} mirror; room_states.owner_account_id is edit authority.
-    ownership_json TEXT NOT NULL CHECK (json_valid(ownership_json)),
     -- Extensible settings/social/skills object; _normalize_profile() supplies defaults.
-    -- last_instance_id records the stable destination instance, distinct from world ID.
     profile_json TEXT NOT NULL CHECK (json_valid(profile_json)),
     -- Updated together with remembered_room/last_world_id on navigation.
     last_visit_at TEXT NOT NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
+CREATE INDEX IF NOT EXISTS idx_user_profiles_instance
+    ON user_profiles(last_instance_id) WHERE last_instance_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS reward_ledger (
     -- Stable caller key (tasks/dialogs/etc.), unique per account across all worlds.
     -- Encode any intended world/day distinction in the key itself.
@@ -308,6 +305,17 @@ _PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
 _PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
     "PRAGMA user_version = 17;",
     "PRAGMA user_version = 18;",
+)
+# v19 promotes health/cleanliness and last_instance_id into columns and drops
+# the reserved compatibility blobs; fresh databases already create that shape.
+_PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
+    "PRAGMA user_version = 18;",
+    "PRAGMA user_version = 19;",
+)
+# v20 enables cross-world travel for existing profiles and retires the map card.
+_PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
+    "PRAGMA user_version = 19;",
+    "PRAGMA user_version = 20;",
 )
 
 _WORLD_SCHEMA_SQL = """
@@ -732,6 +740,67 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     COMMIT;
     """,
     18: ENCOUNTERED_PEEPS_REBUILD_MIGRATION,
+    19: """
+    BEGIN;
+    -- Promote live vitals and the saved destination instance into columns,
+    -- then drop the reserved compatibility blobs. Selection order defines the
+    -- final column order validated by ensure_profile_database().
+    CREATE TABLE user_profiles_new (
+        account_id TEXT PRIMARY KEY,
+        last_world_id TEXT NOT NULL,
+        remembered_room TEXT,
+        last_instance_id TEXT,
+        health REAL NOT NULL DEFAULT 50 CHECK (health >= 0),
+        cleanliness REAL NOT NULL DEFAULT 100 CHECK (cleanliness >= 0),
+        buffs_json TEXT NOT NULL CHECK (json_valid(buffs_json)),
+        profile_json TEXT NOT NULL CHECK (json_valid(profile_json)),
+        last_visit_at TEXT NOT NULL,
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    INSERT INTO user_profiles_new (
+        account_id, last_world_id, remembered_room, last_instance_id,
+        health, cleanliness, buffs_json, profile_json, last_visit_at
+    )
+    SELECT
+        profiles.account_id,
+        profiles.last_world_id,
+        profiles.remembered_room,
+        CASE
+            WHEN json_type(profiles.profile_json, '$.last_instance_id') = 'text'
+            THEN json_extract(profiles.profile_json, '$.last_instance_id')
+        END,
+        COALESCE(
+            json_extract(profiles.counters_json, '$.health'),
+            json_extract(profiles.counters_json, '$.max_health'),
+            50
+        ),
+        COALESCE(
+            json_extract(profiles.counters_json, '$.cleanliness'),
+            json_extract(profiles.counters_json, '$.max_cleanliness'),
+            100
+        ),
+        profiles.buffs_json,
+        json_remove(profiles.profile_json, '$.last_instance_id', '$.seen_cutscenes'),
+        profiles.last_visit_at
+    FROM user_profiles AS profiles
+    WHERE EXISTS (SELECT 1 FROM accounts AS account WHERE account.id = profiles.account_id);
+    DROP TABLE user_profiles;
+    ALTER TABLE user_profiles_new RENAME TO user_profiles;
+    CREATE INDEX IF NOT EXISTS idx_user_profiles_instance
+        ON user_profiles(last_instance_id) WHERE last_instance_id IS NOT NULL;
+    PRAGMA user_version = 19;
+    COMMIT;
+    """,
+    20: """
+    BEGIN;
+    -- Cross-world travel is enabled by default. The Multiverse Map reward is
+    -- retired, so clear any stacks left behind by earlier profiles.
+    UPDATE user_profiles
+    SET profile_json = json_set(profile_json, '$.multiverse_access', json('true'));
+    DELETE FROM profile_card_stacks WHERE card_def_id = 'multiverse-map';
+    PRAGMA user_version = 20;
+    COMMIT;
+    """,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {
@@ -1009,12 +1078,10 @@ _USER_PROFILES_COLUMNS = (
     "account_id",
     "last_world_id",
     "remembered_room",
-    "native_cards_json",
-    "counters_json",
+    "last_instance_id",
+    "health",
+    "cleanliness",
     "buffs_json",
-    "tasks_json",
-    "memories_json",
-    "ownership_json",
     "profile_json",
     "last_visit_at",
 )
@@ -1226,6 +1293,8 @@ def ensure_profile_database(path: Path) -> None:
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope)",
+            "CREATE INDEX IF NOT EXISTS idx_user_profiles_instance "
+            "ON user_profiles(last_instance_id) WHERE last_instance_id IS NOT NULL",
             "CREATE INDEX IF NOT EXISTS idx_reward_ledger_owner ON reward_ledger(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_pack_opens_owner ON pack_opens(account_id)",

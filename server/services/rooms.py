@@ -135,6 +135,7 @@ class RoomService:
         command_verbs: frozenset[str] | None = None,
         environment: object | None = None,
         layout: object | None = None,
+        ownership: object | None = None,
         room_effects: object | None = None,
         prop_states: object | None = None,
         peep_states: NpcPeepStateRepository | None = None,
@@ -161,6 +162,7 @@ class RoomService:
         self._titles: object | None = None
         self._environment = environment
         self._layout = layout
+        self._ownership = ownership
         self._room_effects = room_effects
         self._prop_states = prop_states
         self._sprites = sprites or SpriteService(world, layout=layout)
@@ -1009,7 +1011,8 @@ class RoomService:
         room = self._world.rooms[room_id]
         live_connections = await self._connections.list_room(room_id)
         occupant_ids = [connection.account_id for connection in live_connections]
-        user_profile = self._profiles.user_profile_for(account.id, self._world.id, room_id)
+        # Refresh resume context; snapshot authorization comes from the world room state.
+        self._profiles.user_profile_for(account.id, self._world.id, room_id)
         with self._hub.locked() as connection:
             occupant_accounts = self._profiles.get_accounts_by_ids(occupant_ids)
             room_cards, chat_history = self._world_state.read_room_view(room_id)
@@ -1080,7 +1083,7 @@ class RoomService:
         board_style = room.board_image_style
         board_image = room.board_image_name
         layout_revision = environment_revision
-        can_edit_room = room_id in user_profile.owned_rooms
+        can_edit_room = False
         if self._layout is not None:
             effective_board = self._layout.effective_board(room_id)
             board_palette = list(effective_board.get("palette") or room.palette)
@@ -1088,6 +1091,8 @@ class RoomService:
             board_image = str(effective_board.get("board_image") or room.board_image_name)
             layout_revision = self._layout.revision(room_id)
             can_edit_room = self._layout.can_edit(account, room_id)
+        elif self._ownership is not None:
+            can_edit_room = self._ownership.can_edit(account, room_id)
         activities = self._serialize_activities(account, room, activity_states)
         description = room.description
         for activity_state in activity_states.values():
@@ -1153,7 +1158,10 @@ class RoomService:
                 "room_cards": self._card_service.serialize_room_stacks(room_cards),
                 "chat_history": chat_history,
                 "inventory": self._card_service.serialize_inventory_stacks(inventory),
-                "editable": room_id in user_profile.owned_rooms,
+                "editable": (
+                    self._ownership is not None
+                    and self._ownership.owner_of(room_id) == account.id
+                ),
                 "layout_revision": layout_revision,
                 "can_edit_room": can_edit_room,
                 "dialog": self._dialog_payload(account.id),

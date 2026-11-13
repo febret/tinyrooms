@@ -63,13 +63,13 @@ excluded from merging/dropping by the repository.
 ### Unified user state and ownership
 
 `user_profiles` has **one row per account**, not one per `(account, world)`.
-Counters, buffs, ownership, and profile settings therefore share that row
-across worlds. `last_world_id`, `remembered_room`, and `last_visit_at` track
-resume/navigation; stable destination identity is
-`profile_json.last_instance_id`. Entry repair and operator destination edits
-rewrite only that key, preserving the saved world and room; the one exception is
-the player-confirmed `switch_world` repair, which also updates `last_world_id`
-and `remembered_room` through `ensure_user_profile`. See
+Navigation, live vitals, buffs, and profile settings therefore share that row
+across worlds. `last_world_id`, `remembered_room`, `last_instance_id`, and
+`last_visit_at` track resume/navigation; `health` and `cleanliness` are the live
+shared counters, and `profile_json` holds the remaining settings. Entry repair
+and operator destination edits update `last_instance_id` directly; the one
+exception is the player-confirmed `switch_world` repair, which also updates
+`last_world_id` and `remembered_room` through `ensure_user_profile`. See
 [mission-control entry semantics](./mission-control.md) and the repository's
 `remember_instance`, `reassign_last_instance`, and `ensure_user_profile` paths.
 
@@ -79,10 +79,9 @@ the `multiverse_access` travel flag are current consumers; do not treat all
 gameplay JSON as unused placeholders.
 
 Room authority is world-local: `room_states.owner_account_id` is read by
-[OwnershipService](../server/services/ownership.py). Its grant/revoke paths
-update the `ownership_json.rooms` profile mirror in the same transaction.
-Ownership grants and owner editing are implemented; the mirror is not a
-replacement for world-side authorization.
+[OwnershipService](../server/services/ownership.py). There is no profile-side
+ownership mirror to keep in sync; ownership grants, revokes, and owner editing
+all read and write the world database.
 
 ### Idempotency scope
 
@@ -116,15 +115,15 @@ immutable. Grouping and task game-day policy use the configured timezone.
 
 Preserve these compatibility/future-intent distinctions:
 
-- `native_cards_json`, `tasks_json`, and `memories_json` remain initialized
-  compatibility/reserved blobs in the unified profile. Active task/journal
-  storage is in `task_progress` and `memories`, not those placeholder blobs.
 - `reward_ledger.payload_json` retains grant details for audit/replay intent.
   It is **not write-only**: MemoryService reads Kudos grants for monthly
   summaries. A general reward-replay/audit facility remains future work.
 - `pack_purchases.results_json` remains reserved and is currently written as
   an empty list; it is not the drawn-card record. `pack_opens.results_json`
   is the implemented replay record.
+
+Cutscene launches do not write journal memories and no longer track seen
+cutscenes; the journal is fed by tasks, dialogs, and owner-authored entries.
 
 ## 3. World-state DB
 

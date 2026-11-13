@@ -40,9 +40,6 @@ caretaker:
         next: room
       - label: Skills & supplies
         next: skills
-      - label: Spare me the tour — I know how this works.
-        action: skip-tutorial
-        end: true
     chores:
       text: Supplies and a vacuum are behind the kitchen. Grab a pooper scooper for
         the bathroom litter tray, and bring a plastic bag unless you want to carry

@@ -319,16 +319,6 @@ class MultiverseAccessEditTests(McHttpTestCase):
 
     def test_multiverse_access_toggle_persists(self) -> None:
         detail = self.client.get(f"/api/mission-control/users/{self.account.id}").json()["user"]
-        self.assertFalse(detail["profile"]["multiverse_access"])
-
-        enabled = self.client.patch(
-            f"/api/mission-control/users/{self.account.id}",
-            headers=self.csrf_headers(),
-            json={"fields": {"multiverse_access": True}},
-        )
-        self.assertEqual(enabled.status_code, 200, enabled.text)
-        self.assertTrue(self.runtime.profiles.has_multiverse_access(self.account.id))
-        detail = self.client.get(f"/api/mission-control/users/{self.account.id}").json()["user"]
         self.assertTrue(detail["profile"]["multiverse_access"])
 
         disabled = self.client.patch(
@@ -338,6 +328,16 @@ class MultiverseAccessEditTests(McHttpTestCase):
         )
         self.assertEqual(disabled.status_code, 200, disabled.text)
         self.assertFalse(self.runtime.profiles.has_multiverse_access(self.account.id))
+        detail = self.client.get(f"/api/mission-control/users/{self.account.id}").json()["user"]
+        self.assertFalse(detail["profile"]["multiverse_access"])
+
+        enabled = self.client.patch(
+            f"/api/mission-control/users/{self.account.id}",
+            headers=self.csrf_headers(),
+            json={"fields": {"multiverse_access": True}},
+        )
+        self.assertEqual(enabled.status_code, 200, enabled.text)
+        self.assertTrue(self.runtime.profiles.has_multiverse_access(self.account.id))
 
 
 if __name__ == "__main__":

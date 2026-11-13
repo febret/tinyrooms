@@ -26,7 +26,7 @@ from server.services.stats import StatsService
 from server.state.encountered_peeps_schema import ENCOUNTERED_PEEPS_COLUMNS
 from server.state.migrations import PROFILE_SCHEMA_VERSION, DatabaseHub, ensure_profile_database
 
-from tests.common import WORLD_ID, IntegrationTestCase, ServiceTestCase
+from tests.common import LEGACY_USER_PROFILES_SQL, WORLD_ID, IntegrationTestCase, ServiceTestCase
 
 
 class FakeVibes:
@@ -186,6 +186,8 @@ class EncounteredPeepsMigrationTests(unittest.TestCase):
             connection = sqlite3.connect(path)
             try:
                 connection.execute("DROP TABLE encountered_peeps")
+                connection.execute("DROP TABLE user_profiles")
+                connection.execute(LEGACY_USER_PROFILES_SQL)
                 connection.execute("PRAGMA user_version = 15")
                 connection.commit()
             finally:

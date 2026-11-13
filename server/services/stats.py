@@ -18,9 +18,6 @@ from server.security import utc_now
 from server.services import dynamic_cards as dynamic_card_store
 from server.state.migrations import DatabaseHub
 
-BASE_HEALTH_FALLBACK = 50.0
-BASE_CLEANLINESS_FALLBACK = 100.0
-
 
 def _source_active(entries: object, now: datetime) -> bool:
     """Return whether a named buff source still contributes.
@@ -80,21 +77,6 @@ class PeepSnapshot:
             "statuses": list(self.effective.statuses),
             "decals": decals_payload(list(self.decals)),
         }
-
-
-def normalize_counters(raw: object) -> dict[str, float]:
-    """Coerce persisted world counters into the canonical {health, cleanliness} shape."""
-
-    if not isinstance(raw, dict):
-        return {"health": BASE_HEALTH_FALLBACK, "cleanliness": BASE_CLEANLINESS_FALLBACK}
-    health = raw.get("health", raw.get("max_health", BASE_HEALTH_FALLBACK))
-    cleanliness = raw.get("cleanliness", raw.get("max_cleanliness", BASE_CLEANLINESS_FALLBACK))
-    try:
-        health_value = float(health)
-        cleanliness_value = float(cleanliness)
-    except (TypeError, ValueError):
-        return {"health": BASE_HEALTH_FALLBACK, "cleanliness": BASE_CLEANLINESS_FALLBACK}
-    return {"health": max(0.0, health_value), "cleanliness": max(0.0, cleanliness_value)}
 
 
 def parse_timestamp(value: str) -> datetime | None:
@@ -307,13 +289,16 @@ class StatsService:
         """Compute effective state without persisting anything."""
 
         moment = now or utc_now()
-        counters = normalize_counters(profile.counters)
         current_energy = account.shared_energy if energy is None else energy
         modifiers = self.collect_modifiers(account.id, profile, moment, stacks)
         return compute_effective_state(
             self._content,
             level=account.level,
-            counters={**counters, "energy": current_energy},
+            counters={
+                "health": profile.health,
+                "cleanliness": profile.cleanliness,
+                "energy": current_energy,
+            },
             previous_statuses=profile.active_statuses,
             modifiers=modifiers,
             external_statuses=self.external_statuses(profile),
@@ -361,10 +346,9 @@ class StatsService:
             raise ValueError("Unknown account.")
         energy, last_energy_at = self._recharge_energy(account, profile, now)
         state = self.compute_state(account, profile, now=now, energy=energy)
-        counters = normalize_counters(profile.counters)
-        health = self._counter_value("health", counters["health"], state.max_health)
+        health = self._counter_value("health", profile.health, state.max_health)
         cleanliness = self._counter_value(
-            "cleanliness", counters["cleanliness"], state.max_cleanliness
+            "cleanliness", profile.cleanliness, state.max_cleanliness
         )
         energy = self._counter_value("energy", energy, state.max_energy)
         if energy != account.shared_energy or last_energy_at != account.last_energy_at:
@@ -374,8 +358,8 @@ class StatsService:
                 energy=energy,
                 last_energy_at=last_energy_at,
             )
-        if health != counters["health"] or cleanliness != counters["cleanliness"]:
-            self._profiles.write_counters(connection, account_id, {"health": health, "cleanliness": cleanliness})
+        if health != profile.health or cleanliness != profile.cleanliness:
+            self._profiles.write_vitals(connection, account_id, health, cleanliness)
         if tuple(state.statuses) != profile.active_statuses:
             self._profiles.update_profile_in_transaction(
                 connection,
@@ -449,10 +433,9 @@ class StatsService:
     ) -> PeepSnapshot:
         energy, _last_energy_at = self._recharge_energy(account, profile, now, stacks)
         state = self.compute_state(account, profile, now=now, energy=energy, stacks=stacks)
-        counters = normalize_counters(profile.counters)
-        health = self._counter_value("health", counters["health"], state.max_health)
+        health = self._counter_value("health", profile.health, state.max_health)
         cleanliness = self._counter_value(
-            "cleanliness", counters["cleanliness"], state.max_cleanliness
+            "cleanliness", profile.cleanliness, state.max_cleanliness
         )
         energy = self._counter_value("energy", energy, state.max_energy)
         return PeepSnapshot(
@@ -606,12 +589,11 @@ class StatsService:
         profile = self._profiles.get_user_profile(snapshot.account.id)
         if profile is None:
             raise ValueError("Unknown account.")
-        counters = {"health": health, "cleanliness": cleanliness}
         modifiers = self.collect_modifiers(snapshot.account.id, profile, now)
         state = compute_effective_state(
             self._content,
             level=snapshot.account.level,
-            counters={**counters, "energy": energy},
+            counters={"health": health, "cleanliness": cleanliness, "energy": energy},
             previous_statuses=snapshot.statuses,
             modifiers=modifiers,
             external_statuses=self.external_statuses(profile),
@@ -620,9 +602,7 @@ class StatsService:
         health = self._counter_value("health", health, state.max_health)
         cleanliness = self._counter_value("cleanliness", cleanliness, state.max_cleanliness)
         energy = self._counter_value("energy", energy, state.max_energy)
-        self._profiles.write_counters(
-            connection, snapshot.account.id, {"health": health, "cleanliness": cleanliness}
-        )
+        self._profiles.write_vitals(connection, snapshot.account.id, health, cleanliness)
         self._profiles.update_progress(
             connection,
             snapshot.account,

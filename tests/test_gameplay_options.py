@@ -77,13 +77,13 @@ class ConfiguredStartingStateTests(ServiceTestCase):
             WORLD_ID,
             "hub",
             starting_energy=123,
-            starting_counters={"health": 75, "cleanliness": 150},
+            starting_health=75,
+            starting_cleanliness=150,
         )
         profile = self.profiles.get_user_profile(account.id)
         self.assertEqual(account.shared_energy, 123)
-        self.assertEqual(profile.counters["health"], 75)
-        self.assertEqual(profile.counters["cleanliness"], 150)
-        self.assertEqual(profile.counters["max_health"], 50)
+        self.assertEqual(profile.health, 75)
+        self.assertEqual(profile.cleanliness, 150)
 
 
 class DisabledMechanicsTests(ServiceTestCase):
@@ -142,9 +142,7 @@ class DisabledDropTests(ServiceTestCase):
     def _stinky(self, username: str):
         account = self.create_account(username)
         with self.hub.transaction() as connection:
-            self.profiles.write_counters(
-                connection, account.id, {"health": 50, "cleanliness": 0}
-            )
+            self.profiles.write_vitals(connection, account.id, 50, 0)
         return account
 
     def test_disabled_cleanliness_drops_skip_even_when_forced(self) -> None:
