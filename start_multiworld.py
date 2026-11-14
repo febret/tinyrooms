@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Any
 import argparse
@@ -10,6 +11,7 @@ import json
 import os
 import re
 import signal
+import socket
 import ssl
 import subprocess
 import sys
@@ -194,6 +196,79 @@ def select_mc_port(
             return port
         port += 1
     raise MultiworldConfigError("No free port is available for Mission Control; set MC_PORT.")
+
+
+def local_network_addresses() -> set[str]:
+    """Return the non-loopback addresses this machine currently owns."""
+
+    addresses: set[str] = set()
+    try:
+        candidates = [sockaddr[0] for *_, sockaddr in socket.getaddrinfo(socket.gethostname(), None)]
+    except socket.gaierror:
+        candidates = []
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            # TEST-NET-1 only picks the outbound interface; no packet is sent.
+            probe.connect(("192.0.2.1", 9))
+            candidates.append(probe.getsockname()[0])
+    except OSError:
+        pass
+    for candidate in candidates:
+        try:
+            parsed = ip_address(candidate)
+        except ValueError:
+            continue
+        if parsed.is_loopback or parsed.is_unspecified or parsed.is_link_local:
+            continue
+        addresses.add(str(parsed))
+    return addresses
+
+
+def validate_public_host(value: str, addresses: set[str] | None = None) -> str:
+    """Validate the advertised host and return it unchanged when usable.
+
+    An IP literal that this machine does not own can never be reached by a
+    browser, so it is rejected with the addresses that would work instead of
+    leaving the operator with a connection timeout.
+    """
+
+    host = value.strip()
+    if not host:
+        return ""
+    if (
+        "://" in host
+        or "/" in host
+        or "\\" in host
+        or "@" in host
+        or any(character.isspace() for character in host)
+    ):
+        raise MultiworldConfigError(
+            "--public-host must be a hostname or IP address without a scheme, port, or path."
+        )
+    try:
+        parsed = ip_address(host)
+    except ValueError:
+        if ":" in host:
+            raise MultiworldConfigError(
+                "--public-host must be a hostname or IP address without a scheme, port, or path."
+            ) from None
+        return host
+    if parsed.is_unspecified:
+        raise MultiworldConfigError(
+            "--public-host cannot be an unspecified address such as 0.0.0.0; "
+            "pass the address browsers should open."
+        )
+    if parsed.is_loopback:
+        return host
+    local = addresses if addresses is not None else local_network_addresses()
+    if host not in local:
+        detected = ", ".join(sorted(local)) or "none detected"
+        raise MultiworldConfigError(
+            f"--public-host {host} is not an address of this machine, so browsers "
+            f"cannot connect to it. Current local addresses: {detected}. "
+            "Pass one of those, or omit --public-host for local-only access."
+        )
+    return host
 
 
 def load_multiworld_config(
@@ -435,9 +510,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         config = load_multiworld_config(config_path, env=env)
         validate_world_directories(config)
-        public_host = (
+        public_host = validate_public_host(
             args.public_host if args.public_host is not None else env.get("PUBLIC_HOST", "")
-        ).strip()
+        )
     except MultiworldConfigError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2

@@ -25,9 +25,11 @@ mod, editor, and MC credential defaults; override them for real deployments.
 
 Open **https://127.0.0.1:5000** and accept the development certificate.
 [run.py](run.py) stores a 14-day self-signed certificate under `.local/`; it is
-not appropriate for public hosting. For a phone on a trusted LAN, run
-`python run.py --host 0.0.0.0` and use the machine's LAN address. Expose the port
-only on trusted networks.
+not appropriate for public hosting. The certificate covers the bind host, the
+machine's current addresses, and any advertised browser URLs, and is regenerated
+when one of those changes (for example after a DHCP lease change). For a phone on
+a trusted LAN, run `python run.py --host 0.0.0.0` and use the machine's LAN
+address. Expose the port only on trusted networks.
 
 ## Configuration
 
@@ -124,7 +126,10 @@ an explicit `MC_PORT` must be free.
 
 # To accept connections from other machines, pass a reachable address. This also
 # binds all listeners to 0.0.0.0; the browser uses the advertised host so the
-# shared session cookie keeps working across ports:
+# shared session cookie keeps working across ports. When the value is an IP
+# literal it must be one of this machine's current addresses; otherwise the
+# launcher stops and lists them, so a stale DHCP address fails at startup instead
+# of timing out in the browser:
 ./start_multiworld.sh --public-host 192.168.1.50
 
 # Use an alternate fleet definition:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -233,6 +234,7 @@ class FleetPidGuardTests(McHttpTestCase):
             },
         ).instance_id
 
+    @unittest.skipIf(os.name == "nt", "PID staleness is not enforceable on Windows")
     def test_stale_registration_is_rejected(self) -> None:
         instance_id = self.register_pid_guarded()
         response = self.client.post(
@@ -275,6 +277,7 @@ class FleetPidGuardTests(McHttpTestCase):
         )
         self.assertTrue(heartbeat.json()["ok"])
 
+    @unittest.skipIf(os.name == "nt", "PID staleness is not enforceable on Windows")
     def test_stale_heartbeat_and_deregister_are_ignored(self) -> None:
         instance_id = self.register_pid_guarded()
         stale = self.client.post(

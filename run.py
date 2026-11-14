@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from ipaddress import ip_address
 from pathlib import Path
+from urllib.parse import urlparse
 import argparse
 import os
 import signal
@@ -96,14 +98,73 @@ def _local_ip_strings() -> set[str]:
     return addresses
 
 
-def ensure_self_signed_certificate(local_path: Path, host: str) -> tuple[Path, Path]:
-    """Create or reuse a self-signed development certificate."""
+def _certificate_names(certificate: x509.Certificate) -> set[str]:
+    """Return the DNS names and IP addresses a certificate already covers."""
+
+    try:
+        names = certificate.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+    except x509.ExtensionNotFound:
+        return set()
+    values = set(names.get_values_for_type(x509.DNSName))
+    values.update(str(value) for value in names.get_values_for_type(x509.IPAddress))
+    return values
+
+
+def certificate_names(host: str, extra_hosts: Iterable[str] = ()) -> set[str]:
+    """Return every name the development certificate must cover."""
+
+    names = {"localhost", "127.0.0.1"}
+    if host in {"0.0.0.0", "::"}:
+        names.update(_local_ip_strings())
+    else:
+        names.add(host)
+    names.update(extra_hosts)
+    names.discard("0.0.0.0")
+    names.discard("::")
+    return names
+
+
+def advertised_hosts(config: object) -> set[str]:
+    """Return the browser-facing hostnames a server configuration advertises."""
+
+    urls: list[str] = [url for url in getattr(config, "public_origins", ()) if url]
+    for attribute in ("client_url", "entry_url"):
+        value = getattr(config, attribute, None)
+        if isinstance(value, str) and value:
+            urls.append(value)
+    hosts: set[str] = set()
+    for url in urls:
+        try:
+            hostname = urlparse(url).hostname
+        except ValueError:
+            continue
+        if hostname:
+            hosts.add(hostname)
+    return hosts
+
+
+def ensure_self_signed_certificate(
+    local_path: Path,
+    host: str,
+    extra_hosts: Iterable[str] = (),
+) -> tuple[Path, Path]:
+    """Create or reuse a self-signed development certificate.
+
+    The certificate is regenerated when it no longer covers the bind host, the
+    machine's current addresses, or the browser-facing hostnames in
+    *extra_hosts*, so a DHCP address change does not leave a stale certificate.
+    """
 
     cert_path, key_path = _cert_paths(local_path)
+    names = certificate_names(host, extra_hosts)
     certificate = _load_certificate(cert_path)
-    if certificate is not None and certificate.not_valid_after_utc > datetime.now(tz=UTC) + timedelta(days=1):
-        if key_path.is_file():
-            return cert_path, key_path
+    if (
+        certificate is not None
+        and key_path.is_file()
+        and certificate.not_valid_after_utc > datetime.now(tz=UTC) + timedelta(days=1)
+        and names <= _certificate_names(certificate)
+    ):
+        return cert_path, key_path
     local_path.mkdir(parents=True, exist_ok=True)
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     common_name = "Tinyrooms Development"
@@ -117,18 +178,12 @@ def ensure_self_signed_certificate(local_path: Path, host: str) -> tuple[Path, P
         .not_valid_before(datetime.now(tz=UTC) - timedelta(minutes=5))
         .not_valid_after(datetime.now(tz=UTC) + timedelta(days=14))
     )
-    alt_names: list[x509.GeneralName] = [x509.DNSName("localhost")]
-    host_values = {host, "127.0.0.1"}
-    if host in {"0.0.0.0", "::"}:
-        host_values.update(_local_ip_strings())
-    for value in host_values:
-        if value in {"0.0.0.0", "::"}:
-            continue
+    alt_names: list[x509.GeneralName] = []
+    for value in sorted(names):
         try:
             alt_names.append(x509.IPAddress(ip_address(value)))
         except ValueError:
-            if value not in {"0.0.0.0", "::"}:
-                alt_names.append(x509.DNSName(value))
+            alt_names.append(x509.DNSName(value))
     certificate = builder.add_extension(x509.SubjectAlternativeName(alt_names), critical=False).sign(key, hashes.SHA256())
     cert_path.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
     key_path.write_bytes(
@@ -227,7 +282,9 @@ def main() -> int:
         cert_path = Path(args.certfile)
         key_path = Path(args.keyfile)
     else:
-        cert_path, key_path = ensure_self_signed_certificate(local_path, config.host)
+        cert_path, key_path = ensure_self_signed_certificate(
+            local_path, config.host, advertised_hosts(config)
+        )
     server = BoundedShutdownServer(uvicorn.Config(
         app,
         host=config.host,

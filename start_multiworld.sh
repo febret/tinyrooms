@@ -11,7 +11,9 @@ set -euo pipefail
 #   --public-host  Hostname or IP the browser uses and that is advertised in
 #                  client URLs and Mission Control's public origin. Setting it
 #                  also binds the listeners to 0.0.0.0 so remote clients can
-#                  connect. When omitted, everything stays on 127.0.0.1.
+#                  connect. An IP literal must be one of this machine's current
+#                  addresses; otherwise the launcher stops and lists them.
+#                  When omitted, everything stays on 127.0.0.1.
 #   --config       Alternate multiworld JSON file. Defaults to multiworld.json.
 #
 # Mission Control's port and credentials are overridable via MC_PORT and the

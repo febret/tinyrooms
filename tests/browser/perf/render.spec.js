@@ -39,6 +39,11 @@ const test = base.extend({
   },
 });
 
+// The budgets below are calibrated for the scaled world that the perf config
+// generates. Skipping without it keeps a plain `npx playwright test` from
+// reporting them as failures; tools/run_perf.py always sets the variable.
+test.skip(!process.env.TR_PERF_WORLD_SCALE, "run via tools/run_perf.py");
+
 const PROPS = 90;
 
 test.describe("board resource budgets", () => {
